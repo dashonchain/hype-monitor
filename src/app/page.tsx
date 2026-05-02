@@ -77,7 +77,7 @@ export default function Home() {
     try {
       setRefreshing(true);
       const params = new URLSearchParams({ timeframe: tf || timeframe });
-      const res = await fetch(`https://inform-water-audio-alberta.trycloudflare.com/api/live-data?${params}`, {
+      const res = await fetch(`https://stroke-nevada-attachments-sit.trycloudflare.com/api/live-data?${params}`, {
         signal: AbortSignal.timeout(10000)
       });
       
