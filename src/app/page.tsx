@@ -36,16 +36,49 @@ export default function Home() {
   const [data, setData] = useState<Data | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [refreshing, setRefreshing] = useState(false);
+
+  const fetchData = async () => {
+    try {
+      setRefreshing(true);
+      const res = await fetch('/api/hype');
+      const d = await res.json();
+      if (d.error) throw new Error(d.error);
+      setData(d);
+      setError('');
+    } catch (e: any) {
+      setError(e.message || 'Erreur inconnue');
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  };
 
   useEffect(() => {
-    fetch('/api/hype')
-      .then(r => r.json())
-      .then((d: Data) => { setData(d); setLoading(false); })
-      .catch(e => { setError(e.message); setLoading(false); });
+    fetchData();
+    // Auto-refresh toutes les 5 minutes
+    const interval = setInterval(fetchData, 5 * 60 * 1000);
+    return () => clearInterval(interval);
   }, []);
 
-  if (loading) return <div className="min-h-screen bg-gray-950 text-gray-100 flex items-center justify-center">Chargement du dashboard HYPE...</div>;
-  if (error || !data) return <div className="min-h-screen bg-gray-950 text-red-400 flex items-center justify-center">Erreur: {error || 'Données indisponibles'}</div>;
+  if (loading) return (
+    <div className="min-h-screen bg-gray-950 text-gray-100 flex flex-col items-center justify-center gap-4">
+      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-cyan-400"></div>
+      <div>Chargement du dashboard HYPE...</div>
+    </div>
+  );
+
+  if (error || !data) return (
+    <div className="min-h-screen bg-gray-950 text-red-400 flex flex-col items-center justify-center gap-4 p-4">
+      <div className="text-xl">Erreur: {error || 'Données indisponibles'}</div>
+      <button 
+        onClick={fetchData}
+        className="px-4 py-2 bg-red-900/50 border border-red-700 rounded-lg hover:bg-red-800/50 transition"
+      >
+        Réessayer
+      </button>
+    </div>
+  );
 
   const categories: Category[] = [
     { title: '📈 Tendance', items: data.indicators.trend, color: 'from-blue-900 to-blue-800' },
@@ -67,9 +100,11 @@ export default function Home() {
           <div className="mt-4 md:mt-0 text-right">
             <div className="text-3xl font-mono font-bold">${data.price.toFixed(3)}</div>
             <div className="flex gap-3 text-sm mt-1">
-              <span className={data.price_change['24h'].startsWith('-') ? 'text-red-400' : 'text-green-400'}>24h: {data.price_change['24h']}</span>
-              <span className={data.price_change['7d'].startsWith('-') ? 'text-red-400' : 'text-green-400'}>7j: {data.price_change['7d']}</span>
-              <span className={data.price_change['30d'].startsWith('-') ? 'text-red-400' : 'text-green-400'}>30j: {data.price_change['30d']}</span>
+              {(['24h', '7d', '30d'] as const).map(period => (
+                <span key={period} className={data.price_change[period].startsWith('-') ? 'text-red-400' : 'text-green-400'}>
+                  {period}: {data.price_change[period]}
+                </span>
+              ))}
             </div>
           </div>
         </div>
@@ -114,6 +149,26 @@ export default function Home() {
               </div>
             </div>
           </div>
+        </div>
+
+        {/* Refresh Button */}
+        <div className="flex justify-end mb-6">
+          <button
+            onClick={fetchData}
+            disabled={refreshing}
+            className="flex items-center gap-2 px-4 py-2 bg-gray-800 border border-gray-700 rounded-lg hover:bg-gray-700 transition disabled:opacity-50"
+          >
+            {refreshing ? (
+              <>
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-cyan-400"></div>
+                Actualisation...
+              </>
+            ) : (
+              <>
+                🔄 Actualiser
+              </>
+            )}
+          </button>
         </div>
       </header>
 
