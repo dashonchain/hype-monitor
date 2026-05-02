@@ -118,7 +118,7 @@ export default function Home() {
   if (loading) return (
     <div className="min-h-screen bg-gray-950 text-gray-100 flex flex-col items-center justify-center gap-4">
       <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-cyan-400"></div>
-      <div>Chargement du dashboard HYPE...</div>
+      <div>Loading HYPE Dashboard...</div>
     </div>
   );
 
@@ -245,7 +245,7 @@ export default function Home() {
                   </div>
                   <div className="flex justify-between text-xs text-gray-500 mt-1">
                     <span>🔴 Short</span>
-                    <span>🟡 Neutre</span>
+                    <span>🟡 Neutral</span>
                     <span>🟢 Long</span>
                   </div>
                 </div>
@@ -263,7 +263,7 @@ export default function Home() {
               </div>
               <div>
                 <div className="text-yellow-400 text-xl font-bold">{data?.overall_decision?.neutral_signals || 0}</div>
-                <div className="text-xs text-gray-400">Neutre</div>
+                <div className="text-xs text-gray-400">Neutral</div>
               </div>
               <div>
                 <div className="text-red-400 text-xl font-bold">{data?.overall_decision?.sell_signals || 0}</div>
@@ -286,7 +286,7 @@ export default function Home() {
                 Actualisation...
               </>
             ) : (
-              <>🔄 Actualiser</>
+              <>🔄 Refresh</>
             )}
           </button>
         </div>
@@ -328,7 +328,7 @@ export default function Home() {
           {data?.derivatives && (
             <div className="md:col-span-2 bg-gradient-to-br from-indigo-900 to-indigo-800 rounded-xl border border-gray-800 overflow-hidden">
               <div className="p-4 border-b border-gray-800">
-                <h2 className="font-bold text-lg">📑 Dérivés & Liquidations</h2>
+                <h2 className="font-bold text-lg">📑 Derivatives & Liquidations</h2>
               </div>
               <div className="p-4 grid grid-cols-1 md:grid-cols-3 gap-4">
                 {/* Open Interest */}
@@ -433,7 +433,7 @@ export default function Home() {
           {/* Events */}
           {data?.events && data.events.length > 0 && (
             <div className="bg-gray-900/50 border border-gray-800 rounded-xl p-5">
-              <h3 className="font-bold text-lg mb-4">📅 Événements Clés</h3>
+              <h3 className="font-bold text-lg mb-4">📅 Events Clés</h3>
               <div className="space-y-3">
                 {data.events.map((ev, i) => (
                   <div key={i} className={`p-3 rounded-lg border-l-4 ${impactColor[ev.impact] || 'border-gray-600'} bg-gray-800/30`}>
