@@ -7,6 +7,11 @@ type Category = { title: string; items: Indicator[]; color: string };
 type Decision = { action: string; buy_signals: number; sell_signals: number; neutral_signals: number; buy_ratio: number; sell_ratio: number; summary: string };
 type SRChannel = { hi: number; lo: number; strength: number };
 type Event = { date: string; event: string; impact: string };
+type Derivatives = {
+  open_interest: { current_oi: number; oi_change_1d: number; oi_percentile_7d: number; oi_mcap_ratio: number };
+  funding_rate: { current_rate_pct: number; annualized_cost_pct: number; funding_percentile_7d: number };
+  liquidations: { short_liq_points: Array<{price: number, usd: number, distance_pct: number}>; long_liq_points: Array<{price: number, usd: number, distance_pct: number}>; imbalance_ratio: number };
+};
 
 type Data = {
   price: number;
@@ -18,6 +23,7 @@ type Data = {
   support_resistance: { channels: SRChannel[]; current_price: number; in_channel: boolean };
   overall_decision: Decision;
   events: Event[];
+  derivatives?: Derivatives;
   last_updated: string;
   source: string;
 };
@@ -29,6 +35,7 @@ const impactColor: Record<string, string> = { low: 'border-blue-500', medium: 'b
 function formatNumber(num: number): string {
   if (num >= 1e9) return `$${(num / 1e9).toFixed(2)}B`;
   if (num >= 1e6) return `$${(num / 1e6).toFixed(2)}M`;
+  if (num >= 1e3) return `$${(num / 1e3).toFixed(1)}K`;
   return `$${num.toFixed(2)}`;
 }
 
@@ -56,7 +63,6 @@ export default function Home() {
 
   useEffect(() => {
     fetchData();
-    // Auto-refresh toutes les 5 minutes
     const interval = setInterval(fetchData, 5 * 60 * 1000);
     return () => clearInterval(interval);
   }, []);
@@ -71,10 +77,7 @@ export default function Home() {
   if (error || !data) return (
     <div className="min-h-screen bg-gray-950 text-red-400 flex flex-col items-center justify-center gap-4 p-4">
       <div className="text-xl">Erreur: {error || 'Données indisponibles'}</div>
-      <button 
-        onClick={fetchData}
-        className="px-4 py-2 bg-red-900/50 border border-red-700 rounded-lg hover:bg-red-800/50 transition"
-      >
+      <button onClick={fetchData} className="px-4 py-2 bg-red-900/50 border border-red-700 rounded-lg hover:bg-red-800/50 transition">
         Réessayer
       </button>
     </div>
@@ -164,9 +167,7 @@ export default function Home() {
                 Actualisation...
               </>
             ) : (
-              <>
-                🔄 Actualiser
-              </>
+              <>🔄 Actualiser</>
             )}
           </button>
         </div>
@@ -196,6 +197,62 @@ export default function Home() {
               </div>
             </div>
           ))}
+
+          {/* Derivatives Section */}
+          {data.derivatives && (
+            <div className="md:col-span-2 bg-gradient-to-br from-indigo-900 to-indigo-800 rounded-xl border border-gray-800 overflow-hidden">
+              <div className="p-4 border-b border-gray-800">
+                <h2 className="font-bold text-lg">📑 Dérivés & Liquidations</h2>
+              </div>
+              <div className="p-4 grid grid-cols-1 md:grid-cols-3 gap-4">
+                {/* Open Interest */}
+                <div className="bg-gray-900/30 p-3 rounded-lg">
+                  <div className="text-sm text-gray-400">Open Interest</div>
+                  <div className="text-xl font-bold mt-1">{formatNumber(data.derivatives.open_interest.current_oi)}</div>
+                  <div className="text-xs mt-1">
+                    <span className={data.derivatives.open_interest.oi_change_1d >= 0 ? 'text-green-400' : 'text-red-400'}>
+                      1j: {data.derivatives.open_interest.oi_change_1d >= 0 ? '+' : ''}{(data.derivatives.open_interest.oi_change_1d / 1e6).toFixed(1)}M
+                    </span>
+                    <span className="text-gray-500 ml-2">({data.derivatives.open_interest.oi_percentile_7d}th percentile)</span>
+                  </div>
+                </div>
+
+                {/* Funding Rate */}
+                <div className="bg-gray-900/30 p-3 rounded-lg">
+                  <div className="text-sm text-gray-400">Funding Rate (1h)</div>
+                  <div className="text-xl font-bold mt-1">{(data.derivatives.funding_rate.current_rate_pct * 100).toFixed(3)}%</div>
+                  <div className="text-xs mt-1">
+                    <span className="text-gray-400">Coût annuel: {data.derivatives.funding_rate.annualized_cost_pct.toFixed(2)}%</span>
+                  </div>
+                </div>
+
+                {/* Liquidation Imbalance */}
+                <div className="bg-gray-900/30 p-3 rounded-lg">
+                  <div className="text-sm text-gray-400">Déséquilibre Liquidations</div>
+                  <div className="text-xl font-bold mt-1">
+                    {data.derivatives.liquidations.imbalance_ratio > 0 ? '🟢 Longs' : '🔴 Shorts'} favorisés
+                  </div>
+                  <div className="text-xs mt-1">
+                    <span className="text-gray-400">Ratio: {data.derivatives.liquidations.imbalance_ratio.toFixed(3)}</span>
+                  </div>
+                </div>
+
+                {/* Short Liquidation Points */}
+                <div className="md:col-span-3 bg-gray-900/20 p-3 rounded-lg">
+                  <div className="text-sm text-red-400 mb-2">Niveaux de Liquidation Shorts (TOP 3)</div>
+                  <div className="grid grid-cols-3 gap-2">
+                    {data.derivatives.liquidations.short_liq_points.map((pt, i) => (
+                      <div key={i} className="bg-red-900/20 p-2 rounded border border-red-800">
+                        <div className="font-mono">${pt.price.toFixed(2)}</div>
+                        <div className="text-xs text-gray-400">{(pt.usd / 1e6).toFixed(1)}M USD</div>
+                        <div className="text-xs text-red-400">{pt.distance_pct.toFixed(1)}% du prix</div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
         </section>
 
         {/* Sidebar: Support/Résistance + Events */}
