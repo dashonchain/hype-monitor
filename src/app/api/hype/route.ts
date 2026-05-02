@@ -29,9 +29,9 @@ export async function GET(request: Request) {
 
     let truenorthData = null;
     try {
-      const response = await fetch(url.toString(), { 
+      const response = await fetch(url.toString(), {
         method: 'GET',
-        signal: AbortSignal.timeout(10000) 
+        signal: AbortSignal.timeout(10000)
       });
       if (response.ok) {
         const data = await response.json();
@@ -43,17 +43,39 @@ export async function GET(request: Request) {
       console.warn('TrueNorth timeout/error:', e);
     }
 
-    // 2. CoinGecko pour le prix historique (1 an)
+    // 2. CoinGecko pour le prix temps réel
+    let realtimeData = null;
+    try {
+      const cgUrl = 'https://api.coingecko.com/api/v3/simple/price?ids=hyperliquid&vs_currencies=usd&include_24hr_change=true&include_24hr_vol=true&include_market_cap=true';
+      const cgResponse = await fetch(cgUrl, {
+        signal: AbortSignal.timeout(10000)
+      });
+      if (cgResponse.ok) {
+        const cgData = await cgResponse.json();
+        if (cgData.hyperliquid) {
+          realtimeData = {
+            price: cgData.hyperliquid.usd,
+            change_24h: cgData.hyperliquid.usd_24h_change?.toFixed(2) + '%',
+            volume_24h: cgData.hyperliquid.usd_24h_vol,
+            market_cap: cgData.hyperliquid.usd_market_cap,
+          };
+        }
+      }
+    } catch (e) {
+      console.warn('CoinGecko real-time error:', e);
+    }
+
+    // 3. CoinGecko pour l'historique (1 an)
     let historyData = null;
     if (includeHistory) {
       try {
-        const cgUrl = 'https://api.coingecko.com/api/v3/coins/hyperliquid/market_chart?vs_currency=usd&days=365&interval=daily';
-        const cgResponse = await fetch(cgUrl, { 
-          signal: AbortSignal.timeout(10000) 
+        const cgHistUrl = 'https://api.coingecko.com/api/v3/coins/hyperliquid/market_chart?vs_currency=usd&days=365&interval=daily';
+        const cgHistResponse = await fetch(cgHistUrl, {
+          signal: AbortSignal.timeout(10000)
         });
-        if (cgResponse.ok) {
-          const cgData = await cgResponse.json();
-          historyData = cgData.prices?.map((p: [number, number]) => ({
+        if (cgHistResponse.ok) {
+          const cgHistData = await cgHistResponse.json();
+          historyData = cgHistData.prices?.map((p: [number, number]) => ({
             timestamp: p[0],
             price: p[1]
           })) || [];
@@ -63,36 +85,15 @@ export async function GET(request: Request) {
       }
     }
 
-    // 3. Binance pour le prix temps réel (ticker 24h)
-    let binanceData = null;
-    try {
-      const bnUrl = 'https://api.binance.com/api/v3/ticker/24hr?symbol=HYPEUSDT';
-      const bnResponse = await fetch(bnUrl, { 
-        signal: AbortSignal.timeout(5000) 
-      });
-      if (bnResponse.ok) {
-        const bnData = await bnResponse.json();
-        binanceData = {
-          price: parseFloat(bnData.lastPrice),
-          price_change_24h: parseFloat(bnData.priceChangePercent) + '%',
-          volume_24h: parseFloat(bnData.volume) * parseFloat(bnData.lastPrice),
-          high_24h: parseFloat(bnData.highPrice),
-          low_24h: parseFloat(bnData.lowPrice),
-        };
-      }
-    } catch (e) {
-      console.warn('Binance API error:', e);
-    }
-
     // Construire la réponse
     if (truenorthData) {
       const responseData = {
         ...truenorthData,
-        binance: binanceData,
+        realtime: realtimeData, // Remplace binance
         history_1y: historyData,
         timeframe: timeframe,
         last_updated: new Date().toISOString(),
-        source: 'TrueNorth AI + Binance + CoinGecko',
+        source: 'TrueNorth AI + CoinGecko',
       };
       
       // Mettre en cache
@@ -111,7 +112,7 @@ export async function GET(request: Request) {
       const sampleData = JSON.parse(readFileSync(samplePath, 'utf-8'));
       return NextResponse.json({
         ...sampleData,
-        binance: null,
+        realtime: null,
         history_1y: null,
         timeframe: timeframe,
         last_updated: new Date().toISOString(),

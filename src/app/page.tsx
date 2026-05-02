@@ -8,7 +8,7 @@ type Decision = { action: string; buy_signals: number; sell_signals: number; neu
 type SRChannel = { hi: number; lo: number; strength: number };
 type Event = { date: string; event: string; impact: string };
 type HistoryPoint = { timestamp: number; price: number };
-type BinanceData = { price: number; price_change_24h: string; volume_24h: number; high_24h: number; low_24h: number };
+type RealtimeData = { price: number; price_change_24h: string; volume_24h: number; high_24h: number; low_24h: number; market_cap?: number };
 
 type Data = {
   price: number;
@@ -20,7 +20,7 @@ type Data = {
   support_resistance: { channels: SRChannel[]; current_price: number; in_channel: boolean };
   overall_decision: Decision;
   events: Event[];
-  binance?: BinanceData;
+  realtime?: RealtimeData;
   history_1y?: HistoryPoint[];
   timeframe?: string;
   last_updated: string;
@@ -150,17 +150,17 @@ export default function Home() {
             <p className="text-gray-400 text-sm mt-1">Hyperliquid Token • Powered by TrueNorth AI</p>
           </div>
           <div className="mt-4 md:mt-0 text-right">
-            <div className="text-3xl font-mono font-bold">${data.binance?.price?.toFixed(3) || data.price.toFixed(3)}</div>
+            <div className="text-3xl font-mono font-bold">${data.realtime?.price?.toFixed(3) || data.price.toFixed(3)}</div>
             <div className="flex gap-3 text-sm mt-1">
               {(['24h', '7d', '30d'] as const).map(period => (
                 <span key={period} className={(data.price_change[period] || '').startsWith('-') ? 'text-red-400' : 'text-green-400'}>
-                  {period}: {data.price_change[period] || data.binance?.price_change_24h || 'N/A'}
+                  {period}: {data.price_change[period] || data.realtime?.price_change_24h || 'N/A'}
                 </span>
               ))}
             </div>
-            {data.binance && (
+            {data.realtime && (
               <div className="text-xs text-gray-500 mt-1">
-                Binance: ${data.binance.price.toFixed(3)} • {data.binance.price_change_24h}
+                CoinGecko: ${data.realtime.price.toFixed(3)} • {data.realtime.price_change_24h}
               </div>
             )}
           </div>
@@ -186,9 +186,9 @@ export default function Home() {
         {/* Market Info */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
           {[ 
-            { label: 'Market Cap', value: formatNumber(data.market_cap) },
+            { label: 'Market Cap', value: formatNumber(data.realtime?.market_cap || data.market_cap) },
             { label: 'Rang', value: `#${data.market_cap_rank}` },
-            { label: 'Volume 24h', value: formatNumber(data.binance?.volume_24h || data.total_volume) },
+            { label: 'Volume 24h', value: formatNumber(data.realtime?.volume_24h || data.total_volume) },
             { label: 'Dernière MAJ', value: new Date(data.last_updated).toLocaleTimeString('fr-FR') }
           ].map(card => (
             <div key={card.label} className="bg-gray-900/50 border border-gray-800 rounded-lg p-3">
@@ -280,24 +280,24 @@ export default function Home() {
 
         {/* Sidebar: Support/Résistance + Events */}
         <aside className="space-y-6">
-          {/* Binance Real-time */}
-          {data.binance && (
+          {/* CoinGecko Real-time */}
+          {data.realtime && (
             <div className="bg-gray-900/50 border border-yellow-800/50 rounded-xl p-5">
-              <h3 className="font-bold text-lg mb-4">⚡ Binance (Temps réel)</h3>
+              <h3 className="font-bold text-lg mb-4">⚡ CoinGecko (Temps réel)</h3>
               <div className="space-y-3">
                 <div className="flex justify-between">
                   <span className="text-gray-400">Prix</span>
-                  <span className="font-mono font-bold">${data.binance.price.toFixed(3)}</span>
+                  <span className="font-mono font-bold">${data.realtime.price.toFixed(3)}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-400">24h %</span>
-                  <span className={data.binance.price_change_24h.startsWith('-') ? 'text-red-400' : 'text-green-400'}>
-                    {data.binance.price_change_24h}
+                  <span className={data.realtime.price_change_24h.startsWith('-') ? 'text-red-400' : 'text-green-400'}>
+                    {data.realtime.price_change_24h}
                   </span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-400">24h H/L</span>
-                  <span className="font-mono text-sm">${data.binance.low_24h.toFixed(2)} — ${data.binance.high_24h.toFixed(2)}</span>
+                  <span className="font-mono text-sm">${data.realtime.low_24h.toFixed(2)} — ${data.realtime.high_24h.toFixed(2)}</span>
                 </div>
               </div>
             </div>
