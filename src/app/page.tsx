@@ -7,11 +7,8 @@ type Category = { title: string; items: Indicator[]; color: string };
 type Decision = { action: string; buy_signals: number; sell_signals: number; neutral_signals: number; buy_ratio: number; sell_ratio: number; summary: string };
 type SRChannel = { hi: number; lo: number; strength: number };
 type Event = { date: string; event: string; impact: string };
-type Derivatives = {
-  open_interest: { current_oi: number; oi_change_1d: number; oi_percentile_7d: number; oi_mcap_ratio: number };
-  funding_rate: { current_rate_pct: number; annualized_cost_pct: number; funding_percentile_7d: number };
-  liquidations: { short_liq_points: Array<{price: number, usd: number, distance_pct: number}>; long_liq_points: Array<{price: number, usd: number, distance_pct: number}>; imbalance_ratio: number };
-};
+type HistoryPoint = { timestamp: number; price: number };
+type BinanceData = { price: number; price_change_24h: string; volume_24h: number; high_24h: number; low_24h: number };
 
 type Data = {
   price: number;
@@ -23,7 +20,9 @@ type Data = {
   support_resistance: { channels: SRChannel[]; current_price: number; in_channel: boolean };
   overall_decision: Decision;
   events: Event[];
-  derivatives?: Derivatives;
+  binance?: BinanceData;
+  history_1y?: HistoryPoint[];
+  timeframe?: string;
   last_updated: string;
   source: string;
 };
@@ -31,6 +30,7 @@ type Data = {
 const actionColor: Record<string, string> = { buy: 'text-green-400', sell: 'text-red-400', neutral: 'text-yellow-400', strong_buy: 'text-emerald-400', strong_sell: 'text-rose-400' };
 const actionBg: Record<string, string> = { buy: 'bg-green-900/30 border-green-700', sell: 'bg-red-900/30 border-red-700', neutral: 'bg-yellow-900/30 border-yellow-700' };
 const impactColor: Record<string, string> = { low: 'border-blue-500', medium: 'border-yellow-500', high: 'border-red-500' };
+const timeframes = ['1h', '4h', '1d', '1w'];
 
 function formatNumber(num: number): string {
   if (num >= 1e9) return `$${(num / 1e9).toFixed(2)}B`;
@@ -39,16 +39,59 @@ function formatNumber(num: number): string {
   return `$${num.toFixed(2)}`;
 }
 
+function HistorySparkline({ data }: { data: HistoryPoint[] }) {
+  if (!data || data.length < 2) return null;
+  
+  const prices = data.map(d => d.price);
+  const min = Math.min(...prices);
+  const max = Math.max(...prices);
+  const range = max - min || 1;
+  
+  const width = 300;
+  const height = 50;
+  const points = data.map((d, i) => {
+    const x = (i / (data.length - 1)) * width;
+    const y = height - ((d.price - min) / range) * height;
+    return `${x},${y}`;
+  }).join(' ');
+  
+  const firstPrice = data[0].price;
+  const lastPrice = data[data.length - 1].price;
+  const isUp = lastPrice >= firstPrice;
+  
+  return (
+    <div className="mt-2">
+      <div className="text-xs text-gray-400 mb-1">Historique 1 an (365 jours)</div>
+      <svg width={width} height={height} className="bg-gray-900/30 rounded">
+        <polyline
+          points={points}
+          fill="none"
+          stroke={isUp ? '#4ade80' : '#f87171'}
+          strokeWidth="1.5"
+        />
+      </svg>
+      <div className="flex justify-between text-xs text-gray-500 mt-1">
+        <span>Il y a 1 an: ${firstPrice.toFixed(2)}</span>
+        <span className={isUp ? 'text-green-400' : 'text-red-400'}>
+          {((lastPrice - firstPrice) / firstPrice * 100).toFixed(1)}%
+        </span>
+      </div>
+    </div>
+  );
+}
+
 export default function Home() {
   const [data, setData] = useState<Data | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [refreshing, setRefreshing] = useState(false);
+  const [timeframe, setTimeframe] = useState('4h');
 
-  const fetchData = async () => {
+  const fetchData = async (tf?: string) => {
     try {
       setRefreshing(true);
-      const res = await fetch('/api/hype');
+      const params = new URLSearchParams({ timeframe: tf || timeframe, history: 'true' });
+      const res = await fetch(`/api/hype?${params}`);
       const d = await res.json();
       if (d.error) throw new Error(d.error);
       setData(d);
@@ -63,9 +106,15 @@ export default function Home() {
 
   useEffect(() => {
     fetchData();
-    const interval = setInterval(fetchData, 5 * 60 * 1000);
+    const interval = setInterval(() => fetchData(), 5 * 60 * 1000);
     return () => clearInterval(interval);
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [timeframe]);
+
+  const changeTimeframe = (tf: string) => {
+    setTimeframe(tf);
+    fetchData(tf);
+  };
 
   if (loading) return (
     <div className="min-h-screen bg-gray-950 text-gray-100 flex flex-col items-center justify-center gap-4">
@@ -77,7 +126,7 @@ export default function Home() {
   if (error || !data) return (
     <div className="min-h-screen bg-gray-950 text-red-400 flex flex-col items-center justify-center gap-4 p-4">
       <div className="text-xl">Erreur: {error || 'Données indisponibles'}</div>
-      <button onClick={fetchData} className="px-4 py-2 bg-red-900/50 border border-red-700 rounded-lg hover:bg-red-800/50 transition">
+      <button onClick={() => fetchData()} className="px-4 py-2 bg-red-900/50 border border-red-700 rounded-lg hover:bg-red-800/50 transition">
         Réessayer
       </button>
     </div>
@@ -101,15 +150,37 @@ export default function Home() {
             <p className="text-gray-400 text-sm mt-1">Hyperliquid Token • Powered by TrueNorth AI</p>
           </div>
           <div className="mt-4 md:mt-0 text-right">
-            <div className="text-3xl font-mono font-bold">${data.price.toFixed(3)}</div>
+            <div className="text-3xl font-mono font-bold">${data.binance?.price?.toFixed(3) || data.price.toFixed(3)}</div>
             <div className="flex gap-3 text-sm mt-1">
               {(['24h', '7d', '30d'] as const).map(period => (
-                <span key={period} className={data.price_change[period].startsWith('-') ? 'text-red-400' : 'text-green-400'}>
-                  {period}: {data.price_change[period]}
+                <span key={period} className={(data.price_change[period] || '').startsWith('-') ? 'text-red-400' : 'text-green-400'}>
+                  {period}: {data.price_change[period] || data.binance?.price_change_24h || 'N/A'}
                 </span>
               ))}
             </div>
+            {data.binance && (
+              <div className="text-xs text-gray-500 mt-1">
+                Binance: ${data.binance.price.toFixed(3)} • {data.binance.price_change_24h}
+              </div>
+            )}
           </div>
+        </div>
+
+        {/* Timeframe Selector */}
+        <div className="flex gap-2 mb-6">
+          {timeframes.map(tf => (
+            <button
+              key={tf}
+              onClick={() => changeTimeframe(tf)}
+              className={`px-4 py-2 rounded-lg text-sm font-semibold transition ${
+                timeframe === tf
+                  ? 'bg-cyan-600 text-white'
+                  : 'bg-gray-800 text-gray-400 hover:bg-gray-700'
+              }`}
+            >
+              {tf}
+            </button>
+          ))}
         </div>
 
         {/* Market Info */}
@@ -117,7 +188,7 @@ export default function Home() {
           {[ 
             { label: 'Market Cap', value: formatNumber(data.market_cap) },
             { label: 'Rang', value: `#${data.market_cap_rank}` },
-            { label: 'Volume 24h', value: formatNumber(data.total_volume) },
+            { label: 'Volume 24h', value: formatNumber(data.binance?.volume_24h || data.total_volume) },
             { label: 'Dernière MAJ', value: new Date(data.last_updated).toLocaleTimeString('fr-FR') }
           ].map(card => (
             <div key={card.label} className="bg-gray-900/50 border border-gray-800 rounded-lg p-3">
@@ -131,7 +202,7 @@ export default function Home() {
         <div className={`border rounded-xl p-5 mb-8 ${actionBg[data.overall_decision.action.toLowerCase()]}`}>
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center">
             <div>
-              <div className="text-sm text-gray-400 mb-1">DÉCISION TRUENORTH</div>
+              <div className="text-sm text-gray-400 mb-1">DÉCISION TRUENORTH ({data.timeframe || '4h'})</div>
               <div className={`text-4xl font-bold ${actionColor[data.overall_decision.action.toLowerCase()]}`}>
                 {data.overall_decision.action === 'Buy' ? '🟢 ACHAT' : data.overall_decision.action === 'Sell' ? '🔴 VENTE' : '🟡 NEUTRE'}
               </div>
@@ -157,7 +228,7 @@ export default function Home() {
         {/* Refresh Button */}
         <div className="flex justify-end mb-6">
           <button
-            onClick={fetchData}
+            onClick={() => fetchData()}
             disabled={refreshing}
             className="flex items-center gap-2 px-4 py-2 bg-gray-800 border border-gray-700 rounded-lg hover:bg-gray-700 transition disabled:opacity-50"
           >
@@ -198,65 +269,40 @@ export default function Home() {
             </div>
           ))}
 
-          {/* Derivatives Section */}
-          {data.derivatives && (
-            <div className="md:col-span-2 bg-gradient-to-br from-indigo-900 to-indigo-800 rounded-xl border border-gray-800 overflow-hidden">
-              <div className="p-4 border-b border-gray-800">
-                <h2 className="font-bold text-lg">📑 Dérivés & Liquidations</h2>
-              </div>
-              <div className="p-4 grid grid-cols-1 md:grid-cols-3 gap-4">
-                {/* Open Interest */}
-                <div className="bg-gray-900/30 p-3 rounded-lg">
-                  <div className="text-sm text-gray-400">Open Interest</div>
-                  <div className="text-xl font-bold mt-1">{formatNumber(data.derivatives.open_interest.current_oi)}</div>
-                  <div className="text-xs mt-1">
-                    <span className={data.derivatives.open_interest.oi_change_1d >= 0 ? 'text-green-400' : 'text-red-400'}>
-                      1j: {data.derivatives.open_interest.oi_change_1d >= 0 ? '+' : ''}{(data.derivatives.open_interest.oi_change_1d / 1e6).toFixed(1)}M
-                    </span>
-                    <span className="text-gray-500 ml-2">({data.derivatives.open_interest.oi_percentile_7d}th percentile)</span>
-                  </div>
-                </div>
-
-                {/* Funding Rate */}
-                <div className="bg-gray-900/30 p-3 rounded-lg">
-                  <div className="text-sm text-gray-400">Funding Rate (1h)</div>
-                  <div className="text-xl font-bold mt-1">{(data.derivatives.funding_rate.current_rate_pct * 100).toFixed(3)}%</div>
-                  <div className="text-xs mt-1">
-                    <span className="text-gray-400">Coût annuel: {data.derivatives.funding_rate.annualized_cost_pct.toFixed(2)}%</span>
-                  </div>
-                </div>
-
-                {/* Liquidation Imbalance */}
-                <div className="bg-gray-900/30 p-3 rounded-lg">
-                  <div className="text-sm text-gray-400">Déséquilibre Liquidations</div>
-                  <div className="text-xl font-bold mt-1">
-                    {data.derivatives.liquidations.imbalance_ratio > 0 ? '🟢 Longs' : '🔴 Shorts'} favorisés
-                  </div>
-                  <div className="text-xs mt-1">
-                    <span className="text-gray-400">Ratio: {data.derivatives.liquidations.imbalance_ratio.toFixed(3)}</span>
-                  </div>
-                </div>
-
-                {/* Short Liquidation Points */}
-                <div className="md:col-span-3 bg-gray-900/20 p-3 rounded-lg">
-                  <div className="text-sm text-red-400 mb-2">Niveaux de Liquidation Shorts (TOP 3)</div>
-                  <div className="grid grid-cols-3 gap-2">
-                    {data.derivatives.liquidations.short_liq_points.map((pt, i) => (
-                      <div key={i} className="bg-red-900/20 p-2 rounded border border-red-800">
-                        <div className="font-mono">${pt.price.toFixed(2)}</div>
-                        <div className="text-xs text-gray-400">{(pt.usd / 1e6).toFixed(1)}M USD</div>
-                        <div className="text-xs text-red-400">{pt.distance_pct.toFixed(1)}% du prix</div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
+          {/* Historical Chart (1 Year) */}
+          {data.history_1y && data.history_1y.length > 0 && (
+            <div className="md:col-span-2 bg-gray-900/50 border border-gray-800 rounded-xl p-5">
+              <h3 className="font-bold text-lg mb-4">📅 Historique 1 an</h3>
+              <HistorySparkline data={data.history_1y} />
             </div>
           )}
         </section>
 
         {/* Sidebar: Support/Résistance + Events */}
         <aside className="space-y-6">
+          {/* Binance Real-time */}
+          {data.binance && (
+            <div className="bg-gray-900/50 border border-yellow-800/50 rounded-xl p-5">
+              <h3 className="font-bold text-lg mb-4">⚡ Binance (Temps réel)</h3>
+              <div className="space-y-3">
+                <div className="flex justify-between">
+                  <span className="text-gray-400">Prix</span>
+                  <span className="font-mono font-bold">${data.binance.price.toFixed(3)}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-400">24h %</span>
+                  <span className={data.binance.price_change_24h.startsWith('-') ? 'text-red-400' : 'text-green-400'}>
+                    {data.binance.price_change_24h}
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-400">24h H/L</span>
+                  <span className="font-mono text-sm">${data.binance.low_24h.toFixed(2)} — ${data.binance.high_24h.toFixed(2)}</span>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Support / Résistance */}
           <div className="bg-gray-900/50 border border-gray-800 rounded-xl p-5">
             <h3 className="font-bold text-lg mb-4">🎯 Support & Résistance</h3>
