@@ -7,6 +7,7 @@ const path = require('path');
 const app = express();
 const PORT = 3001;
 const CACHE_FILE = path.join(__dirname, 'cache.json');
+const COINGECKO_CACHE_FILE = path.join(__dirname, 'cache-coingecko.json');
 
 app.use(cors());
 app.use(express.json());
@@ -146,6 +147,68 @@ function transformDerivativesData(tnData) {
   };
 }
 
+// Fetch 1-year daily price+volume history from CoinGecko (cached for 1 hour)
+async function fetchCoinGeckoHistory() {
+  console.log('fetchCoinGeckoHistory called');
+  // Check valid cache first (1 hour expiry)
+  try {
+    if (fs.existsSync(COINGECKO_CACHE_FILE)) {
+      const cache = JSON.parse(fs.readFileSync(COINGECKO_CACHE_FILE, 'utf8'));
+      const cacheAge = Date.now() - cache.timestamp;
+      if (cacheAge < 3600000) { // 1 hour in milliseconds
+        console.log('Returning cached CoinGecko history data');
+        return cache.data;
+      }
+    }
+  } catch (e) {
+    console.warn('CoinGecko cache read error:', e.message);
+  }
+
+  // Fetch fresh data from CoinGecko API
+  const apiUrl = 'https://api.coingecko.com/api/v3/coins/hyperliquid/market_chart?vs_currency=usd&days=365&interval=daily';
+  const cmd = `curl -s "${apiUrl}"`;
+  
+  try {
+    const output = await new Promise((resolve, reject) => {
+      exec(cmd, { timeout: 15000 }, (error, stdout, stderr) => {
+        if (error) {
+          console.error('CoinGecko API request failed:', stderr || error.message);
+          return reject(error);
+        }
+        resolve(stdout);
+      });
+    });
+
+    const marketChart = JSON.parse(output);
+    const historyData = {
+      prices: marketChart.prices || [],
+      volumes: marketChart.total_volumes || []
+    };
+
+    // Update cache with timestamp
+    const cacheContent = {
+      timestamp: Date.now(),
+      data: historyData
+    };
+    fs.writeFileSync(COINGECKO_CACHE_FILE, JSON.stringify(cacheContent, null, 2));
+    console.log('Fetched fresh CoinGecko history data');
+    return historyData;
+  } catch (e) {
+    console.error('Failed to fetch CoinGecko history:', e.message);
+    // Fallback to stale cache if available
+    try {
+      if (fs.existsSync(COINGECKO_CACHE_FILE)) {
+        const staleCache = JSON.parse(fs.readFileSync(COINGECKO_CACHE_FILE, 'utf8'));
+        console.warn('Using stale CoinGecko cache due to fetch error');
+        return staleCache.data;
+      }
+    } catch (cacheError) {
+      console.error('Failed to read stale CoinGecko cache:', cacheError.message);
+    }
+    return { prices: [], volumes: [] }; // Last resort empty data
+  }
+}
+
 // Lire le cache
 function readCache() {
   try {
@@ -170,7 +233,12 @@ function writeCache(data) {
 // Endpoint principal : récupérer toutes les données live
 app.get('/api/live-data', async (req, res) => {
   const startTime = Date.now();
-  const timeframe = req.query.timeframe || '1d';
+  const requestedTimeframe = req.query.timeframe || '1d';
+  const validTimeframes = ['5m', '15m', '1h', '4h', '1d'];
+  const timeframe = validTimeframes.includes(requestedTimeframe) ? requestedTimeframe : '1d';
+  if (requestedTimeframe !== timeframe) {
+    console.warn(`Invalid timeframe "${requestedTimeframe}", defaulting to 1d`);
+  }
   
   try {
     console.log(`Fetching live data (timeframe: ${timeframe})...`);
@@ -201,6 +269,10 @@ app.get('/api/live-data', async (req, res) => {
       console.error('Derivatives failed:', derivData.reason);
     }
 
+    // Add CoinGecko historical data
+    const history = await fetchCoinGeckoHistory();
+    responseData.history = history;
+
     // Ajouter les métadonnées de fraîcheur
     responseData.last_updated = new Date().toISOString();
     responseData.fetch_duration_ms = Date.now() - startTime;
@@ -230,6 +302,6 @@ app.get('/health', (req, res) => {
 app.listen(PORT, () => {
   console.log(`🚀 Micro-backend HYPE Monitor running on http://localhost:${PORT}`);
   console.log(`📡 Endpoints:`);
-  console.log(`   GET /api/live-data?timeframe=1d (1h, 4h, 1d, 1w)`);
+  console.log(`   GET /api/live-data?timeframe=X (valid: 5m, 15m, 1h, 4h, 1d)`);
   console.log(`   GET /health`);
 });
