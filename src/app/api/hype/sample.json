@@ -1,32 +1,58 @@
 {
-  "result": {
-    "technical_indicators": {
-      "rsi14": {"value": 60.06, "state": "neutral", "momentum": "falling"},
-      "stoch_k_14_3_3": {"k": 83.05, "d": 90.93, "zone": "overbought", "direction": "bear"},
-      "kdj_14_3_3": {"k": 83.05, "d": 90.93, "j": 67.3, "direction": "bear", "extreme": false},
-      "cci20": {"value": 111.97, "state": "overbought"},
-      "adx14": {"adx": 21.2, "di_plus": 28.15, "di_minus": 13.5, "trend_strength": "moderate", "trend_direction": "bull"},
-      "macd_12_26_9": {"dif": 0.2325, "dea": -0.0068, "hist": 0.2393, "state": "bull", "momentum": "falling"},
-      "sma10": {"value": 41.01, "slope": "up", "state": "price_above"},
-      "sma20": {"value": 40.87, "slope": "up", "state": "price_above"},
-      "sma50": {"value": 40.87, "slope": "up", "state": "price_above"},
-      "boll_20_2": {"upper": 42.03, "mid": 40.3, "lower": 38.57, "pb": 0.811, "near": "near_upper", "mid_relation": "above_mid", "bandwidth": 0.086},
-      "atr14": {"value": 0.6789, "atr_pct": 0.0164, "pctile_60": 25, "state": "normal"},
-      "volume": {"value": 445518.56, "ma20": 1167957.59, "vs_ma20": -0.6185, "pctile_60": 10, "state": "low"}
-    },
-    "support_resistance": {
-      "support and resistance channel": [
-        {"hi": 43.6, "lo": 43.138, "strength": 76},
-        {"hi": 41.9, "lo": 41.58, "strength": 64},
-        {"hi": 40.29, "lo": 40.172, "strength": 53},
-        {"hi": 38.867, "lo": 38.706, "strength": 56},
-        {"hi": 45.75, "lo": 45.75, "strength": 21},
-        {"hi": 35.116, "lo": 35.116, "strength": 21}
-      ]
-    },
-    "token_metadata": {
-      "token_info": {"token_symbol": "HYPE", "ticker": "HYPEUSDT", "price": 41.35},
-      "price_change": {"24h": "1.35%", "7d": "-0.35%", "30d": "19.13%"}
-    }
-  }
+  "price": 41.655,
+  "price_change": { "24h": "1.73%", "7d": "1.20%", "30d": "19.29%" },
+  "market_cap": 9931086485,
+  "market_cap_rank": 13,
+  "total_volume": 204880549,
+  "indicators": {
+    "trend": [
+      { "name": "SMA(10)", "value": 41.15, "action": "buy", "detail": "Prix au-dessus, pente haussière" },
+      { "name": "SMA(20)", "value": 40.37, "action": "buy", "detail": "Prix au-dessus, pente haussière" },
+      { "name": "SMA(50)", "value": 40.89, "action": "buy", "detail": "Prix au-dessus, pente haussière" },
+      { "name": "ADX(14)", "value": 22.42, "action": "buy", "detail": "Tendance modérée, direction bull" },
+      { "name": "VWAP(96)", "value": 41.37, "action": "buy", "detail": "Prix au-dessus, pente descendante" }
+    ],
+    "momentum": [
+      { "name": "RSI(14)", "value": 61.69, "action": "neutral", "detail": "Neutre, momentum haussier" },
+      { "name": "Stochastic(14,3,3)", "value": 76.69, "action": "neutral", "detail": "Zone neutre, direction bear" },
+      { "name": "KDJ(14,3,3)", "value": 62.47, "action": "neutral", "detail": "Direction bear, pas extrême" },
+      { "name": "CCI(20)", "value": 108.07, "action": "sell", "detail": "Zone de surachat" },
+      { "name": "MACD(12,26,9)", "value": 0.2264, "action": "buy", "detail": "État bull, momentum baissier" }
+    ],
+    "volatility": [
+      { "name": "Bollinger(20,2)", "value": 0.844, "action": "sell", "detail": "Proche bande supérieure" },
+      { "name": "ATR(14)", "value": 0.6391, "action": "neutral", "detail": "Volatilité basse (1.53%)" },
+      { "name": "Bollinger Bandwidth", "value": 0.0922, "action": "neutral", "detail": "Bandes moyennes" }
+    ],
+    "volume": [
+      { "name": "Volume 4h", "value": 36817.67, "action": "neutral", "detail": "96% en dessous MA20" },
+      { "name": "Volume MA20", "value": 1119797.42, "action": "sell", "detail": "Volume très faible" }
+    ]
+  },
+  "support_resistance": {
+    "channels": [
+      { "hi": 43.6, "lo": 43.138, "strength": 76 },
+      { "hi": 41.9, "lo": 41.58, "strength": 65 },
+      { "hi": 40.29, "lo": 40.172, "strength": 53 },
+      { "hi": 38.867, "lo": 38.706, "strength": 56 }
+    ],
+    "current_price": 41.655,
+    "in_channel": true
+  },
+  "overall_decision": {
+    "action": "Buy",
+    "buy_signals": 5,
+    "sell_signals": 2,
+    "neutral_signals": 4,
+    "buy_ratio": 0.4545,
+    "sell_ratio": 0.1818,
+    "summary": "Tendance haussière modérée avec momentum mixte. Les moyennes mobiles confirment le bull, mais le volume est faible."
+  },
+  "events": [
+    { "date": "2026-05-05", "event": "Déblocage 30,000 HYPE (a16z unstake 4,270 HYPE)", "impact": "medium" },
+    { "date": "2026-05-02", "event": "Lancement d'Outcome Markets sur Hyperliquid Mainnet", "impact": "low" },
+    { "date": "2026-05-01", "event": "Compte X de Loracle (contributeur early) banni/supprimé", "impact": "low" }
+  ],
+  "last_updated": "2026-05-02T16:00:00Z",
+  "source": "TrueNorth AI (4h timeframe)"
 }
