@@ -209,6 +209,48 @@ async function fetchCoinGeckoHistory() {
   }
 }
 
+// Calculer l'EMA (Exponential Moving Average)
+function calculateEMA(prices, period) {
+  if (!prices || prices.length < period) return [];
+  const emaValues = new Array(prices.length).fill(null);
+  // SMA initiale sur les 'period' premières périodes
+  let sum = 0;
+  for (let i = 0; i < period; i++) {
+    sum += prices[i][1]; // prices est un tableau de [timestamp, prix]
+  }
+  let ema = sum / period;
+  emaValues[period - 1] = ema;
+  const multiplier = 2 / (period + 1);
+  // Calcul de l'EMA pour les périodes restantes
+  for (let i = period; i < prices.length; i++) {
+    ema = (prices[i][1] - ema) * multiplier + ema;
+    emaValues[i] = ema;
+  }
+  // Retourner un tableau de [timestamp, ema] pour correspondre au format prices
+  return prices.map((price, index) => [price[0], emaValues[index]]);
+}
+
+// Calculer l'OBV (On-Balance Volume)
+function calculateOBV(prices, volumes) {
+  if (!prices || !volumes || prices.length < 2 || volumes.length < 2) return null;
+  // Trier par timestamp croissant
+  const sortedPrices = [...prices].sort((a, b) => a[0] - b[0]);
+  const sortedVolumes = [...volumes].sort((a, b) => a[0] - b[0]);
+  let obv = 0;
+  for (let i = 1; i < sortedPrices.length; i++) {
+    const currentPrice = sortedPrices[i][1];
+    const prevPrice = sortedPrices[i-1][1];
+    const volume = sortedVolumes[i][1]; // Le volume associé à la période courante
+    if (currentPrice > prevPrice) {
+      obv += volume;
+    } else if (currentPrice < prevPrice) {
+      obv -= volume;
+    }
+    // Si prix égal, pas de changement d'OBV
+  }
+  return obv;
+}
+
 // Lire le cache
 function readCache() {
   try {
@@ -272,7 +314,23 @@ app.get('/api/live-data', async (req, res) => {
     // Add CoinGecko historical data
     const history = await fetchCoinGeckoHistory();
     responseData.history = history;
-
+    
+    // Calculer les EMA (historique complet pour graphique)
+    if (history && history.prices) {
+      responseData.ema20History = calculateEMA(history.prices, 20);
+      responseData.ema50History = calculateEMA(history.prices, 50);
+      responseData.ema200History = calculateEMA(history.prices, 200);
+      // Garder aussi la valeur actuelle pour le dashboard
+      responseData.ema20 = responseData.ema20History.length > 0 ? responseData.ema20History[responseData.ema20History.length -1][1] : null;
+      responseData.ema50 = responseData.ema50History.length > 0 ? responseData.ema50History[responseData.ema50History.length -1][1] : null;
+      responseData.ema200 = responseData.ema200History.length > 0 ? responseData.ema200History[responseData.ema200History.length -1][1] : null;
+    }
+    
+    // Calculer l'OBV
+    if (history && history.prices && history.volumes) {
+      responseData.obv = calculateOBV(history.prices, history.volumes);
+    }
+    
     // Ajouter les métadonnées de fraîcheur
     responseData.last_updated = new Date().toISOString();
     responseData.fetch_duration_ms = Date.now() - startTime;

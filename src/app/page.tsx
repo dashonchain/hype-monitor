@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState, useCallback } from 'react';
+import PriceChart from '../components/PriceChart';
 
 type Indicator = { name: string; value: number; action: string; detail: string };
 type Category = { title: string; items: Indicator[]; color: string };
@@ -28,6 +29,10 @@ type Data = {
   signal_emoji?: string;
   events: Event[];
   derivatives?: Derivatives;
+  ema20History?: [number, number][];
+  ema50History?: [number, number][];
+  ema200History?: [number, number][];
+  history?: { prices: [number, number][]; volumes: [number, number][] };
   timeframe?: string;
   last_updated: string;
   source: string;
@@ -388,6 +393,17 @@ export default function Home() {
               </div>
             </div>
           )}
+
+          {/* Graphique des Prix & EMA */}
+          {data?.history?.prices && data?.ema20History && (
+            <PriceChart 
+              prices={data.history.prices}
+              ema20History={data.ema20History}
+              ema50History={data.ema50History || []}
+              ema200History={data.ema200History || []}
+            />
+          )}
+
         </section>
 
         {/* Sidebar: Support/Résistance + Events */}
