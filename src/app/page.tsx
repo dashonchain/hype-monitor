@@ -7,6 +7,7 @@ type Indicator = {
   value: number | string;
   action: string;
   details?: string;
+  category?: string;
 };
 
 type HypeData = {
@@ -18,6 +19,15 @@ type HypeData = {
 };
 
 const TIMEFRAMES = ['1h', '4h', '1d', '1w'];
+
+// Helper to categorize indicators
+function categorize(name: string): string {
+  if (/rsi|stoch|cci|macd|momentum|kdj/i.test(name)) return 'Momentum';
+  if (/sma|ema|adx|ichimoku|supertrend/i.test(name)) return 'Trend';
+  if (/boll|atr|kC|donchian/i.test(name)) return 'Volatility';
+  if (/volume|obv|cmf|vwap/i.test(name)) return 'Volume';
+  return 'Other';
+}
 
 export default function Home() {
   const [timeframe, setTimeframe] = useState('4h');
@@ -49,35 +59,49 @@ export default function Home() {
     return () => clearInterval(interval);
   }, [timeframe]);
 
+  // Process indicators
   const indicators: Indicator[] = [];
+  let buyCount = 0, sellCount = 0, neutralCount = 0;
+  
   if (data?.result?.technical_indicators) {
     const ti = data.result.technical_indicators;
     Object.entries(ti).forEach(([key, val]: [string, any]) => {
       if (val.value !== undefined) {
+        const action = val.state || val.zone || 'neutral';
+        const name = key.replace(/_/g, ' ').toUpperCase();
         indicators.push({
-          name: key.replace(/_/g, ' ').toUpperCase(),
+          name,
           value: val.value,
-          action: val.state || val.zone || 'neutral',
+          action,
           details: val.momentum ? `Momentum: ${val.momentum}` : undefined,
+          category: categorize(name),
         });
+        // Count signals
+        if (action.includes('buy')) buyCount++;
+        else if (action.includes('sell')) sellCount++;
+        else neutralCount++;
       }
     });
   }
 
-  const getActionColor = (action: string) => {
-    if (action.includes('buy')) return 'text-green-600 bg-green-50 border-green-200';
-    if (action.includes('sell')) return 'text-red-600 bg-red-50 border-red-200';
-    return 'text-yellow-600 bg-yellow-50 border-yellow-200';
-  };
+  // Decision logic
+  const totalSignals = buyCount + sellCount + neutralCount;
+  const decision = buyCount > sellCount ? 'BUY' : sellCount > buyCount ? 'SELL' : 'HOLD';
+  const decisionColor = decision === 'BUY' ? 'text-green-400 bg-green-900/30 border-green-500' : 
+                     decision === 'SELL' ? 'text-red-400 bg-red-900/30 border-red-500' : 
+                     'text-yellow-400 bg-yellow-900/30 border-yellow-500';
 
   const price = data?.result?.token_metadata?.token_info?.price || 'N/A';
   const priceChange = data?.result?.token_metadata?.price_change?.calendar?.['24h'] || 'N/A';
 
+  // Group indicators by category
+  const categories = Array.from(new Set(indicators.map(i => i.category)));
+  
   if (loading) return (
     <div className="min-h-screen flex items-center justify-center bg-gray-900">
       <div className="text-center">
         <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-blue-500 mx-auto mb-4"></div>
-        <p className="text-gray-300">Loading HYPE Market Data...</p>
+        <p className="text-gray-300">Loading HYPE Market Intelligence...</p>
       </div>
     </div>
   );
@@ -136,51 +160,52 @@ export default function Home() {
           </div>
         </div>
 
-        {/* Stats Bar */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-          {[
-            { label: 'RSI(14)', value: data?.result?.technical_indicators?.rsi14?.value?.toFixed(2) || 'N/A', sub: data?.result?.technical_indicators?.rsi14?.state || '' },
-            { label: 'MACD', value: data?.result?.technical_indicators?.macd_12_26_9?.hist?.toFixed(4) || 'N/A', sub: data?.result?.technical_indicators?.macd_12_26_9?.state || '' },
-            { label: 'ADX(14)', value: data?.result?.technical_indicators?.adx14?.adx?.toFixed(2) || 'N/A', sub: data?.result?.technical_indicators?.adx14?.trend_direction || '' },
-            { label: 'Volume', value: data?.result?.technical_indicators?.volume?.value ? (data.result.technical_indicators.volume.value / 1000).toFixed(1) + 'K' : 'N/A', sub: data?.result?.technical_indicators?.volume?.state || '' },
-          ].map(stat => (
-            <div key={stat.label} className="bg-gray-800 rounded-xl p-4 border border-gray-700">
-              <p className="text-gray-500 text-xs uppercase tracking-wider mb-1">{stat.label}</p>
-              <p className="text-xl font-bold">{stat.value}</p>
-              <p className="text-xs text-gray-400 mt-1">{stat.sub}</p>
-            </div>
-          ))}
+        {/* Decision Banner */}
+        <div className={`mb-8 p-6 rounded-xl border ${decisionColor} text-center`}>
+          <h2 className="text-2xl font-bold mb-2">Decision: {decision}</h2>
+          <p className="text-sm opacity-80">
+            Based on {totalSignals} indicators: 
+            <span className="text-green-400 font-medium"> {buyCount} Buy</span> | 
+            <span className="text-red-400 font-medium"> {sellCount} Sell</span> | 
+            <span className="text-yellow-400 font-medium"> {neutralCount} Neutral</span>
+          </p>
         </div>
 
-        {/* Indicators Grid */}
-        <div className="mb-8">
-          <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
-            <span className="w-1 h-6 bg-blue-500 rounded-full"></span>
-            Technical Indicators
-          </h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {indicators.map(ind => (
-              <div key={ind.name} className="bg-gray-800 rounded-xl p-5 border border-gray-700 hover:border-gray-600 transition-colors">
-                <div className="flex justify-between items-start mb-3">
-                  <h3 className="font-medium text-gray-300">{ind.name}</h3>
-                  <span className={`text-xs px-3 py-1 rounded-full border ${getActionColor(ind.action)}`}>
-                    {ind.action}
-                  </span>
+        {/* Category Sections */}
+        {categories.map(category => (
+          <div key={category} className="mb-8">
+            <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
+              <span className="w-1 h-6 bg-blue-500 rounded-full"></span>
+              {category} Indicators
+            </h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {indicators.filter(i => i.category === category).map(ind => (
+                <div key={ind.name} className="bg-gray-800 rounded-xl p-5 border border-gray-700 hover:border-gray-600 transition-colors">
+                  <div className="flex justify-between items-start mb-3">
+                    <h3 className="font-medium text-gray-300">{ind.name}</h3>
+                    <span className={`text-xs px-3 py-1 rounded-full border ${
+                      ind.action.includes('buy') ? 'text-green-600 bg-green-50 border-green-200' :
+                      ind.action.includes('sell') ? 'text-red-600 bg-red-50 border-red-200' :
+                      'text-yellow-600 bg-yellow-50 border-yellow-200'
+                    }`}>
+                      {ind.action}
+                    </span>
+                  </div>
+                  <p className="text-3xl font-bold mb-1">
+                    {typeof ind.value === 'number' ? ind.value.toFixed(2) : ind.value}
+                  </p>
+                  {ind.details && (
+                    <p className="text-sm text-gray-500">{ind.details}</p>
+                  )}
                 </div>
-                <p className="text-3xl font-bold mb-1">
-                  {typeof ind.value === 'number' ? ind.value.toFixed(2) : ind.value}
-                </p>
-                {ind.details && (
-                  <p className="text-sm text-gray-500">{ind.details}</p>
-                )}
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
-        </div>
+        ))}
 
         {/* Support & Resistance */}
         {data?.result?.support_resistance?.['support and resistance channel'] && (
-          <div className="bg-gray-800 rounded-xl p-6 border border-gray-700">
+          <div className="bg-gray-800 rounded-xl p-6 border border-gray-700 mb-8">
             <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
               <span className="w-1 h-6 bg-purple-500 rounded-full"></span>
               Support & Resistance Levels
