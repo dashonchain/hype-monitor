@@ -457,3 +457,63 @@ To https://github.com/dashonchain/hype-monitor.git
 To https://github.com/dashonchain/hype-monitor.git
    bc02c96..55c9530  main -> main
 ✅ Script terminé à Sat May  2 20:05:02 UTC 2026
+🔄 Mise à jour des données HYPE... Sat May  2 20:20:01 UTC 2026
+📊 Technical Analysis...
+ℹ️ Market Info...
+📅 Events...
+⚠️ Certaines commandes TN ont échoué, on garde les données existantes
+[main dc8bcfa] data: Auto-update HYPE timestamp (2026-05-02T20:20:01Z)
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+To https://github.com/dashonchain/hype-monitor.git
+   b035ddb..dc8bcfa  main -> main
+✅ Script terminé à Sat May  2 20:20:02 UTC 2026
+🔄 Mise à jour des données HYPE... Sat May  2 20:25:01 UTC 2026
+📊 Technical Analysis...
+ℹ️ Market Info...
+📅 Events...
+⚠️ Certaines commandes TN ont échoué, on garde les données existantes
+[main 9981213] data: Auto-update HYPE timestamp (2026-05-02T20:25:01Z)
+ 2 files changed, 463 insertions(+), 464 deletions(-)
+To https://github.com/dashonchain/hype-monitor.git
+   b70b213..9981213  main -> main
+✅ Script terminé à Sat May  2 20:25:03 UTC 2026
+🔄 Mise à jour des données HYPE... Sat May  2 20:30:01 UTC 2026
+📊 Technical Analysis...
+ℹ️ Market Info...
+📅 Events...
+⚠️ Certaines commandes TN ont échoué, on garde les données existantes
+[main 39070eb] data: Auto-update HYPE timestamp (2026-05-02T20:30:01Z)
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+To https://github.com/dashonchain/hype-monitor.git
+   a992446..39070eb  main -> main
+✅ Script terminé à Sat May  2 20:30:02 UTC 2026
+🔄 Mise à jour des données HYPE... Sat May  2 20:35:01 UTC 2026
+📊 Technical Analysis...
+ℹ️ Market Info...
+📅 Events...
+⚠️ Certaines commandes TN ont échoué, on garde les données existantes
+[main 44bb8f5] data: Auto-update HYPE timestamp (2026-05-02T20:35:01Z)
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+To https://github.com/dashonchain/hype-monitor.git
+   39070eb..44bb8f5  main -> main
+✅ Script terminé à Sat May  2 20:35:02 UTC 2026
+🔄 Mise à jour des données HYPE... Sat May  2 20:40:01 UTC 2026
+📊 Technical Analysis...
+ℹ️ Market Info...
+📅 Events...
+⚠️ Certaines commandes TN ont échoué, on garde les données existantes
+[main 55cb358] data: Auto-update HYPE timestamp (2026-05-02T20:40:01Z)
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+To https://github.com/dashonchain/hype-monitor.git
+   44bb8f5..55cb358  main -> main
+✅ Script terminé à Sat May  2 20:40:02 UTC 2026
+🔄 Mise à jour des données HYPE... Sat May  2 20:45:01 UTC 2026
+📊 Technical Analysis...
+ℹ️ Market Info...
+📅 Events...
+⚠️ Certaines commandes TN ont échoué, on garde les données existantes
+[main 1d55bef] data: Auto-update HYPE timestamp (2026-05-02T20:45:01Z)
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+To https://github.com/dashonchain/hype-monitor.git
+   55cb358..1d55bef  main -> main
+✅ Script terminé à Sat May  2 20:45:02 UTC 2026

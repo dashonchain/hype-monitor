@@ -6,20 +6,23 @@ interface PriceChartProps {
   ema20History: [number, number][];
   ema50History: [number, number][];
   ema200History: [number, number][];
+  rsiHistory: [number, number][];
 }
 
-const PriceChart = ({ prices, ema20History, ema50History, ema200History }: PriceChartProps) => {
+const PriceChart = ({ prices, ema20History, ema50History, ema200History, rsiHistory }: PriceChartProps) => {
   const chartContainerRef = useRef<HTMLDivElement>(null);
+  const rsiChartContainerRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<IChartApi | null>(null);
+  const rsiChartRef = useRef<IChartApi | null>(null);
 
   useEffect(() => {
     if (!chartContainerRef.current || !prices.length) return;
 
-    // Nettoyer le graphique précédent
-    if (chartRef.current) {
-      chartRef.current.remove();
-    }
+    // Clean previous charts
+    if (chartRef.current) chartRef.current.remove();
+    if (rsiChartRef.current) rsiChartRef.current.remove();
 
+    // --- Main Price Chart ---
     const chart = createChart(chartContainerRef.current, {
       width: chartContainerRef.current.clientWidth,
       height: 400,
@@ -38,8 +41,8 @@ const PriceChart = ({ prices, ema20History, ema50History, ema200History }: Price
 
     chartRef.current = chart;
 
-    // Convertir les données en format TradingView (temps en secondes)
-    const toChartData = (data: [number, number][]) => 
+    // Convert data to TradingView format (time in seconds)
+    const toChartData = (data: [number, number][]) =>
       data
         .filter(([ts, val]) => val !== null)
         .map(([timestamp, value]) => ({
@@ -47,11 +50,11 @@ const PriceChart = ({ prices, ema20History, ema50History, ema200History }: Price
           value: value as number,
         }));
 
-    // Série de prix (candlestick ou ligne)
+    // Price series
     const priceSeries = chart.addSeries(LineSeries, {
       color: '#26a69a',
       lineWidth: 2,
-      title: 'Prix HYPE',
+      title: 'HYPE Price',
       lastValueVisible: true,
       priceLineVisible: true,
     });
@@ -93,11 +96,76 @@ const PriceChart = ({ prices, ema20History, ema50History, ema200History }: Price
       ema200Series.setData(toChartData(ema200History));
     }
 
-    // Gestion du redimensionnement
+    // --- RSI Chart (Separate) ---
+    if (rsiChartContainerRef.current && rsiHistory.length) {
+      const rsiChart = createChart(rsiChartContainerRef.current, {
+        width: rsiChartContainerRef.current.clientWidth,
+        height: 150,
+        layout: {
+          background: { type: ColorType.Solid, color: '#131722' },
+          textColor: '#d1d4dc',
+        },
+        grid: {
+          vertLines: { color: '#363c4e' },
+          horzLines: { color: '#363c4e' },
+        },
+        crosshair: {
+          mode: 1,
+        },
+      });
+
+      rsiChartRef.current = rsiChart;
+
+      // RSI series
+      const rsiSeries = rsiChart.addSeries(LineSeries, {
+        color: '#9c27b0',
+        lineWidth: 2,
+        title: 'RSI(14)',
+        lastValueVisible: true,
+        priceLineVisible: true,
+      });
+      rsiSeries.setData(toChartData(rsiHistory));
+
+      // Add overbought/oversold lines
+      const overboughtLine = rsiChart.addSeries(LineSeries, {
+        color: '#ff5252',
+        lineWidth: 1,
+        priceLineVisible: false,
+        lastValueVisible: false,
+      });
+      overboughtLine.setData([
+        { time: (rsiHistory[0][0] / 1000) as Time, value: 70 },
+        { time: (rsiHistory[rsiHistory.length - 1][0] / 1000) as Time, value: 70 },
+      ]);
+
+      const oversoldLine = rsiChart.addSeries(LineSeries, {
+        color: '#4caf50',
+        lineWidth: 1,
+        priceLineVisible: false,
+        lastValueVisible: false,
+      });
+      oversoldLine.setData([
+        { time: (rsiHistory[0][0] / 1000) as Time, value: 30 },
+        { time: (rsiHistory[rsiHistory.length - 1][0] / 1000) as Time, value: 30 },
+      ]);
+
+      // Sync time scales
+      const logicalRange = chart.timeScale().getVisibleLogicalRange();
+      if (logicalRange) {
+        rsiChart.timeScale().setVisibleLogicalRange(logicalRange);
+      }
+    }
+
+    // Handle resize
     const handleResize = () => {
       if (chartContainerRef.current && chartRef.current) {
         chartRef.current.applyOptions({
           width: chartContainerRef.current.clientWidth,
+        });
+      }
+      if (rsiChartContainerRef.current && rsiChartRef.current) {
+        rsiChartRef.current.applyOptions({
+          width: rsiChartContainerRef.current.clientWidth,
         });
       }
     };
@@ -110,17 +178,30 @@ const PriceChart = ({ prices, ema20History, ema50History, ema200History }: Price
         chartRef.current.remove();
         chartRef.current = null;
       }
+      if (rsiChartRef.current) {
+        rsiChartRef.current.remove();
+        rsiChartRef.current = null;
+      }
     };
-  }, [prices, ema20History, ema50History, ema200History]);
+  }, [prices, ema20History, ema50History, ema200History, rsiHistory]);
 
   return (
     <div className="bg-gray-900/30 border border-gray-800/50 rounded-xl overflow-hidden">
       <div className="p-4 border-b border-gray-800/50">
         <h3 className="text-lg font-medium text-gray-100">📈 Price & Indicators</h3>
-        <p className="text-xs text-gray-400 mt-1">EMA 20/50/200 overlays • 1y history</p>
+        <p className="text-xs text-gray-400 mt-1">EMA 20/50/200 overlays • RSI(14) • 1y history</p>
       </div>
       <div ref={chartContainerRef} className="w-full" style={{ height: '400px' }} />
+      {rsiHistory.length > 0 && (
+        <div className="border-t border-gray-800/50">
+          <div className="p-2 border-b border-gray-800/50">
+            <span className="text-xs text-gray-400">RSI(14) - Purple line • Red=70 (Overbought) • Green=30 (Oversold)</span>
+          </div>
+          <div ref={rsiChartContainerRef} className="w-full" style={{ height: '150px' }} />
+        </div>
+      )}
     </div>
-  );};
+  );
+};
 
 export default PriceChart;

@@ -1,15 +1,15 @@
 {
-  "price": 41.64,
+  "price": 41.442,
   "price_change": {
     "aligned": {
       "4h": null,
       "24h": null,
-      "7d": "0.40%"
+      "7d": "-0.08%"
     },
     "calendar": {
-      "24h": "1.19%",
-      "7d": "0.40%",
-      "30d": "18.34%"
+      "24h": "0.71%",
+      "7d": "-0.08%",
+      "30d": "17.77%"
     }
   },
   "market_cap": 0,
@@ -19,15 +19,15 @@
     "trend": [
       {
         "name": "SMA(10)",
-        "value": 41.06,
+        "value": 41.04,
         "action": "buy",
         "detail": "Pente: up"
       },
       {
         "name": "SMA(20)",
-        "value": 41.87,
+        "value": 41.86,
         "action": "sell",
-        "detail": "Pente: flat"
+        "detail": "Pente: down"
       },
       {
         "name": "SMA(50)",
@@ -43,7 +43,7 @@
       },
       {
         "name": "VWAP",
-        "value": 34.5462,
+        "value": 34.5466,
         "action": "buy",
         "detail": "Source: 1d"
       }
@@ -51,51 +51,51 @@
     "momentum": [
       {
         "name": "RSI(14)",
-        "value": 54.37,
+        "value": 53.64,
         "action": "neutral",
         "detail": "Momentum: rising"
       },
       {
         "name": "Stochastic(14,3,3)",
-        "value": 35.68,
+        "value": 34.42,
         "action": "neutral",
         "detail": "Direction: bull"
       },
       {
         "name": "KDJ(14,3,3)",
-        "value": 57.66,
+        "value": 54.72,
         "action": "buy",
-        "detail": "K: 35.68"
+        "detail": "K: 34.42"
       },
       {
         "name": "CCI(20)",
-        "value": -10.97,
+        "value": -14.08,
         "action": "neutral",
         "detail": "neutral"
       },
       {
         "name": "MACD(12,26,9)",
-        "value": -0.2554,
+        "value": -0.268,
         "action": "sell",
-        "detail": "DIF: 0.3438"
+        "detail": "DIF: 0.328"
       }
     ],
     "volatility": [
       {
         "name": "Bollinger(20,2)",
-        "value": 0.465,
+        "value": 0.437,
         "action": "neutral",
-        "detail": "Mid: 41.87"
+        "detail": "Mid: 41.86"
       },
       {
         "name": "ATR(14)",
         "value": 1.963,
         "action": "buy",
-        "detail": "Pct: 0.0472"
+        "detail": "Pct: 0.0474"
       },
       {
         "name": "Bollinger Bandwidth",
-        "value": 0.1579,
+        "value": 0.1581,
         "action": "neutral",
         "detail": "Bandes relatives"
       }
@@ -103,13 +103,13 @@
     "volume": [
       {
         "name": "Volume 1d",
-        "value": 4259924.41,
+        "value": 4379851.08,
         "action": "sell",
-        "detail": "vs MA20: -44.7%"
+        "detail": "vs MA20: -43.2%"
       },
       {
         "name": "Volume MA20",
-        "value": 7704359.3,
+        "value": 7710355.63,
         "action": "neutral",
         "detail": "Moyenne mobile"
       }
@@ -173,22 +173,22 @@
       "cumulative": {
         "scope": "last_96_bars",
         "bars": 96,
-        "value": 34.5462,
+        "value": 34.5466,
         "slope": "up",
         "state": "price_above"
       },
       "rolling": [
         {
           "bars": 20,
-          "value": 42.0241
+          "value": 42.022
         },
         {
           "bars": 60,
-          "value": 38.6358
+          "value": 38.6359
         },
         {
           "bars": 96,
-          "value": 34.5462
+          "value": 34.5466
         }
       ]
     }
@@ -206,26 +206,26 @@
   },
   "events": [],
   "timeframe": "1d",
-  "last_updated": "2026-05-02T19:56:52.140Z",
+  "last_updated": "2026-05-02T20:43:58.743Z",
   "source": "TrueNorth CLI",
   "derivatives": {
     "open_interest": {
-      "current_oi": 212760387.9847,
-      "oi_change_1d": 6525025,
-      "oi_change_4h": -770184,
-      "oi_percentile_7d": 88.2,
-      "oi_mcap_ratio": 2.006
+      "current_oi": 211312788.66708001,
+      "oi_change_1d": 6047803,
+      "oi_change_4h": -872818,
+      "oi_percentile_7d": 85.7,
+      "oi_mcap_ratio": 1.999
     },
     "funding_rate": {
       "current_rate_pct": 0.005,
       "annualized_cost_pct": 5.47,
-      "funding_percentile_7d": 67.9,
-      "change_1d_pct": 0.006329
+      "funding_percentile_7d": 67.3,
+      "change_1d_pct": 0.006428
     },
     "liquidations": {
       "short_liq_points": [],
       "long_liq_points": [],
-      "imbalance_ratio": -0.49,
+      "imbalance_ratio": -0.401,
       "interpretation": "heavily_favors_longs"
     }
   },
@@ -1696,8 +1696,8 @@
         41.128410791536396
       ],
       [
-        1777750464000,
-        41.710025751061984
+        1777754604000,
+        41.44537627445491
       ]
     ],
     "volumes": [
@@ -3162,15 +3162,15 @@
         261470430.57921386
       ],
       [
-        1777750464000,
-        190333602.3128358
+        1777754604000,
+        189281743.51269183
       ]
     ]
   },
-  "ema20": 40.95939546623181,
-  "ema50": 39.22620034717896,
-  "ema200": 35.72348950922208,
-  "obv": -11660441347.324427,
+  "ema20": 40.934190754174,
+  "ema50": 39.21582193633162,
+  "ema200": 35.72085618109663,
+  "obv": -11661493206.12457,
   "ema20History": [
     [
       1746230400000,
@@ -4633,8 +4633,8 @@
       40.88038175203916
     ],
     [
-      1777750464000,
-      40.95939546623181
+      1777754604000,
+      40.934190754174
     ]
   ],
   "ema50History": [
@@ -6099,8 +6099,8 @@
       39.12481971844904
     ],
     [
-      1777750464000,
-      39.22620034717896
+      1777754604000,
+      39.21582193633162
     ]
   ],
   "ema200History": [
@@ -7565,8 +7565,8 @@
       35.66332331583675
     ],
     [
-      1777750464000,
-      35.72348950922208
+      1777754604000,
+      35.72085618109663
     ]
   ]
 }

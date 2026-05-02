@@ -230,6 +230,78 @@ function calculateEMA(prices, period) {
   return prices.map((price, index) => [price[0], emaValues[index]]);
 }
 
+// Calculer le RSI (Relative Strength Index)
+function calculateRSI(prices, period = 14) {
+  if (!prices || prices.length < period + 1) return [];
+  const rsiValues = new Array(prices.length).fill(null);
+  let gains = 0, losses = 0;
+  
+  // Calculate initial average gain/loss
+  for (let i = 1; i <= period; i++) {
+    const change = prices[i][1] - prices[i-1][1];
+    if (change > 0) gains += change;
+    else losses -= change;
+  }
+  
+  let avgGain = gains / period;
+  let avgLoss = losses / period;
+  
+  rsiValues[period] = avgLoss === 0 ? 100 : 100 - (100 / (1 + avgGain / avgLoss));
+  
+  // Calculate RSI for remaining periods
+  for (let i = period + 1; i < prices.length; i++) {
+    const change = prices[i][1] - prices[i-1][1];
+    let currentGain = change > 0 ? change : 0;
+    let currentLoss = change < 0 ? -change : 0;
+    
+    avgGain = (avgGain * (period - 1) + currentGain) / period;
+    avgLoss = (avgLoss * (period - 1) + currentLoss) / period;
+    
+    rsiValues[i] = avgLoss === 0 ? 100 : 100 - (100 / (1 + avgGain / avgLoss));
+  }
+  
+  return prices.map((price, index) => [price[0], rsiValues[index]]);
+}
+
+// Détecter la divergence RSI
+function detectRSIDivergence(prices, rsiValues) {
+  if (!prices || !rsiValues || prices.length < 20) return { hasDivergence: false, type: null, description: null };
+  
+  // Chercher les sommets et creux de prix sur les 20 derniers points
+  const recentPrices = prices.slice(-20);
+  const recentRSI = rsiValues.slice(-20);
+  
+  // Trouver les hauts et bas de prix
+  let priceHighIndex = 0, priceLowIndex = 0;
+  for (let i = 1; i < recentPrices.length; i++) {
+    if (recentPrices[i][1] > recentPrices[priceHighIndex][1]) priceHighIndex = i;
+    if (recentPrices[i][1] < recentPrices[priceLowIndex][1]) priceLowIndex = i;
+  }
+  
+  // Trouver les hauts et bas de RSI
+  let rsiHighIndex = 0, rsiLowIndex = 0;
+  for (let i = 1; i < recentRSI.length; i++) {
+    if (recentRSI[i][1] > recentRSI[rsiHighIndex][1]) rsiHighIndex = i;
+    if (recentRSI[i][1] > 0 && (recentRSI[rsiLowIndex][1] === null || recentRSI[i][1] < recentRSI[rsiLowIndex][1])) rsiLowIndex = i;
+  }
+  
+  // Vérifier divergence haussière (prix fait un plus bas mais RSI fait un plus haut)
+  const bullishDiv = recentPrices[priceLowIndex][1] < recentPrices[priceLowIndex - 1]?.[1] && 
+                    recentRSI[rsiLowIndex][1] > recentRSI[rsiLowIndex - 1]?.[1];
+  
+  // Vérifier divergence baissière (prix fait un plus haut mais RSI fait un plus bas)
+  const bearishDiv = recentPrices[priceHighIndex][1] > recentPrices[priceHighIndex - 1]?.[1] && 
+                    recentRSI[rsiHighIndex][1] < recentRSI[rsiHighIndex - 1]?.[1];
+  
+  if (bearishDiv) {
+    return { hasDivergence: true, type: 'bearish', description: 'Bearish RSI Divergence: Price made higher high but RSI made lower high' };
+  } else if (bullishDiv) {
+    return { hasDivergence: true, type: 'bullish', description: 'Bullish RSI Divergence: Price made lower low but RSI made higher low' };
+  }
+  
+  return { hasDivergence: false, type: null, description: null };
+}
+
 // Calculer l'OBV (On-Balance Volume)
 function calculateOBV(prices, volumes) {
   if (!prices || !volumes || prices.length < 2 || volumes.length < 2) return null;
@@ -329,6 +401,19 @@ app.get('/api/live-data', async (req, res) => {
     // Calculer l'OBV
     if (history && history.prices && history.volumes) {
       responseData.obv = calculateOBV(history.prices, history.volumes);
+    }
+    
+    // Calculer le RSI (historique complet pour graphique)
+    let rsiHistory = [];
+    if (history && history.prices) {
+      rsiHistory = calculateRSI(history.prices, 14);
+      responseData.rsiHistory = rsiHistory;
+      // Garder la valeur actuelle
+      responseData.rsi = rsiHistory.length > 0 ? rsiHistory[rsiHistory.length - 1][1] : null;
+      
+      // Détecter la divergence RSI
+      const divergence = detectRSIDivergence(history.prices, rsiHistory);
+      responseData.rsiDivergence = divergence;
     }
     
     // Ajouter les métadonnées de fraîcheur

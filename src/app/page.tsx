@@ -32,6 +32,8 @@ type Data = {
   ema20History?: [number, number][];
   ema50History?: [number, number][];
   ema200History?: [number, number][];
+  rsiHistory?: [number, number][];
+  rsiDivergence?: { hasDivergence: boolean; type: string | null; description: string | null };
   history?: { prices: [number, number][]; volumes: [number, number][] };
   timeframe?: string;
   last_updated: string;
@@ -43,7 +45,7 @@ type Data = {
 const actionColor: Record<string, string> = { buy: 'text-green-400', sell: 'text-red-400', neutral: 'text-yellow-400', strong_buy: 'text-emerald-400', strong_sell: 'text-rose-400' };
 const actionBg: Record<string, string> = { buy: 'bg-green-900/30 border-green-700', sell: 'bg-red-900/30 border-red-700', neutral: 'bg-yellow-900/30 border-yellow-700' };
 const impactColor: Record<string, string> = { low: 'border-blue-500', medium: 'border-yellow-500', high: 'border-red-500' };
-const timeframes = ['1h', '4h', '1d', '1w'];
+const timeframes = ['1h', '4h', '1d', '1d'];
 
 function formatNumber(num: number): string {
   if (num >= 1e9) return `$${(num / 1e9).toFixed(2)}B`;
@@ -89,7 +91,7 @@ export default function Home() {
       setFetchCount(prev => prev + 1);
       setError('');
     } catch (e: any) {
-      const errMsg = e.name === 'AbortError' ? 'Timeout: TrueNorth CLI ne répond pas' : e.message || 'Erreur inconnue';
+      const errMsg = e.name === 'AbortError' ? 'Timeout: TrueNorth CLI not responding' : e.message || 'Unknown error';
       setError(errMsg);
       console.error('Fetch error:', e);
     } finally {
@@ -124,10 +126,10 @@ export default function Home() {
 
   if (error && !data) return (
     <div className="min-h-screen bg-gray-950 text-red-400 flex flex-col items-center justify-center gap-4 p-4">
-      <div className="text-xl">⚠️ Erreur de connexion TrueNorth</div>
+      <div className="text-xl">⚠️ TrueNorth Connection Error</div>
       <div className="text-sm text-gray-400">{error}</div>
       <button onClick={() => fetchData()} className="px-4 py-2 bg-red-900/50 border border-red-700 rounded-lg hover:bg-red-800/50 transition">
-        Réessayer
+        Retry
       </button>
     </div>
   );
@@ -135,9 +137,9 @@ export default function Home() {
   if (!data) return null; // Sécurité TypeScript
 
   const categories: Category[] = [
-    { title: '📈 Tendance', items: data?.indicators.trend || [], color: 'from-blue-900 to-blue-800' },
+    { title: '📈 Trend', items: data?.indicators.trend || [], color: 'from-blue-900 to-blue-800' },
     { title: '⚡ Momentum', items: data?.indicators.momentum || [], color: 'from-purple-900 to-purple-800' },
-    { title: '📉 Volatilité', items: data?.indicators.volatility || [], color: 'from-orange-900 to-orange-800' },
+    { title: '📉 Volatility', items: data?.indicators.volatility || [], color: 'from-orange-900 to-orange-800' },
     { title: '📊 Volume', items: data?.indicators.volume || [], color: 'from-teal-900 to-teal-800' },
   ];
 
@@ -154,7 +156,7 @@ export default function Home() {
               Hyperliquid Token • Powered by TrueNorth CLI
               {freshness && (
                 <span className={`ml-2 px-2 py-1 rounded text-xs ${isDataStale ? 'bg-red-900/50 text-red-400' : 'bg-green-900/50 text-green-400'}`}>
-                  {isDataStale ? '⚠️ Données périmées' : `🟢 Mis à jour: il y a ${freshness.text}`}
+                  {isDataStale ? '⚠️ Stale data' : `🟢 Updated ${freshness.text}`}
                 </span>
               )}
             </p>
@@ -197,9 +199,9 @@ export default function Home() {
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
           {[ 
             { label: 'Market Cap', value: formatNumber(data.market_cap) },
-            { label: 'Rang', value: `#${data.market_cap_rank}` },
-            { label: 'Volume 24h', value: formatNumber(data.derivatives?.open_interest.current_oi || data.total_volume) },
-            { label: 'Dernière MAJ', value: freshness?.text || 'N/A' }
+            { label: 'Rank', value: `#${data.market_cap_rank}` },
+            { label: '24h Volume', value: formatNumber(data.derivatives?.open_interest.current_oi || data.total_volume) },
+            { label: 'Last Update', value: freshness?.text || 'N/A' }
           ].map(card => (
             <div key={card.label} className="bg-gray-900/50 border border-gray-800 rounded-lg p-3">
               <div className="text-xs text-gray-500 uppercase">{card.label}</div>
@@ -208,20 +210,43 @@ export default function Home() {
           ))}
         </div>
 
-        {/* Decision Banner */}
+          {/* RSI Divergence Alert */}
+          {data?.rsiDivergence?.hasDivergence && (
+            <div className={`border rounded-xl p-4 mb-6 ${
+              data.rsiDivergence.type === 'bearish' 
+                ? 'bg-red-900/30 border-red-700' 
+                : 'bg-green-900/30 border-green-700'
+            }`}>
+              <div className="flex items-center gap-2">
+                <span className="text-2xl">
+                  {data.rsiDivergence.type === 'bearish' ? '🔴' : '🟢'}
+                </span>
+                <div>
+                  <div className="font-bold">
+                    RSI Divergence Detected ({data.rsiDivergence.type === 'bearish' ? 'Bearish' : 'Bullish'})
+                  </div>
+                  <div className="text-sm text-gray-300 mt-1">
+                    {data.rsiDivergence.description}
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Decision Banner */}
         <div className={`border rounded-xl p-5 mb-6 ${isDataStale ? 'opacity-50 grayscale' : ''} ${actionBg[data?.overall_decision?.action?.toLowerCase() || 'neutral']}`}>
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center">
             <div className="flex-1">
               <div className="text-sm text-gray-400 mb-1">
-                DÉCISION TRUENORTH ({data?.timeframe || '1d'})
+                TRUENORTH DECISION ({data?.timeframe || '1d'})
                 {data?.last_updated && (
-                  <span className="ml-2 text-xs">({new Date(data.last_updated).toLocaleTimeString('fr-FR')})</span>
+                  <span className="ml-2 text-xs">({new Date(data.last_updated).toLocaleTimeString('en-US')})</span>
                 )}
               </div>
               <div className={`text-4xl font-bold ${actionColor[data?.overall_decision?.action?.toLowerCase() || 'neutral']}`}>
                 {data?.overall_decision?.action_display || (
-                  data?.overall_decision?.action === 'Buy' ? '🟢 ACHAT' : 
-                  data?.overall_decision?.action === 'Sell' ? '🔴 VENTE' : '🟡 NEUTRE'
+                  data?.overall_decision?.action === 'Buy' ? '🟢 BUY' : 
+                  data?.overall_decision?.action === 'Sell' ? '🔴 SELL' : '🟡 NEUTRAL'
                 )}
               </div>
               
@@ -253,13 +278,13 @@ export default function Home() {
               
               <p className="text-gray-300 mt-2 max-w-2xl">{data?.overall_decision?.summary}</p>
               {isDataStale && (
-                <div className="mt-2 text-red-400 text-sm">⚠️ Décision basée sur des données périmées (plus de 3 min)</div>
+                <div className="mt-2 text-red-400 text-sm">⚠️ Decision based on stale data (plus de 3 min)</div>
               )}
             </div>
             <div className="mt-4 md:mt-0 grid grid-cols-3 gap-4 text-center">
               <div>
                 <div className="text-green-400 text-xl font-bold">{data?.overall_decision?.buy_signals || 0}</div>
-                <div className="text-xs text-gray-400">Achat</div>
+                <div className="text-xs text-gray-400">Buy</div>
               </div>
               <div>
                 <div className="text-yellow-400 text-xl font-bold">{data?.overall_decision?.neutral_signals || 0}</div>
@@ -267,7 +292,7 @@ export default function Home() {
               </div>
               <div>
                 <div className="text-red-400 text-xl font-bold">{data?.overall_decision?.sell_signals || 0}</div>
-                <div className="text-xs text-gray-400">Vente</div>
+                <div className="text-xs text-gray-400">Sell</div>
               </div>
             </div>
           </div>
@@ -283,7 +308,7 @@ export default function Home() {
             {refreshing ? (
               <>
                 <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-cyan-400"></div>
-                Actualisation...
+                Refreshing...
               </>
             ) : (
               <>🔄 Refresh</>
@@ -294,7 +319,7 @@ export default function Home() {
         {/* Error display */}
         {error && data && (
           <div className="bg-yellow-900/20 border border-yellow-700 rounded-lg p-3 mb-6 text-sm text-yellow-400">
-            ⚠️ Erreur réseau: {error} — Affichage des dernières données connues
+            ⚠️ Network Error: {error} — Affichage des dernières données connues
           </div>
         )}
       </header>
@@ -354,9 +379,9 @@ export default function Home() {
 
                 {/* Liquidation Imbalance */}
                 <div className="bg-gray-900/30 p-3 rounded-lg">
-                  <div className="text-sm text-gray-400">Déséquilibre Liquidations</div>
+                  <div className="text-sm text-gray-400">Liquidation Imbalance</div>
                   <div className="text-xl font-bold mt-1">
-                    {data.derivatives.liquidations.imbalance_ratio > 0 ? '🟢 Longs' : '🔴 Shorts'} favorisés
+                    {data.derivatives.liquidations.imbalance_ratio > 0 ? '🟢 Longs' : '🔴 Shorts'} Favored
                   </div>
                   <div className="text-xs mt-1">
                     <span className="text-gray-400">Ratio: {data.derivatives.liquidations.imbalance_ratio.toFixed(3)}</span>
@@ -365,7 +390,7 @@ export default function Home() {
 
                 {/* Short Liquidation Points */}
                 <div className="md:col-span-3 bg-gray-900/20 p-3 rounded-lg">
-                  <div className="text-sm text-red-400 mb-2">Niveaux de Liquidation Shorts (TOP 3)</div>
+                  <div className="text-sm text-red-400 mb-2">Short Liquidation Levels (TOP 3)</div>
                   <div className="grid grid-cols-3 gap-2">
                     {data.derivatives.liquidations.short_liq_points?.map((pt, i) => (
                       <div key={i} className="bg-red-900/20 p-2 rounded border border-red-800">
@@ -379,7 +404,7 @@ export default function Home() {
 
                 {/* Long Liquidation Points */}
                 <div className="md:col-span-3 bg-gray-900/20 p-3 rounded-lg">
-                  <div className="text-sm text-green-400 mb-2">Niveaux de Liquidation Longs (TOP 3)</div>
+                  <div className="text-sm text-green-400 mb-2">Long Liquidation Levels (TOP 3)</div>
                   <div className="grid grid-cols-3 gap-2">
                     {data.derivatives.liquidations.long_liq_points?.map((pt, i) => (
                       <div key={i} className="bg-green-900/20 p-2 rounded border border-green-800">
@@ -394,31 +419,32 @@ export default function Home() {
             </div>
           )}
 
-          {/* Graphique des Prix & EMA */}
+          {/* Graphique des Prix & EMA & RSI */}
           {data?.history?.prices && data?.ema20History && (
             <PriceChart 
               prices={data.history.prices}
               ema20History={data.ema20History}
               ema50History={data.ema50History || []}
               ema200History={data.ema200History || []}
+              rsiHistory={data.rsiHistory || []}
             />
           )}
 
         </section>
 
-        {/* Sidebar: Support/Résistance + Events */}
+        {/* Sidebar: Support/Resistance + Events */}
         <aside className="space-y-4">
-          {/* Support / Résistance */}
+          {/* Support / Resistance */}
           <div className="bg-gray-900/50 border border-gray-800 rounded-xl p-5">
-            <h3 className="font-bold text-lg mb-4">🎯 Support & Résistance</h3>
+            <h3 className="font-bold text-lg mb-4">🎯 Support & Resistance</h3>
             <div className="space-y-3">
               {data?.support_resistance?.channels?.slice(0, 4).map((ch, i) => {
                 const isSupport = ch.hi < (data?.price || 0);
                 return (
                   <div key={i} className={`p-3 rounded-lg border ${isSupport ? 'border-green-800 bg-green-900/20' : 'border-red-800 bg-red-900/20'}`}>
                     <div className="flex justify-between text-sm">
-                      <span className={isSupport ? 'text-green-400' : 'text-red-400'}>{isSupport ? 'Support' : 'Résistance'}</span>
-                      <span className="text-gray-400">Force: {ch.strength}%</span>
+                      <span className={isSupport ? 'text-green-400' : 'text-red-400'}>{isSupport ? 'Support' : 'Resistance'}</span>
+                      <span className="text-gray-400">Strength: {ch.strength}%</span>
                     </div>
                     <div className="font-mono mt-1">{ch.lo.toFixed(3)} — {ch.hi.toFixed(3)}</div>
                     <div className="w-full bg-gray-800 h-1.5 rounded-full mt-2">
@@ -433,7 +459,7 @@ export default function Home() {
           {/* Events */}
           {data?.events && data.events.length > 0 && (
             <div className="bg-gray-900/50 border border-gray-800 rounded-xl p-5">
-              <h3 className="font-bold text-lg mb-4">📅 Events Clés</h3>
+              <h3 className="font-bold text-lg mb-4">📅 Key Events</h3>
               <div className="space-y-3">
                 {data.events.map((ev, i) => (
                   <div key={i} className={`p-3 rounded-lg border-l-4 ${impactColor[ev.impact] || 'border-gray-600'} bg-gray-800/30`}>
@@ -449,7 +475,7 @@ export default function Home() {
           <div className="bg-gray-900/50 border border-gray-800 rounded-xl p-5">
             <div className="text-xs text-gray-500 mb-2">Source: {data?.source}</div>
             {data?.fetch_duration_ms && (
-              <div className="text-xs text-gray-500">Latence: {data.fetch_duration_ms}ms</div>
+              <div className="text-xs text-gray-500">Latency: {data.fetch_duration_ms}ms</div>
             )}
             {fetchCount > 0 && (
               <div className="text-xs text-gray-500">Fetches: {fetchCount}</div>
