@@ -44,10 +44,10 @@ function transformTechnicalData(tnData) {
   // Extraire les indicateurs par catégorie
   const categories = {
     trend: [
-      { name: 'SMA(10)', value: indicators.sma10?.value || 0, action: indicators.sma10?.state === 'price_above' ? 'buy' : 'sell', detail: `Pente: ${indicators.sma10?.slope || 'N/A'}` },
-      { name: 'SMA(20)', value: indicators.sma20?.value || 0, action: indicators.sma20?.state === 'price_above' ? 'buy' : 'sell', detail: `Pente: ${indicators.sma20?.slope || 'N/A'}` },
-      { name: 'SMA(50)', value: indicators.sma50?.value || 0, action: indicators.sma50?.state === 'price_above' ? 'buy' : 'sell', detail: `Pente: ${indicators.sma50?.slope || 'N/A'}` },
-      { name: 'ADX(14)', value: indicators.adx14?.adx || 0, action: indicators.adx14?.trend_direction === 'bull' ? 'buy' : 'sell', detail: `Force: ${indicators.adx14?.trend_strength || 'N/A'}` },
+      { name: 'SMA(10)', value: indicators.sma10?.value || 0, action: indicators.sma10?.state === 'price_above' ? 'buy' : 'sell', detail: `Slope: ${indicators.sma10?.slope || 'N/A'}` },
+      { name: 'SMA(20)', value: indicators.sma20?.value || 0, action: indicators.sma20?.state === 'price_above' ? 'buy' : 'sell', detail: `Slope: ${indicators.sma20?.slope || 'N/A'}` },
+      { name: 'SMA(50)', value: indicators.sma50?.value || 0, action: indicators.sma50?.state === 'price_above' ? 'buy' : 'sell', detail: `Slope: ${indicators.sma50?.slope || 'N/A'}` },
+      { name: 'ADX(14)', value: indicators.adx14?.adx || 0, action: indicators.adx14?.trend_direction === 'bull' ? 'buy' : 'sell', detail: `Strength: ${indicators.adx14?.trend_strength || 'N/A'}` },
       { name: 'VWAP', value: result.support_resistance?.vwap?.cumulative?.value || 0, action: result.support_resistance?.vwap?.cumulative?.state === 'price_above' ? 'buy' : 'sell', detail: `Source: ${result.support_resistance?.vwap?.tf_source || 'N/A'}` }
     ],
     momentum: [
@@ -60,11 +60,11 @@ function transformTechnicalData(tnData) {
     volatility: [
       { name: 'Bollinger(20,2)', value: indicators.boll_20_2?.pb || 0, action: indicators.boll_20_2?.near === 'near_upper' ? 'sell' : indicators.boll_20_2?.near === 'near_lower' ? 'buy' : 'neutral', detail: `Mid: ${indicators.boll_20_2?.mid || 0}` },
       { name: 'ATR(14)', value: indicators.atr14?.value || 0, action: indicators.atr14?.state === 'low' ? 'buy' : 'sell', detail: `Pct: ${indicators.atr14?.atr_pct || 0}` },
-      { name: 'Bollinger Bandwidth', value: indicators.boll_20_2?.bandwidth || 0, action: 'neutral', detail: 'Bandes relatives' }
+      { name: 'Bollinger Bandwidth', value: indicators.boll_20_2?.bandwidth || 0, action: 'neutral', detail: 'Relative Bands' }
     ],
     volume: [
       { name: 'Volume 1d', value: indicators.volume?.value || 0, action: indicators.volume?.state === 'low' ? 'sell' : 'buy', detail: `vs MA20: ${((indicators.volume?.vs_ma20 || 0) * 100).toFixed(1)}%` },
-      { name: 'Volume MA20', value: indicators.volume?.ma20 || 0, action: 'neutral', detail: 'Moyenne mobile' }
+      { name: 'Volume MA20', value: indicators.volume?.ma20 || 0, action: 'neutral', detail: 'Moving Average' }
     ]
   };
 
@@ -109,7 +109,7 @@ function transformTechnicalData(tnData) {
       buy_ratio: overall.buy_ratio || 0,
       sell_ratio: overall.sell_ratio || 0,
       score_percent: score,
-      summary: `${actionEmoji} Score: ${score}% | ${buySignals} achats, ${sellSignals} ventes. Source: TrueNorth CLI.`
+      summary: `${actionEmoji} Score: ${score}% | ${buySignals} buys, ${sellSignals} sells. Source: TrueNorth CLI.`
     },
     events: [], // Les événements seront ajoutés séparément
     timeframe: metadata.timeframe || '1d',
