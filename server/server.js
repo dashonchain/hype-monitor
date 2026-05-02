@@ -74,6 +74,19 @@ function transformTechnicalData(tnData) {
   const neutralSignals = indicatorTable.filter(i => i.action === 'neutral').length;
   const overall = metadata.overall_dashboard || {};
 
+  // Calculer le Signal Score (0-100%) selon les standards pro
+  const totalSignals = buySignals + sellSignals + neutralSignals;
+  const score = totalSignals > 0 ? Math.round(((buySignals * 1.5 + neutralSignals * 0.5) / (totalSignals * 1.5)) * 100) : 50;
+  
+  // Déterminer l'action principale avec émojis (codes couleur universels)
+  let actionMain = overall.overall_action || 'Neutral';
+  let actionEmoji = '⚪'; // Gris = Neutral
+  if (actionMain.includes('strong_buy') || score > 75) actionEmoji = '🟢'; // Vert = Strong Buy
+  else if (actionMain.includes('buy') || score > 60) actionEmoji = '🟢'; // Vert = Buy
+  else if (actionMain.includes('strong_sell') || score < 25) actionEmoji = '🔴'; // Rouge = Strong Sell
+  else if (actionMain.includes('sell') || score < 40) actionEmoji = '🔴'; // Rouge = Sell
+  else actionEmoji = '🟡'; // Jaune = Neutral
+
   return {
     price: metadata.price || 0,
     price_change: metadata.price_change || {},
@@ -82,14 +95,20 @@ function transformTechnicalData(tnData) {
     total_volume: metadata.total_volume || 0,
     indicators: categories,
     support_resistance: result.support_resistance || {},
+    
+    // Nouveau : Signal Score et action améliorée
+    signal_score: score,
+    signal_emoji: actionEmoji,
     overall_decision: {
-      action: overall.overall_action || 'Neutral',
+      action: actionMain,
+      action_display: `${actionEmoji} ${actionMain.toUpperCase()}`,
       buy_signals: buySignals,
       sell_signals: sellSignals,
       neutral_signals: neutralSignals,
       buy_ratio: overall.buy_ratio || 0,
       sell_ratio: overall.sell_ratio || 0,
-      summary: `Tendance basée sur ${buySignals} achats, ${sellSignals} ventes. Source: TrueNorth.`
+      score_percent: score,
+      summary: `${actionEmoji} Score: ${score}% | ${buySignals} achats, ${sellSignals} ventes. Source: TrueNorth CLI.`
     },
     events: [], // Les événements seront ajoutés séparément
     timeframe: metadata.timeframe || '1d',

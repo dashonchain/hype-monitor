@@ -1,15 +1,15 @@
 {
-  "price": 41.473,
+  "price": 41.504,
   "price_change": {
     "aligned": {
       "4h": null,
       "24h": null,
-      "7d": "-0.00%"
+      "7d": "0.07%"
     },
     "calendar": {
-      "24h": "0.78%",
-      "7d": "-0.00%",
-      "30d": "17.86%"
+      "24h": "0.86%",
+      "7d": "0.07%",
+      "30d": "17.95%"
     }
   },
   "market_cap": 0,
@@ -43,7 +43,7 @@
       },
       {
         "name": "VWAP",
-        "value": 34.5447,
+        "value": 34.5451,
         "action": "buy",
         "detail": "Source: 1d"
       }
@@ -51,39 +51,39 @@
     "momentum": [
       {
         "name": "RSI(14)",
-        "value": 53.75,
+        "value": 53.87,
         "action": "neutral",
         "detail": "Momentum: rising"
       },
       {
         "name": "Stochastic(14,3,3)",
-        "value": 34.62,
+        "value": 34.82,
         "action": "neutral",
         "detail": "Direction: bull"
       },
       {
         "name": "KDJ(14,3,3)",
-        "value": 55.18,
+        "value": 55.64,
         "action": "buy",
-        "detail": "K: 34.62"
+        "detail": "K: 34.82"
       },
       {
         "name": "CCI(20)",
-        "value": -13.59,
+        "value": -13.11,
         "action": "neutral",
         "detail": "neutral"
       },
       {
         "name": "MACD(12,26,9)",
-        "value": -0.2661,
+        "value": -0.2641,
         "action": "sell",
-        "detail": "DIF: 0.3305"
+        "detail": "DIF: 0.333"
       }
     ],
     "volatility": [
       {
         "name": "Bollinger(20,2)",
-        "value": 0.441,
+        "value": 0.446,
         "action": "neutral",
         "detail": "Mid: 41.86"
       },
@@ -95,7 +95,7 @@
       },
       {
         "name": "Bollinger Bandwidth",
-        "value": 0.1581,
+        "value": 0.158,
         "action": "neutral",
         "detail": "Bandes relatives"
       }
@@ -103,13 +103,13 @@
     "volume": [
       {
         "name": "Volume 1d",
-        "value": 4026762.65,
+        "value": 4104906.82,
         "action": "sell",
-        "detail": "vs MA20: -47.6%"
+        "detail": "vs MA20: -46.7%"
       },
       {
         "name": "Volume MA20",
-        "value": 7692701.21,
+        "value": 7696608.42,
         "action": "neutral",
         "detail": "Moyenne mobile"
       }
@@ -173,7 +173,7 @@
       "cumulative": {
         "scope": "last_96_bars",
         "bars": 96,
-        "value": 34.5447,
+        "value": 34.5451,
         "slope": "up",
         "state": "price_above"
       },
@@ -184,11 +184,11 @@
         },
         {
           "bars": 60,
-          "value": 38.6341
+          "value": 38.6346
         },
         {
           "bars": 96,
-          "value": 34.5447
+          "value": 34.5451
         }
       ]
     }
@@ -204,29 +204,29 @@
   },
   "events": [],
   "timeframe": "1d",
-  "last_updated": "2026-05-02T17:42:37.637Z",
+  "last_updated": "2026-05-02T18:39:22.909Z",
   "source": "TrueNorth CLI",
   "derivatives": {
     "open_interest": {
-      "current_oi": 212436022.58746,
-      "oi_change_1d": 6739359,
-      "oi_change_4h": 786407,
-      "oi_percentile_7d": 92,
-      "oi_mcap_ratio": 2.01
+      "current_oi": 212460509.98784,
+      "oi_change_1d": 6421278,
+      "oi_change_4h": 479916,
+      "oi_percentile_7d": 91.5,
+      "oi_mcap_ratio": 2.008
     },
     "funding_rate": {
       "current_rate_pct": 0.005,
       "annualized_cost_pct": 5.47,
       "funding_percentile_7d": 67.9,
-      "change_1d_pct": 0.005618
+      "change_1d_pct": 0.005586
     },
     "liquidations": {
       "short_liq_points": [],
       "long_liq_points": [],
-      "imbalance_ratio": -0.409,
+      "imbalance_ratio": -0.393,
       "interpretation": "heavily_favors_longs"
     }
   },
-  "fetch_duration_ms": 1278,
+  "fetch_duration_ms": 613,
   "errors": null
 }

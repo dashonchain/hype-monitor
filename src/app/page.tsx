@@ -4,7 +4,7 @@ import { useEffect, useState, useCallback } from 'react';
 
 type Indicator = { name: string; value: number; action: string; detail: string };
 type Category = { title: string; items: Indicator[]; color: string };
-type Decision = { action: string; buy_signals: number; sell_signals: number; neutral_signals: number; buy_ratio: number; sell_ratio: number; summary: string };
+type Decision = { action: string; buy_signals: number; sell_signals: number; neutral_signals: number; buy_ratio: number; sell_ratio: number; summary: string; action_display?: string; score_percent?: number };
 type SRChannel = { hi: number; lo: number; strength: number };
 type Event = { date: string; event: string; impact: string };
 type HistoryPoint = { timestamp: number; price: number };
@@ -24,6 +24,8 @@ type Data = {
   indicators: { trend: Indicator[]; momentum: Indicator[]; volatility: Indicator[]; volume: Indicator[] };
   support_resistance: { channels: SRChannel[]; current_price: number; in_channel: boolean };
   overall_decision: Decision;
+  signal_score?: number;
+  signal_emoji?: string;
   events: Event[];
   derivatives?: Derivatives;
   timeframe?: string;
@@ -204,7 +206,7 @@ export default function Home() {
         {/* Decision Banner */}
         <div className={`border rounded-xl p-5 mb-8 ${isDataStale ? 'opacity-50 grayscale' : ''} ${actionBg[data?.overall_decision?.action?.toLowerCase() || 'neutral']}`}>
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center">
-            <div>
+            <div className="flex-1">
               <div className="text-sm text-gray-400 mb-1">
                 DÉCISION TRUENORTH ({data?.timeframe || '1d'})
                 {data?.last_updated && (
@@ -212,8 +214,38 @@ export default function Home() {
                 )}
               </div>
               <div className={`text-4xl font-bold ${actionColor[data?.overall_decision?.action?.toLowerCase() || 'neutral']}`}>
-                {data?.overall_decision?.action === 'Buy' ? '🟢 ACHAT' : data?.overall_decision?.action === 'Sell' ? '🔴 VENTE' : '🟡 NEUTRE'}
+                {data?.overall_decision?.action_display || (
+                  data?.overall_decision?.action === 'Buy' ? '🟢 ACHAT' : 
+                  data?.overall_decision?.action === 'Sell' ? '🔴 VENTE' : '🟡 NEUTRE'
+                )}
               </div>
+              
+              {/* Signal Score Bar */}
+              {data?.signal_score !== undefined && (
+                <div className="mt-3 max-w-md">
+                  <div className="flex justify-between text-xs text-gray-400 mb-1">
+                    <span>Signal Score</span>
+                    <span className="font-mono font-bold">{data.signal_score}%</span>
+                  </div>
+                  <div className="w-full bg-gray-800 rounded-full h-3">
+                    <div 
+                      className={`h-full rounded-full transition-all duration-500 ${
+                        data.signal_score > 75 ? 'bg-green-500' :
+                        data.signal_score > 60 ? 'bg-green-400' :
+                        data.signal_score > 40 ? 'bg-yellow-400' :
+                        data.signal_score > 25 ? 'bg-red-400' : 'bg-red-500'
+                      }`}
+                      style={{ width: `${data.signal_score}%` }}
+                    />
+                  </div>
+                  <div className="flex justify-between text-xs text-gray-500 mt-1">
+                    <span>🔴 Short</span>
+                    <span>🟡 Neutre</span>
+                    <span>🟢 Long</span>
+                  </div>
+                </div>
+              )}
+              
               <p className="text-gray-300 mt-2 max-w-2xl">{data?.overall_decision?.summary}</p>
               {isDataStale && (
                 <div className="mt-2 text-red-400 text-sm">⚠️ Décision basée sur des données périmées (plus de 3 min)</div>
