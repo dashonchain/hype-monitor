@@ -1,15 +1,15 @@
 {
-  "price": 41.504,
+  "price": 41.513,
   "price_change": {
     "aligned": {
       "4h": null,
       "24h": null,
-      "7d": "0.07%"
+      "7d": "0.09%"
     },
     "calendar": {
-      "24h": "0.86%",
-      "7d": "0.07%",
-      "30d": "17.95%"
+      "24h": "0.88%",
+      "7d": "0.09%",
+      "30d": "17.97%"
     }
   },
   "market_cap": 0,
@@ -43,7 +43,7 @@
       },
       {
         "name": "VWAP",
-        "value": 34.5451,
+        "value": 34.5452,
         "action": "buy",
         "detail": "Source: 1d"
       }
@@ -51,39 +51,39 @@
     "momentum": [
       {
         "name": "RSI(14)",
-        "value": 53.87,
+        "value": 53.9,
         "action": "neutral",
         "detail": "Momentum: rising"
       },
       {
         "name": "Stochastic(14,3,3)",
-        "value": 34.82,
+        "value": 34.87,
         "action": "neutral",
         "detail": "Direction: bull"
       },
       {
         "name": "KDJ(14,3,3)",
-        "value": 55.64,
+        "value": 55.77,
         "action": "buy",
-        "detail": "K: 34.82"
+        "detail": "K: 34.87"
       },
       {
         "name": "CCI(20)",
-        "value": -13.11,
+        "value": -12.97,
         "action": "neutral",
         "detail": "neutral"
       },
       {
         "name": "MACD(12,26,9)",
-        "value": -0.2641,
+        "value": -0.2635,
         "action": "sell",
-        "detail": "DIF: 0.333"
+        "detail": "DIF: 0.3337"
       }
     ],
     "volatility": [
       {
         "name": "Bollinger(20,2)",
-        "value": 0.446,
+        "value": 0.447,
         "action": "neutral",
         "detail": "Mid: 41.86"
       },
@@ -103,13 +103,13 @@
     "volume": [
       {
         "name": "Volume 1d",
-        "value": 4104906.82,
+        "value": 4114016.47,
         "action": "sell",
-        "detail": "vs MA20: -46.7%"
+        "detail": "vs MA20: -46.6%"
       },
       {
         "name": "Volume MA20",
-        "value": 7696608.42,
+        "value": 7697063.9,
         "action": "neutral",
         "detail": "Moyenne mobile"
       }
@@ -173,46 +173,48 @@
       "cumulative": {
         "scope": "last_96_bars",
         "bars": 96,
-        "value": 34.5451,
+        "value": 34.5452,
         "slope": "up",
         "state": "price_above"
       },
       "rolling": [
         {
           "bars": 20,
-          "value": 42.0232
+          "value": 42.0233
         },
         {
           "bars": 60,
-          "value": 38.6346
+          "value": 38.6347
         },
         {
           "bars": 96,
-          "value": 34.5451
+          "value": 34.5452
         }
       ]
     }
   },
   "overall_decision": {
     "action": "Neutral",
+    "action_display": "🔴 NEUTRAL",
     "buy_signals": 2,
     "sell_signals": 2,
     "neutral_signals": 7,
     "buy_ratio": 0.1818,
     "sell_ratio": 0.1818,
-    "summary": "Tendance basée sur 2 achats, 2 ventes. Source: TrueNorth."
+    "score_percent": 39,
+    "summary": "🔴 Score: 39% | 2 achats, 2 ventes. Source: TrueNorth CLI."
   },
   "events": [],
   "timeframe": "1d",
-  "last_updated": "2026-05-02T18:39:22.909Z",
+  "last_updated": "2026-05-02T18:49:58.517Z",
   "source": "TrueNorth CLI",
   "derivatives": {
     "open_interest": {
-      "current_oi": 212460509.98784,
-      "oi_change_1d": 6421278,
-      "oi_change_4h": 479916,
-      "oi_percentile_7d": 91.5,
-      "oi_mcap_ratio": 2.008
+      "current_oi": 212522484.5313,
+      "oi_change_1d": 6500847,
+      "oi_change_4h": 445554,
+      "oi_percentile_7d": 91.4,
+      "oi_mcap_ratio": 2.009
     },
     "funding_rate": {
       "current_rate_pct": 0.005,
@@ -223,10 +225,12 @@
     "liquidations": {
       "short_liq_points": [],
       "long_liq_points": [],
-      "imbalance_ratio": -0.393,
+      "imbalance_ratio": -0.391,
       "interpretation": "heavily_favors_longs"
     }
   },
-  "fetch_duration_ms": 613,
-  "errors": null
+  "fetch_duration_ms": 733,
+  "errors": null,
+  "signal_score": 39,
+  "signal_emoji": "🔴"
 }
