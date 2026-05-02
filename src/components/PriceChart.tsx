@@ -114,9 +114,12 @@ const PriceChart = ({ prices, ema20History, ema50History, ema200History }: Price
   }, [prices, ema20History, ema50History, ema200History]);
 
   return (
-    <div className="bg-gray-900 p-4 rounded-lg shadow-lg">
-      <h3 className="text-lg font-semibold text-white mb-2">📈 Graphique des Prix & EMA</h3>
-      <div ref={chartContainerRef} style={{ width: '100%', height: '400px' }} />
+    <div className="bg-gray-900/30 border border-gray-800/50 rounded-xl overflow-hidden">
+      <div className="p-4 border-b border-gray-800/50">
+        <h3 className="text-lg font-medium text-gray-100">📈 Price & Indicators</h3>
+        <p className="text-xs text-gray-400 mt-1">EMA 20/50/200 overlays • 1y history</p>
+      </div>
+      <div ref={chartContainerRef} className="w-full" style={{ height: '400px' }} />
     </div>
   );};
 
