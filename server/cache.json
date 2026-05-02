@@ -1,15 +1,15 @@
 {
-  "price": 41.567,
+  "price": 41.473,
   "price_change": {
     "aligned": {
       "4h": null,
       "24h": null,
-      "7d": "0.22%"
+      "7d": "-0.00%"
     },
     "calendar": {
-      "24h": "1.01%",
-      "7d": "0.22%",
-      "30d": "18.13%"
+      "24h": "0.78%",
+      "7d": "-0.00%",
+      "30d": "17.86%"
     }
   },
   "market_cap": 0,
@@ -19,13 +19,13 @@
     "trend": [
       {
         "name": "SMA(10)",
-        "value": 41.05,
+        "value": 41.04,
         "action": "buy",
         "detail": "Pente: up"
       },
       {
         "name": "SMA(20)",
-        "value": 41.87,
+        "value": 41.86,
         "action": "sell",
         "detail": "Pente: down"
       },
@@ -43,7 +43,7 @@
       },
       {
         "name": "VWAP",
-        "value": 34.5446,
+        "value": 34.5447,
         "action": "buy",
         "detail": "Source: 1d"
       }
@@ -51,51 +51,51 @@
     "momentum": [
       {
         "name": "RSI(14)",
-        "value": 54.1,
+        "value": 53.75,
         "action": "neutral",
         "detail": "Momentum: rising"
       },
       {
         "name": "Stochastic(14,3,3)",
-        "value": 35.22,
+        "value": 34.62,
         "action": "neutral",
         "detail": "Direction: bull"
       },
       {
         "name": "KDJ(14,3,3)",
-        "value": 56.58,
+        "value": 55.18,
         "action": "buy",
-        "detail": "K: 35.22"
+        "detail": "K: 34.62"
       },
       {
         "name": "CCI(20)",
-        "value": -12.12,
+        "value": -13.59,
         "action": "neutral",
         "detail": "neutral"
       },
       {
         "name": "MACD(12,26,9)",
-        "value": -0.2601,
+        "value": -0.2661,
         "action": "sell",
-        "detail": "DIF: 0.338"
+        "detail": "DIF: 0.3305"
       }
     ],
     "volatility": [
       {
         "name": "Bollinger(20,2)",
-        "value": 0.455,
+        "value": 0.441,
         "action": "neutral",
-        "detail": "Mid: 41.87"
+        "detail": "Mid: 41.86"
       },
       {
         "name": "ATR(14)",
         "value": 1.963,
         "action": "buy",
-        "detail": "Pct: 0.0472"
+        "detail": "Pct: 0.0473"
       },
       {
         "name": "Bollinger Bandwidth",
-        "value": 0.158,
+        "value": 0.1581,
         "action": "neutral",
         "detail": "Bandes relatives"
       }
@@ -103,13 +103,13 @@
     "volume": [
       {
         "name": "Volume 1d",
-        "value": 3996713.54,
+        "value": 4026762.65,
         "action": "sell",
-        "detail": "vs MA20: -48.0%"
+        "detail": "vs MA20: -47.6%"
       },
       {
         "name": "Volume MA20",
-        "value": 7691198.75,
+        "value": 7692701.21,
         "action": "neutral",
         "detail": "Moyenne mobile"
       }
@@ -173,14 +173,14 @@
       "cumulative": {
         "scope": "last_96_bars",
         "bars": 96,
-        "value": 34.5446,
+        "value": 34.5447,
         "slope": "up",
         "state": "price_above"
       },
       "rolling": [
         {
           "bars": 20,
-          "value": 42.024
+          "value": 42.0232
         },
         {
           "bars": 60,
@@ -188,7 +188,7 @@
         },
         {
           "bars": 96,
-          "value": 34.5446
+          "value": 34.5447
         }
       ]
     }
@@ -204,15 +204,15 @@
   },
   "events": [],
   "timeframe": "1d",
-  "last_updated": "2026-05-02T17:27:57.585Z",
+  "last_updated": "2026-05-02T17:42:37.637Z",
   "source": "TrueNorth CLI",
   "derivatives": {
     "open_interest": {
-      "current_oi": 212855357.47890002,
-      "oi_change_1d": 6911010,
-      "oi_change_4h": 434038,
-      "oi_percentile_7d": 92.1,
-      "oi_mcap_ratio": 2.009
+      "current_oi": 212436022.58746,
+      "oi_change_1d": 6739359,
+      "oi_change_4h": 786407,
+      "oi_percentile_7d": 92,
+      "oi_mcap_ratio": 2.01
     },
     "funding_rate": {
       "current_rate_pct": 0.005,
@@ -223,10 +223,10 @@
     "liquidations": {
       "short_liq_points": [],
       "long_liq_points": [],
-      "imbalance_ratio": -0.419,
+      "imbalance_ratio": -0.409,
       "interpretation": "heavily_favors_longs"
     }
   },
-  "fetch_duration_ms": 824,
+  "fetch_duration_ms": 1278,
   "errors": null
 }
