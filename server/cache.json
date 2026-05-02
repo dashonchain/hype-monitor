@@ -206,7 +206,7 @@
   },
   "events": [],
   "timeframe": "1d",
-  "last_updated": "2026-05-02T18:49:58.517Z",
+  "last_updated": "2026-05-02T18:52:36.722Z",
   "source": "TrueNorth CLI",
   "derivatives": {
     "open_interest": {
@@ -229,7 +229,7 @@
       "interpretation": "heavily_favors_longs"
     }
   },
-  "fetch_duration_ms": 733,
+  "fetch_duration_ms": 625,
   "errors": null,
   "signal_score": 39,
   "signal_emoji": "🔴"
