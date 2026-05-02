@@ -143,7 +143,7 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-gray-950 text-gray-100 p-4 md:p-8">
-      <header className="max-w-7xl mx-auto mb-8">
+      <header className="max-w-7xl mx-auto mb-6">
         {/* Indicateur de fraîcheur */}
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-4">
           <div>
@@ -182,7 +182,7 @@ export default function Home() {
             <button
               key={tf}
               onClick={() => changeTimeframe(tf)}
-              className={`px-4 py-2 rounded-lg text-sm font-semibold transition ${
+              className={`px-3 py-1.5 rounded-md text-sm font-semibold transition ${
                 timeframe === tf
                   ? 'bg-cyan-600 text-white'
                   : 'bg-gray-800 text-gray-400 hover:bg-gray-700'
@@ -209,7 +209,7 @@ export default function Home() {
         </div>
 
         {/* Decision Banner */}
-        <div className={`border rounded-xl p-5 mb-8 ${isDataStale ? 'opacity-50 grayscale' : ''} ${actionBg[data?.overall_decision?.action?.toLowerCase() || 'neutral']}`}>
+        <div className={`border rounded-xl p-5 mb-6 ${isDataStale ? 'opacity-50 grayscale' : ''} ${actionBg[data?.overall_decision?.action?.toLowerCase() || 'neutral']}`}>
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center">
             <div className="flex-1">
               <div className="text-sm text-gray-400 mb-1">
@@ -299,9 +299,9 @@ export default function Home() {
         )}
       </header>
 
-      <main className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <main className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-4">
         {/* Indicators */}
-        <section className="lg:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-6">
+        <section className="lg:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-4">
           {categories.map(cat => (
             <div key={cat.title} className={`bg-gradient-to-br ${cat.color} rounded-xl border border-gray-800 overflow-hidden`}>
               <div className="p-4 border-b border-gray-800">
@@ -407,7 +407,7 @@ export default function Home() {
         </section>
 
         {/* Sidebar: Support/Résistance + Events */}
-        <aside className="space-y-6">
+        <aside className="space-y-4">
           {/* Support / Résistance */}
           <div className="bg-gray-900/50 border border-gray-800 rounded-xl p-5">
             <h3 className="font-bold text-lg mb-4">🎯 Support & Résistance</h3>
