@@ -2,7 +2,6 @@ import { NextResponse } from 'next/server';
 import { readFileSync } from 'fs';
 import { join } from 'path';
 
-// Sample data path
 const samplePath = join(process.cwd(), 'src', 'app', 'api', 'hype', 'sample.json');
 
 export async function GET(request: Request) {
@@ -10,27 +9,29 @@ export async function GET(request: Request) {
   const timeframe = searchParams.get('timeframe') || '4h';
 
   try {
-    // Try TrueNorth API first (if available)
+    // Appel TrueNorth API
     const url = new URL('https://api.adventai.io/api/agent-tools');
     url.searchParams.set('tool', 'technical_analysis');
     url.searchParams.set('args', JSON.stringify({
-      token: 'hyperliquid',
+      token_address: 'hyperliquid',
       timeframe: timeframe,
     }));
 
-    const response = await fetch(url.toString(), {
-      method: 'GET',
-      headers: { 'Content-Type': 'application/json' },
-    });
-
+    const response = await fetch(url.toString(), { method: 'GET' });
+    
     if (response.ok) {
       const data = await response.json();
-      return NextResponse.json(data);
+      
+      // Validation : on vérifie que c'est bien une analyse technique et pas la liste des outils
+      if (data?.result?.technical_indicators && !data?.data?.tools) {
+        return NextResponse.json(data);
+      }
     }
-    throw new Error(`TrueNorth API error: ${response.status}`);
+    throw new Error(`TrueNorth API returned invalid data (status: ${response.status})`);
   } catch (error: any) {
     console.warn('TrueNorth API failed, using sample data:', error.message);
-    // Fallback to sample data
+    
+    // Fallback vers les données statiques
     try {
       const sampleData = JSON.parse(readFileSync(samplePath, 'utf-8'));
       return NextResponse.json(sampleData);
