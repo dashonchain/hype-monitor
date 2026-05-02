@@ -5,28 +5,30 @@ export async function GET(request: Request) {
   const timeframe = searchParams.get('timeframe') || '4h';
 
   try {
-    const response = await fetch('https://api.adventai.io/api/agent-tools', {
-      method: 'POST',
+    // TrueNorth API only supports GET
+    const url = new URL('https://api.adventai.io/api/agent-tools');
+    url.searchParams.set('tool', 'technical_analysis');
+    url.searchParams.set('args', JSON.stringify({
+      token: 'hyperliquid',
+      timeframe: timeframe,
+    }));
+
+    const response = await fetch(url.toString(), {
+      method: 'GET',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        tool: 'technical_analysis',
-        args: {
-          token: 'hyperliquid',
-          timeframe: timeframe,
-        },
-      }),
     });
 
     if (!response.ok) {
-      throw new Error(`TrueNorth API error: ${response.statusText}`);
+      const text = await response.text();
+      throw new Error(`TrueNorth API error: ${response.status} ${text}`);
     }
 
     const data = await response.json();
     return NextResponse.json(data);
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error fetching HYPE data:', error);
     return NextResponse.json(
-      { error: 'Failed to fetch HYPE indicators' },
+      { error: 'Failed to fetch HYPE indicators', details: error.message },
       { status: 500 }
     );
   }
