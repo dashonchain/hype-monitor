@@ -1,0 +1,32 @@
+{
+  "result": {
+    "technical_indicators": {
+      "rsi14": {"value": 60.06, "state": "neutral", "momentum": "falling"},
+      "stoch_k_14_3_3": {"k": 83.05, "d": 90.93, "zone": "overbought", "direction": "bear"},
+      "kdj_14_3_3": {"k": 83.05, "d": 90.93, "j": 67.3, "direction": "bear", "extreme": false},
+      "cci20": {"value": 111.97, "state": "overbought"},
+      "adx14": {"adx": 21.2, "di_plus": 28.15, "di_minus": 13.5, "trend_strength": "moderate", "trend_direction": "bull"},
+      "macd_12_26_9": {"dif": 0.2325, "dea": -0.0068, "hist": 0.2393, "state": "bull", "momentum": "falling"},
+      "sma10": {"value": 41.01, "slope": "up", "state": "price_above"},
+      "sma20": {"value": 40.87, "slope": "up", "state": "price_above"},
+      "sma50": {"value": 40.87, "slope": "up", "state": "price_above"},
+      "boll_20_2": {"upper": 42.03, "mid": 40.3, "lower": 38.57, "pb": 0.811, "near": "near_upper", "mid_relation": "above_mid", "bandwidth": 0.086},
+      "atr14": {"value": 0.6789, "atr_pct": 0.0164, "pctile_60": 25, "state": "normal"},
+      "volume": {"value": 445518.56, "ma20": 1167957.59, "vs_ma20": -0.6185, "pctile_60": 10, "state": "low"}
+    },
+    "support_resistance": {
+      "support and resistance channel": [
+        {"hi": 43.6, "lo": 43.138, "strength": 76},
+        {"hi": 41.9, "lo": 41.58, "strength": 64},
+        {"hi": 40.29, "lo": 40.172, "strength": 53},
+        {"hi": 38.867, "lo": 38.706, "strength": 56},
+        {"hi": 45.75, "lo": 45.75, "strength": 21},
+        {"hi": 35.116, "lo": 35.116, "strength": 21}
+      ]
+    },
+    "token_metadata": {
+      "token_info": {"token_symbol": "HYPE", "ticker": "HYPEUSDT", "price": 41.35},
+      "price_change": {"24h": "1.35%", "7d": "-0.35%", "30d": "19.13%"}
+    }
+  }
+}
