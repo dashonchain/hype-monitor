@@ -1,0 +1,232 @@
+{
+  "price": 41.567,
+  "price_change": {
+    "aligned": {
+      "4h": null,
+      "24h": null,
+      "7d": "0.22%"
+    },
+    "calendar": {
+      "24h": "1.01%",
+      "7d": "0.22%",
+      "30d": "18.13%"
+    }
+  },
+  "market_cap": 0,
+  "market_cap_rank": 0,
+  "total_volume": 0,
+  "indicators": {
+    "trend": [
+      {
+        "name": "SMA(10)",
+        "value": 41.05,
+        "action": "buy",
+        "detail": "Pente: up"
+      },
+      {
+        "name": "SMA(20)",
+        "value": 41.87,
+        "action": "sell",
+        "detail": "Pente: down"
+      },
+      {
+        "name": "SMA(50)",
+        "value": 39.94,
+        "action": "buy",
+        "detail": "Pente: up"
+      },
+      {
+        "name": "ADX(14)",
+        "value": 16.21,
+        "action": "buy",
+        "detail": "Force: weak"
+      },
+      {
+        "name": "VWAP",
+        "value": 34.5446,
+        "action": "buy",
+        "detail": "Source: 1d"
+      }
+    ],
+    "momentum": [
+      {
+        "name": "RSI(14)",
+        "value": 54.1,
+        "action": "neutral",
+        "detail": "Momentum: rising"
+      },
+      {
+        "name": "Stochastic(14,3,3)",
+        "value": 35.22,
+        "action": "neutral",
+        "detail": "Direction: bull"
+      },
+      {
+        "name": "KDJ(14,3,3)",
+        "value": 56.58,
+        "action": "buy",
+        "detail": "K: 35.22"
+      },
+      {
+        "name": "CCI(20)",
+        "value": -12.12,
+        "action": "neutral",
+        "detail": "neutral"
+      },
+      {
+        "name": "MACD(12,26,9)",
+        "value": -0.2601,
+        "action": "sell",
+        "detail": "DIF: 0.338"
+      }
+    ],
+    "volatility": [
+      {
+        "name": "Bollinger(20,2)",
+        "value": 0.455,
+        "action": "neutral",
+        "detail": "Mid: 41.87"
+      },
+      {
+        "name": "ATR(14)",
+        "value": 1.963,
+        "action": "buy",
+        "detail": "Pct: 0.0472"
+      },
+      {
+        "name": "Bollinger Bandwidth",
+        "value": 0.158,
+        "action": "neutral",
+        "detail": "Bandes relatives"
+      }
+    ],
+    "volume": [
+      {
+        "name": "Volume 1d",
+        "value": 3996713.54,
+        "action": "sell",
+        "detail": "vs MA20: -48.0%"
+      },
+      {
+        "name": "Volume MA20",
+        "value": 7691198.75,
+        "action": "neutral",
+        "detail": "Moyenne mobile"
+      }
+    ]
+  },
+  "support_resistance": {
+    "support and resistance channel": {
+      "channels": [
+        {
+          "hi": 40.415,
+          "lo": 38.483,
+          "strength": 109
+        },
+        {
+          "hi": 51.496,
+          "lo": 49.564,
+          "strength": 93
+        },
+        {
+          "hi": 35.493,
+          "lo": 34.444,
+          "strength": 79
+        },
+        {
+          "hi": 22.185,
+          "lo": 20.475,
+          "strength": 68
+        },
+        {
+          "hi": 45.75,
+          "lo": 45.75,
+          "strength": 21
+        },
+        {
+          "hi": 43.753,
+          "lo": 43.753,
+          "strength": 21
+        }
+      ],
+      "signals": {
+        "in_channel": false,
+        "resistance_broken": false,
+        "support_broken": false
+      }
+    },
+    "pivot": null,
+    "recent_high_low": {
+      "calendar": {
+        "high_24h": 42.456,
+        "low_24h": 40.994,
+        "high_7d": 43.6,
+        "low_7d": 38.706,
+        "high_30d": 45.75,
+        "low_30d": 35.081
+      }
+    },
+    "vwap": {
+      "method": "unanchored",
+      "tf_source": "1d",
+      "asof": "2026-05-02T00:00:00Z",
+      "cumulative": {
+        "scope": "last_96_bars",
+        "bars": 96,
+        "value": 34.5446,
+        "slope": "up",
+        "state": "price_above"
+      },
+      "rolling": [
+        {
+          "bars": 20,
+          "value": 42.024
+        },
+        {
+          "bars": 60,
+          "value": 38.6341
+        },
+        {
+          "bars": 96,
+          "value": 34.5446
+        }
+      ]
+    }
+  },
+  "overall_decision": {
+    "action": "Neutral",
+    "buy_signals": 2,
+    "sell_signals": 2,
+    "neutral_signals": 7,
+    "buy_ratio": 0.1818,
+    "sell_ratio": 0.1818,
+    "summary": "Tendance basée sur 2 achats, 2 ventes. Source: TrueNorth."
+  },
+  "events": [],
+  "timeframe": "1d",
+  "last_updated": "2026-05-02T17:27:57.585Z",
+  "source": "TrueNorth CLI",
+  "derivatives": {
+    "open_interest": {
+      "current_oi": 212855357.47890002,
+      "oi_change_1d": 6911010,
+      "oi_change_4h": 434038,
+      "oi_percentile_7d": 92.1,
+      "oi_mcap_ratio": 2.009
+    },
+    "funding_rate": {
+      "current_rate_pct": 0.005,
+      "annualized_cost_pct": 5.47,
+      "funding_percentile_7d": 67.9,
+      "change_1d_pct": 0.005618
+    },
+    "liquidations": {
+      "short_liq_points": [],
+      "long_liq_points": [],
+      "imbalance_ratio": -0.419,
+      "interpretation": "heavily_favors_longs"
+    }
+  },
+  "fetch_duration_ms": 824,
+  "errors": null
+}
