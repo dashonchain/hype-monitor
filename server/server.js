@@ -532,6 +532,25 @@ app.get('/api/live-data', async (req, res) => {
   }
 });
 
+// ─── Liquidations endpoint ───
+app.get('/api/liquidations', async (req, res) => {
+  try {
+    const deriv = await execCommand('tn deriv hyperliquid --json');
+    const liquidation = deriv['Binance/Bybit/OKX aggreated liquidation map'] || {};
+    const imbalance = liquidation.imbalance || {};
+
+    res.json({
+      short_levels: (liquidation.max_short_liquidation_point || []).slice(0, 5),
+      long_levels: (liquidation.max_long_liquidation_point || []).slice(0, 5),
+      imbalance: imbalance.imbalance_ratio || 0,
+      interpretation: imbalance.interpretation || 'N/A',
+      updated_at: new Date().toISOString(),
+    });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to fetch liquidations', details: error.message });
+  }
+});
+
 // ─── Health check ───
 app.get('/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
@@ -540,5 +559,6 @@ app.get('/health', (req, res) => {
 app.listen(PORT, () => {
   console.log(`🚀 HYPE Monitor backend running on http://localhost:${PORT}`);
   console.log(`📡 GET /api/live-data?timeframe=[5m,15m,1h,4h,1d]`);
+  console.log(`📡 GET /api/liquidations`);
   console.log(`📡 GET /health`);
 });

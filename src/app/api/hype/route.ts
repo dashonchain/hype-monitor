@@ -31,6 +31,20 @@ function calcRSI(prices, period = 14) {
   return rsi;
 }
 
+// ─── Fetch liquidations from TrueNorth via PM2 backend ───
+async function fetchLiquidations() {
+  try {
+    // Try the PM2 backend which has TrueNorth access
+    const res = await fetch('https://mayor-titled-mathematics-choices.trycloudflare.com/api/liquidations', {
+      signal: AbortSignal.timeout(5000),
+    });
+    if (!res.ok) return null;
+    return await res.json();
+  } catch {
+    return null;
+  }
+}
+
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const timeframe = searchParams.get('timeframe') || '1d';
@@ -38,14 +52,19 @@ export async function GET(request: Request) {
 
   try {
     if (cache && Date.now() - cache.timestamp < CACHE_TTL) {
-      return NextResponse.json({ ...cache.data, fetch_duration_ms: Date.now() - t0, cached: true });
+      // Still try to get fresh liquidations even from cache
+      const liq = await fetchLiquidations();
+      const data = { ...cache.data, fetch_duration_ms: Date.now() - t0, cached: true };
+      if (liq) data.liquidations = liq;
+      return NextResponse.json(data);
     }
 
-    // ─── Fetch CoinGecko ───
+    // ─── Fetch CoinGecko + Liquidations in parallel ───
     const days = timeframe === '1h' ? '7' : timeframe === '4h' ? '30' : '365';
-    const [mcRes, histRes] = await Promise.all([
+    const [mcRes, histRes, liqData] = await Promise.all([
       fetch('https://api.coingecko.com/api/v3/coins/hyperliquid?localization=false&tickers=false&community_data=false&developer_data=false', { signal: AbortSignal.timeout(10000) }),
       fetch(`https://api.coingecko.com/api/v3/coins/hyperliquid/market_chart?vs_currency=usd&days=${days}&interval=${days === '365' ? 'daily' : 'hourly'}`, { signal: AbortSignal.timeout(10000) }),
+      fetchLiquidations(),
     ]);
 
     if (!mcRes.ok) throw new Error(`CoinGecko HTTP ${mcRes.status}`);
@@ -67,13 +86,17 @@ export async function GET(request: Request) {
     const ema200Val = ema200.length ? ema200[ema200.length - 1] : null;
     const rsiVal = rsiArr.length ? rsiArr[rsiArr.length - 1] : null;
 
-    // Build history arrays for chart
     const offset20 = tsValues.length - ema20.length;
     const offset50 = tsValues.length - ema50.length;
     const offset200 = tsValues.length - ema200.length;
     const offsetRsi = tsValues.length - rsiArr.length;
 
-    const response = {
+    const errors: string[] = [];
+
+    // Check for CoinGecko rate limit
+    if (mcData.error) errors.push('CoinGecko rate limited');
+
+    const response: any = {
       price,
       price_change: {
         '24h': mcData.market_data?.price_change_percentage_24h?.toFixed(2) || '0',
@@ -88,10 +111,7 @@ export async function GET(request: Request) {
       circulating_supply: mcData.market_data?.circulating_supply || 0,
       total_supply: mcData.market_data?.total_supply || 0,
       ath: mcData.market_data?.ath?.usd || 0,
-      ema20: ema20Val,
-      ema50: ema50Val,
-      ema200: ema200Val,
-      rsi: rsiVal,
+      ema20: ema20Val, ema50: ema50Val, ema200: ema200Val, rsi: rsiVal,
       history: { prices: histData?.prices || [] },
       ema20History: tsValues.slice(offset20).map((t, i) => [t, ema20[i]]),
       ema50History: tsValues.slice(offset50).map((t, i) => [t, ema50[i]]),
@@ -101,8 +121,13 @@ export async function GET(request: Request) {
       last_updated: new Date().toISOString(),
       source: 'CoinGecko',
       fetch_duration_ms: Date.now() - t0,
-      errors: [] as string[],
+      errors,
     };
+
+    // Add liquidations if available
+    if (liqData) {
+      response.liquidations = liqData;
+    }
 
     cache = { data: response, timestamp: Date.now() };
     return NextResponse.json(response);
