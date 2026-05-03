@@ -17,7 +17,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="en" className={`${geistMono.variable} h-full antialiased`}>
       <body className="min-h-full flex flex-col bg-[#09090b]">
         {children}
-        <script src="https://s3.tradingview.com/tv.js" async />
       </body>
     </html>
   );
