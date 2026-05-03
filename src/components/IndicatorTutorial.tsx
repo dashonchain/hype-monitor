@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 interface Indicator {
   id: string;
@@ -12,6 +12,13 @@ interface Indicator {
   how: string;
   signals: string[];
   tip: string;
+}
+
+// ─── Mount guard for client-only rendering ───
+function useClientMount() {
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => { setMounted(true); }, []);
+  return mounted;
 }
 
 const INDICATORS: Indicator[] = [
@@ -138,6 +145,9 @@ const INDICATORS: Indicator[] = [
 export default function IndicatorTutorial() {
   const [open, setOpen] = useState(false);
   const [active, setActive] = useState<string | null>(null);
+  const mounted = useClientMount();
+
+  if (!mounted) return null;
 
   const activeIndicator = INDICATORS.find(i => i.id === active);
 
