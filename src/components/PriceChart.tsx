@@ -1,5 +1,10 @@
+'use client';
+
 import { useEffect, useRef } from 'react';
-import { createChart, ColorType, LineSeries, type IChartApi, type Time } from 'lightweight-charts';
+import {
+  createChart, ColorType, CandlestickSeries, LineSeries,
+  type IChartApi, type Time, type CandlestickData,
+} from 'lightweight-charts';
 
 interface PriceChartProps {
   prices: [number, number][];
@@ -9,12 +14,35 @@ interface PriceChartProps {
   rsiHistory: [number, number][];
 }
 
-const toChartData = (data: [number, number][]) =>
-  data
-    .filter(([, val]) => val !== null && val !== undefined && !isNaN(val))
-    .map(([ts, val]) => ({ time: (ts / 1000) as Time, value: val }));
+function buildCandles(prices: [number, number][], barCount = 200): CandlestickData<Time>[] {
+  if (prices.length < 2) return [];
+  const step = Math.max(1, Math.floor(prices.length / barCount));
+  const sampled = prices.filter((_, i) => i % step === 0);
+  const candles: CandlestickData<Time>[] = [];
+  for (let i = 1; i < sampled.length; i++) {
+    const open = sampled[i - 1][1];
+    const close = sampled[i][1];
+    const high = Math.max(open, close) * 1.001;
+    const low = Math.min(open, close) * 0.999;
+    candles.push({
+      time: (sampled[i][0] / 1000) as Time,
+      open: +open.toFixed(4),
+      high: +high.toFixed(4),
+      low: +low.toFixed(4),
+      close: +close.toFixed(4),
+    });
+  }
+  return candles;
+}
 
-const PriceChart = ({ prices, ema20History, ema50History, ema200History, rsiHistory }: PriceChartProps) => {
+const toLine = (data: [number, number][]) =>
+  data.filter(([, v]) => v != null && !isNaN(v) && v !== 0)
+    .map(([ts, val]) => ({ time: (ts / 1000) as Time, value: +val.toFixed(4) }));
+
+const LW = 1 as any; // lightweight-charts LineWidth type workaround
+const LW2 = 2 as any;
+
+export default function PriceChart({ prices, ema20History, ema50History, ema200History, rsiHistory }: PriceChartProps) {
   const priceRef = useRef<HTMLDivElement>(null);
   const rsiRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<IChartApi | null>(null);
@@ -22,87 +50,81 @@ const PriceChart = ({ prices, ema20History, ema50History, ema200History, rsiHist
 
   useEffect(() => {
     if (!priceRef.current || !prices.length) return;
-
-    // Cleanup
     chartRef.current?.remove();
     rsiChartRef.current?.remove();
     chartRef.current = null;
     rsiChartRef.current = null;
 
-    // ─── Price Chart ───
-    const priceChart = createChart(priceRef.current, {
-      layout: { background: { type: ColorType.Solid, color: '#0d1220' }, textColor: '#9598a1' },
-      grid: { vertLines: { color: '#1e2433' }, horzLines: { color: '#1e2433' } },
-      crosshair: { mode: 1 },
-      rightPriceScale: { borderColor: '#1e2433' },
-      timeScale: { borderColor: '#1e2433', timeVisible: true, secondsVisible: false },
+    const chart = createChart(priceRef.current, {
+      layout: { background: { type: ColorType.Solid, color: '#0a0c11' }, textColor: '#6b7280', fontSize: 11 },
+      grid: { vertLines: { color: '#1a1d25' }, horzLines: { color: '#1a1d25' } },
+      crosshair: { mode: 1, vertLine: { color: '#374151', width: 1, style: 2 }, horzLine: { color: '#374151', width: 1, style: 2 } },
+      rightPriceScale: { borderColor: '#1f2937', scaleMargins: { top: 0.08, bottom: 0.25 } },
+      timeScale: { borderColor: '#1f2937', timeVisible: true, secondsVisible: false },
     });
-    chartRef.current = priceChart;
+    chartRef.current = chart;
+    chart.applyOptions({ width: priceRef.current.clientWidth });
 
-    const w = priceRef.current.clientWidth;
-    priceChart.applyOptions({ width: w });
-
-    // Price line
-    const priceSeries = priceChart.addSeries(LineSeries, {
-      color: '#06b6d4', lineWidth: 2, title: 'HYPE',
-      lastValueVisible: true, priceLineVisible: true, priceLineWidth: 1,
+    // Candlesticks
+    const candles = buildCandles(prices);
+    const candleSeries = chart.addSeries(CandlestickSeries, {
+      upColor: '#22c55e', downColor: '#ef4444',
+      borderUpColor: '#22c55e', borderDownColor: '#ef4444',
+      wickUpColor: '#22c55e88', wickDownColor: '#ef444488',
     });
-    priceSeries.setData(toChartData(prices));
+    candleSeries.setData(candles);
 
-    // EMA 20
-    if (ema20History.length > 20) {
-      const s = priceChart.addSeries(LineSeries, { color: '#f472b6', lineWidth: 1, title: 'EMA 20', lastValueVisible: true, priceLineVisible: false });
-      s.setData(toChartData(ema20History));
+    // EMA lines
+    const emas: [string, string, [number, number][]][] = [
+      ['#f472b6', 'EMA 20', ema20History],
+      ['#60a5fa', 'EMA 50', ema50History],
+      ['#facc15', 'EMA 200', ema200History],
+    ];
+    for (const [color, title, data] of emas) {
+      if (data.length > 2) {
+        const s = chart.addSeries(LineSeries, { color, lineWidth: LW, title, lastValueVisible: false, priceLineVisible: false, crosshairMarkerVisible: false });
+        s.setData(toLine(data));
+      }
     }
-    // EMA 50
-    if (ema50History.length > 50) {
-      const s = priceChart.addSeries(LineSeries, { color: '#60a5fa', lineWidth: 1, title: 'EMA 50', lastValueVisible: true, priceLineVisible: false });
-      s.setData(toChartData(ema50History));
-    }
-    // EMA 200
-    if (ema200History.length > 200) {
-      const s = priceChart.addSeries(LineSeries, { color: '#facc15', lineWidth: 1, title: 'EMA 200', lastValueVisible: true, priceLineVisible: false });
-      s.setData(toChartData(ema200History));
-    }
+    chart.timeScale().fitContent();
 
-    priceChart.timeScale().fitContent();
-
-    // ─── RSI Chart ───
-    const validRsi = rsiHistory.filter(([, v]) => v !== null && v !== undefined && !isNaN(v));
+    // RSI
+    const validRsi = toLine(rsiHistory);
     if (rsiRef.current && validRsi.length > 0) {
       const rsiChart = createChart(rsiRef.current, {
-        layout: { background: { type: ColorType.Solid, color: '#0d1220' }, textColor: '#9598a1' },
-        grid: { vertLines: { color: '#1e2433' }, horzLines: { color: '#1e2433' } },
+        layout: { background: { type: ColorType.Solid, color: '#0a0c11' }, textColor: '#6b7280', fontSize: 11 },
+        grid: { vertLines: { color: '#1a1d25' }, horzLines: { color: '#1a1d25' } },
         crosshair: { mode: 1 },
-        rightPriceScale: { borderColor: '#1e2433', scaleMargins: { top: 0.1, bottom: 0.1 } },
-        timeScale: { borderColor: '#1e2433', timeVisible: true, secondsVisible: false },
+        rightPriceScale: { borderColor: '#1f2937', scaleMargins: { top: 0.1, bottom: 0.1 } },
+        timeScale: { borderColor: '#1f2937', timeVisible: true, secondsVisible: false },
       });
       rsiChartRef.current = rsiChart;
-      rsiChart.applyOptions({ width: w });
+      rsiChart.applyOptions({ width: priceRef.current.clientWidth });
 
-      // RSI line
-      const rsiSeries = rsiChart.addSeries(LineSeries, { color: '#a78bfa', lineWidth: 2, title: 'RSI(14)', lastValueVisible: true, priceLineVisible: true });
-      rsiSeries.setData(toChartData(validRsi));
+      const rsiLine = rsiChart.addSeries(LineSeries, { color: '#a78bfa', lineWidth: LW2, title: 'RSI', lastValueVisible: false, priceLineVisible: false });
+      rsiLine.setData(validRsi);
 
-      // Overbought 70
-      const ob = rsiChart.addSeries(LineSeries, { color: '#ef4444', lineWidth: 1 });
-      ob.setData([
-        { time: (validRsi[0][0] / 1000) as Time, value: 70 },
-        { time: (validRsi[validRsi.length - 1][0] / 1000) as Time, value: 70 },
-      ]);
+      const ob = rsiChart.addSeries(LineSeries, { color: '#ef444466', lineWidth: LW, lastValueVisible: false, priceLineVisible: false });
+      ob.setData([{ time: validRsi[0].time, value: 70 }, { time: validRsi[validRsi.length - 1].time, value: 70 }]);
 
-      // Oversold 30
-      const os = rsiChart.addSeries(LineSeries, { color: '#22c55e', lineWidth: 1 });
-      os.setData([
-        { time: (validRsi[0][0] / 1000) as Time, value: 30 },
-        { time: (validRsi[validRsi.length - 1][0] / 1000) as Time, value: 30 },
-      ]);
+      const os = rsiChart.addSeries(LineSeries, { color: '#22c55e66', lineWidth: LW, lastValueVisible: false, priceLineVisible: false });
+      os.setData([{ time: validRsi[0].time, value: 30 }, { time: validRsi[validRsi.length - 1].time, value: 30 }]);
 
-      const rng = priceChart.timeScale().getVisibleLogicalRange();
+      const mid = rsiChart.addSeries(LineSeries, { color: '#ffffff15', lineWidth: LW, lastValueVisible: false, priceLineVisible: false });
+      mid.setData([{ time: validRsi[0].time, value: 50 }, { time: validRsi[validRsi.length - 1].time, value: 50 }]);
+
+      const rng = chart.timeScale().getVisibleLogicalRange();
       if (rng) rsiChart.timeScale().setVisibleLogicalRange(rng);
     }
 
-    // ─── Resize ───
+    // Sync crosshair
+    const syncHandler = (param: any) => {
+      if (param.time && rsiChartRef.current) {
+        rsiChartRef.current.setCrosshairPosition(param.time as number, (param.point?.y ?? 0) as any, undefined as any);
+      }
+    };
+    chart.subscribeCrosshairMove(syncHandler);
+
     const onResize = () => {
       if (priceRef.current && chartRef.current) chartRef.current.applyOptions({ width: priceRef.current.clientWidth });
       if (rsiRef.current && rsiChartRef.current) rsiChartRef.current.applyOptions({ width: rsiRef.current.clientWidth });
@@ -111,6 +133,7 @@ const PriceChart = ({ prices, ema20History, ema50History, ema200History, rsiHist
 
     return () => {
       window.removeEventListener('resize', onResize);
+      chart.unsubscribeCrosshairMove(syncHandler);
       chartRef.current?.remove();
       rsiChartRef.current?.remove();
       chartRef.current = null;
@@ -119,35 +142,31 @@ const PriceChart = ({ prices, ema20History, ema50History, ema200History, rsiHist
   }, [prices, ema20History, ema50History, ema200History, rsiHistory]);
 
   return (
-    <div className="bg-slate-900/50 border border-slate-800/40 rounded-xl overflow-hidden">
-      <div className="px-4 py-2.5 border-b border-slate-800/40 flex items-center justify-between">
-        <div>
-          <h3 className="text-sm font-semibold">Price & Indicators</h3>
-          <p className="text-[10px] text-gray-500 mt-0.5">EMA 20/50/200 overlays • RSI(14) • 1Y history</p>
-        </div>
-        <div className="flex gap-3 text-[10px]">
-          <span className="flex items-center gap-1"><span className="w-2 h-0.5 bg-cyan-400 inline-block rounded" /> Price</span>
+    <div className="bg-zinc-900/60 border border-zinc-800/50 rounded-xl overflow-hidden">
+      <div className="px-4 py-2 border-b border-zinc-800/40 flex items-center justify-between">
+        <h3 className="text-xs font-semibold text-zinc-300">Price Chart</h3>
+        <div className="flex gap-3 text-[9px]">
+          <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-sm bg-emerald-500 inline-block" /> Bullish</span>
+          <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-sm bg-red-500 inline-block" /> Bearish</span>
           <span className="flex items-center gap-1"><span className="w-2 h-0.5 bg-pink-400 inline-block rounded" /> EMA 20</span>
           <span className="flex items-center gap-1"><span className="w-2 h-0.5 bg-blue-400 inline-block rounded" /> EMA 50</span>
           <span className="flex items-center gap-1"><span className="w-2 h-0.5 bg-yellow-400 inline-block rounded" /> EMA 200</span>
         </div>
       </div>
-      <div ref={priceRef} style={{ height: 380 }} />
-
+      <div ref={priceRef} style={{ height: 400 }} />
       {rsiHistory.length > 0 && (
-        <div className="border-t border-slate-800/40">
-          <div className="px-4 py-1.5 border-b border-slate-800/30 flex items-center justify-between">
-            <span className="text-[10px] text-gray-500">RSI(14) — Purple</span>
-            <div className="flex gap-3 text-[10px]">
-              <span className="flex items-center gap-1"><span className="w-2 h-0.5 bg-red-500 inline-block rounded" /> 70 Overbought</span>
-              <span className="flex items-center gap-1"><span className="w-2 h-0.5 bg-green-500 inline-block rounded" /> 30 Oversold</span>
+        <div className="border-t border-zinc-800/40">
+          <div className="px-4 py-1 flex items-center justify-between">
+            <span className="text-[9px] text-zinc-600">RSI (14)</span>
+            <div className="flex gap-3 text-[9px]">
+              <span className="flex items-center gap-1"><span className="w-2 h-0.5 bg-red-500/60 inline-block rounded" /> 70 Overbought</span>
+              <span className="flex items-center gap-1"><span className="w-2 h-0.5 bg-green-500/60 inline-block rounded" /> 30 Oversold</span>
+              <span className="flex items-center gap-1"><span className="w-2 h-0.5 bg-purple-400 inline-block rounded" /> RSI</span>
             </div>
           </div>
-          <div ref={rsiRef} style={{ height: 120 }} />
+          <div ref={rsiRef} style={{ height: 110 }} />
         </div>
       )}
     </div>
   );
-};
-
-export default PriceChart;
+}

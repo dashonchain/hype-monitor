@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback, useMemo } from 'react';
 import PriceChart from '../components/PriceChart';
+import IndicatorTutorial from '../components/IndicatorTutorial';
 
 // ─── Types ───
 type Data = {
@@ -446,6 +447,9 @@ export default function Home() {
           </aside>
         </div>
       </main>
+
+      {/* Indicator Tutorial */}
+      <IndicatorTutorial />
     </div>
   );
 }
