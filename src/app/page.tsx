@@ -90,7 +90,7 @@ export default function Home() {
   const [timeframe, setTimeframe] = useState('1d');
   const [fetchCount, setFetchCount] = useState(0);
 
-  const API_URL = 'https://stroke-nevada-attachments-sit.trycloudflare.com';
+  const API_URL = 'https://exercise-estimated-purchased-greensboro.trycloudflare.com';
 
   const fetchData = useCallback(async (tf?: string) => {
     try {
