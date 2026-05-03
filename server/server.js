@@ -8,9 +8,13 @@ const app = express();
 const PORT = 3001;
 const CACHE_FILE = path.join(__dirname, 'cache.json');
 const COINGECKO_CACHE_FILE = path.join(__dirname, 'cache-coingecko.json');
+const MARKET_CACHE_FILE = path.join(__dirname, 'cache-market.json');
 
 app.use(cors());
 app.use(express.json());
+
+// ─── Sleep helper ───
+const sleep = (ms) => new Promise(r => setTimeout(r, ms));
 
 // ─── Execute CLI command ───
 function execCommand(cmd) {
@@ -34,39 +38,61 @@ function execCommand(cmd) {
   });
 }
 
-// ─── Fetch real-time market data from CoinGecko ───
+// ─── Fetch real-time market data from CoinGecko (with retry + cache) ───
 async function fetchCoinGeckoMarketData() {
+  // Try cache first (5 min expiry)
   try {
-    const cmd = `curl -s "https://api.coingecko.com/api/v3/coins/hyperliquid"`;
-    const output = await new Promise((resolve, reject) => {
-      exec(cmd, { timeout: 10000 }, (error, stdout, stderr) => {
-        if (error) return reject(error);
-        resolve(stdout);
+    if (fs.existsSync(MARKET_CACHE_FILE)) {
+      const c = JSON.parse(fs.readFileSync(MARKET_CACHE_FILE, 'utf8'));
+      if (Date.now() - c.timestamp < 300000) return c.data;
+    }
+  } catch (e) {}
+
+  // Retry up to 3 times
+  for (let attempt = 1; attempt <= 3; attempt++) {
+    try {
+      const cmd = `curl -s --max-time 10 "https://api.coingecko.com/api/v3/coins/hyperliquid"`;
+      const output = await new Promise((resolve, reject) => {
+        exec(cmd, { timeout: 12000 }, (error, stdout) => {
+          if (error) return reject(error);
+          resolve(stdout);
+        });
       });
-    });
-    const data = JSON.parse(output);
-    const md = data.market_data || {};
-    return {
-      price: md.current_price?.usd || 0,
-      market_cap: md.market_cap?.usd || 0,
-      market_cap_rank: md.market_cap_rank || 0,
-      total_volume: md.total_volume?.usd || 0,
-      high_24h: md.high_24h?.usd || 0,
-      low_24h: md.low_24h?.usd || 0,
-      price_change_24h: md.price_change_percentage_24h || 0,
-      price_change_7d: md.price_change_percentage_7d || 0,
-      price_change_30d: md.price_change_percentage_30d || 0,
-      circulating_supply: md.circulating_supply || 0,
-      total_supply: md.total_supply || 0,
-      max_supply: md.max_supply || 0,
-      ath: md.ath?.usd || 0,
-      ath_date: md.ath_date?.usd || '',
-      atl: md.atl?.usd || 0,
-    };
-  } catch (e) {
-    console.warn('CoinGecko market data fetch failed:', e.message);
-    return null;
+      const data = JSON.parse(output);
+      if (data.market_data) {
+        const md = data.market_data;
+        const result = {
+          price: md.current_price?.usd || 0,
+          market_cap: md.market_cap?.usd || 0,
+          market_cap_rank: md.market_cap_rank || 0,
+          total_volume: md.total_volume?.usd || 0,
+          high_24h: md.high_24h?.usd || 0,
+          low_24h: md.low_24h?.usd || 0,
+          price_change_24h: md.price_change_percentage_24h || 0,
+          price_change_7d: md.price_change_percentage_7d || 0,
+          price_change_30d: md.price_change_percentage_30d || 0,
+          circulating_supply: md.circulating_supply || 0,
+          total_supply: md.total_supply || 0,
+          ath: md.ath?.usd || 0,
+          atl: md.atl?.usd || 0,
+        };
+        // Save cache
+        try { fs.writeFileSync(MARKET_CACHE_FILE, JSON.stringify({ timestamp: Date.now(), data: result }, null, 2)); } catch (e) {}
+        return result;
+      }
+    } catch (e) {
+      console.warn(`CoinGecko attempt ${attempt} failed: ${e.message}`);
+      if (attempt < 3) await sleep(2000 * attempt);
+    }
   }
+
+  // Fallback to stale cache
+  try {
+    if (fs.existsSync(MARKET_CACHE_FILE)) {
+      return JSON.parse(fs.readFileSync(MARKET_CACHE_FILE, 'utf8')).data;
+    }
+  } catch (e) {}
+  return null;
 }
 
 // ─── Fetch 1-year daily price+volume history from CoinGecko ───
@@ -373,6 +399,29 @@ app.get('/api/live-data', async (req, res) => {
       responseData.total_supply = m.total_supply;
       responseData.ath = m.ath;
       responseData.atl = m.atl;
+    } else {
+      // Fallback: try to read market cache file directly
+      try {
+        if (fs.existsSync(MARKET_CACHE_FILE)) {
+          const mc = JSON.parse(fs.readFileSync(MARKET_CACHE_FILE, 'utf8'));
+          const m = mc.data;
+          responseData.market_cap = m.market_cap;
+          responseData.market_cap_rank = m.market_cap_rank;
+          responseData.total_volume = m.total_volume;
+          responseData.high_24h = m.high_24h;
+          responseData.low_24h = m.low_24h;
+          responseData.price_change = {
+            '24h': m.price_change_24h?.toFixed(2) + '%',
+            '7d': m.price_change_7d?.toFixed(2) + '%',
+            '30d': m.price_change_30d?.toFixed(2) + '%',
+          };
+          responseData.circulating_supply = m.circulating_supply;
+          responseData.total_supply = m.total_supply;
+          responseData.ath = m.ath;
+          responseData.atl = m.atl;
+          console.log('Using cached market data');
+        }
+      } catch (e) {}
     }
 
     // History

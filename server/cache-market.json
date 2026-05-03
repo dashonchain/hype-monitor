@@ -1,0 +1,18 @@
+{
+  "timestamp": 1777797088094,
+  "data": {
+    "price": 40.97,
+    "market_cap": 9760039347,
+    "market_cap_rank": 13,
+    "total_volume": 174879795,
+    "high_24h": 42.31,
+    "low_24h": 40.82,
+    "price_change_24h": -2.44814,
+    "price_change_7d": -0.77431,
+    "price_change_30d": 14.79251,
+    "circulating_supply": 238385315.9541414,
+    "total_supply": 962274028.9541414,
+    "ath": 59.3,
+    "atl": 3.81
+  }
+}
