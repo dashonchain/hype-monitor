@@ -8,14 +8,24 @@ let cache: { data: any; timestamp: number; timeframe: string } | null = null;
 const HL_API = 'https://api.hyperliquid.xyz/info';
 
 async function hlPost(body: any) {
-  const res = await fetch(HL_API, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(body),
-    signal: AbortSignal.timeout(10000),
-  });
-  if (!res.ok) throw new Error(`HL HTTP ${res.status}`);
-  return res.json();
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 12000);
+  try {
+    const res = await fetch(HL_API, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+      signal: controller.signal,
+      cache: 'no-store',
+    });
+    if (!res.ok) {
+      const text = await res.text().catch(() => '');
+      throw new Error(`HL HTTP ${res.status}: ${text.slice(0, 200)}`);
+    }
+    return await res.json();
+  } finally {
+    clearTimeout(timeout);
+  }
 }
 
 // ─── Fetch OHLCV from Hyperliquid ───
@@ -31,9 +41,19 @@ async function fetchOHLCV(timeframe: string, days: number) {
 
 // ─── Fetch meta + asset contexts (OI, funding, volume) ───
 async function fetchMetaAndCtxs() {
-  const [meta, ctxs] = await hlPost({ type: 'metaAndAssetCtxs' });
+  const result = await hlPost({ type: 'metaAndAssetCtxs' });
+  // HL can return {universe:[], assetCtxs:[]} or [meta, ctxs]
+  let meta, ctxs;
+  if (Array.isArray(result) && result.length === 2) {
+    [meta, ctxs] = result;
+  } else if (result && result.universe && result.assetCtxs) {
+    meta = { universe: result.universe };
+    ctxs = result.assetCtxs;
+  } else {
+    throw new Error('Unexpected metaAndAssetCtxs format');
+  }
   const idx = meta.universe.findIndex((a: any) => a.name === 'HYPE');
-  if (idx === -1) throw new Error('HYPE not found');
+  if (idx === -1) throw new Error('HYPE not found in universe');
   return { meta: meta.universe[idx], ctx: ctxs[idx] };
 }
 
@@ -82,7 +102,6 @@ function parseCandles(candles: any[]) {
   const lows: number[] = [];
   const closes: number[] = [];
   const volumes: number[] = [];
-  const prices: [number, number][] = [];
 
   for (const c of candles) {
     const t = c.t;
@@ -91,22 +110,23 @@ function parseCandles(candles: any[]) {
     const l = parseFloat(c.l);
     const cl = parseFloat(c.c);
     const v = parseFloat(c.v);
+    if (isNaN(o) || isNaN(h) || isNaN(l) || isNaN(cl)) continue;
     ts.push(t);
     opens.push(o);
     highs.push(h);
     lows.push(l);
     closes.push(cl);
     volumes.push(v);
-    prices.push([t, cl]);
   }
 
-  return { ts, opens, highs, lows, closes, volumes, prices };
+  return { ts, opens, highs, lows, closes, volumes };
 }
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const timeframe = searchParams.get('timeframe') || '1d';
   const t0 = Date.now();
+  const errors: string[] = [];
 
   try {
     // Check cache — invalidate if timeframe changed
@@ -117,15 +137,20 @@ export async function GET(request: Request) {
     // Determine lookback
     const days = timeframe === '1h' ? 7 : timeframe === '4h' ? 30 : 365;
 
-    // ─── Fetch everything in parallel ───
-    const [candles, metaCtxs, fundingHist] = await Promise.all([
-      fetchOHLCV(timeframe, days),
-      fetchMetaAndCtxs(),
-      fetchFunding(),
+    // ─── Fetch OHLCV + metaAndCtxs in parallel ───
+    const [candlesRaw, metaCtxs] = await Promise.all([
+      fetchOHLCV(timeframe, days).catch(e => { errors.push(`OHLCV: ${e.message}`); return null; }),
+      fetchMetaAndCtxs().catch(e => { errors.push(`MetaCtxs: ${e.message}`); return null; }),
     ]);
 
-    const { ts, opens, highs, lows, closes, volumes, prices } = parseCandles(candles);
-    const { ctx } = metaCtxs;
+    if (!candlesRaw && !metaCtxs) {
+      throw new Error('All data sources failed');
+    }
+
+    // Parse candles
+    const { ts, opens, highs, lows, closes, volumes } = candlesRaw
+      ? parseCandles(candlesRaw)
+      : { ts: [], opens: [], highs: [], lows: [], closes: [], volumes: [] };
 
     // ─── Calculate indicators ───
     const sma10 = calcSMA(closes, 10);
@@ -144,44 +169,45 @@ export async function GET(request: Request) {
     const offset50 = ts.length - sma50.length;
     const offsetRsi = ts.length - rsiArr.length;
 
-    // ─── Parse funding ───
-    let fundingRate = parseFloat(ctx.funding) || 0;
-    let funding8h = fundingRate * 100; // % per 8h
-    let fundingAnnual = fundingRate * 3 * 365 * 100; // annualized %
+    // ─── Parse derivatives from metaCtxs ───
+    let fundingRate = 0, funding8h = 0, fundingAnnual = 0;
+    let oi = 0, oiUsd = 0, vol24h = 0;
+    let markPrice = closes[closes.length - 1] || 0;
+    let prevDayPx = 0;
+    let high24h = highs.length ? Math.max(...highs.slice(-24)) : markPrice;
+    let low24h = lows.length ? Math.min(...lows.slice(-24)) : markPrice;
 
-    // ─── Parse OI ───
-    const oi = parseFloat(ctx.openInterest) || 0;
-    const oiUsd = oi * parseFloat(ctx.markPx); // OI in USD
+    if (metaCtxs?.ctx) {
+      const ctx = metaCtxs.ctx;
+      fundingRate = parseFloat(ctx.funding) || 0;
+      funding8h = fundingRate * 100;
+      fundingAnnual = fundingRate * 3 * 365 * 100;
+      oi = parseFloat(ctx.openInterest) || 0;
+      markPrice = parseFloat(ctx.markPx) || closes[closes.length - 1] || 0;
+      prevDayPx = parseFloat(ctx.prevDayPx) || 0;
+      oiUsd = oi * markPrice;
+      vol24h = parseFloat(ctx.dayNtlVlm) || 0;
+    }
 
-    // ─── Volume ───
-    const vol24h = parseFloat(ctx.dayNtlVlm) || 0;
-
-    // ─── Price from mark ───
-    const markPrice = parseFloat(ctx.markPx) || closes[closes.length - 1] || 0;
-    const prevDayPx = parseFloat(ctx.prevDayPx) || 0;
     const change24h = prevDayPx > 0 ? ((markPrice / prevDayPx) - 1) * 100 : 0;
-
-    // ─── High/Low from candles ───
-    const high24h = highs.length ? Math.max(...highs.slice(-1)) : markPrice;
-    const low24h = lows.length ? Math.min(...lows.slice(-1)) : markPrice;
 
     const response: any = {
       // Price
       price: markPrice,
       price_change: {
         '24h': change24h.toFixed(2),
-        '7d': '0', // TODO: calculate from 7d ago
+        '7d': '0',
         '30d': '0',
       },
       high_24h: high24h,
       low_24h: low24h,
 
       // Market
-      market_cap: 0, // HL doesn't provide mcap directly
+      market_cap: 0,
       market_cap_rank: 0,
       total_volume: vol24h,
       circulating_supply: 0,
-      total_supply: 962274028, // known supply
+      total_supply: 962274028,
       ath: 59.3,
 
       // Indicators (SMA, not EMA)
@@ -203,13 +229,10 @@ export async function GET(request: Request) {
       sma20History: ts.slice(offset20).map((t, i) => [t, sma20[i]]),
       sma50History: ts.slice(offset50).map((t, i) => [t, sma50[i]]),
       rsiHistory: ts.slice(offsetRsi).map((t, i) => [t, rsiArr[i]]),
-      prices,
+      prices: ts.map((t, i) => [t, closes[i]]),
 
       // Derivatives
-      open_interest: {
-        usd: oiUsd,
-        tokens: oi,
-      },
+      open_interest: oi > 0 ? { usd: oiUsd, tokens: oi } : null,
       funding_rate: fundingRate,
       funding_8h_pct: funding8h,
       funding_annual_pct: fundingAnnual,
@@ -219,7 +242,8 @@ export async function GET(request: Request) {
       last_updated: new Date().toISOString(),
       source: 'Hyperliquid',
       fetch_duration_ms: Date.now() - t0,
-      errors: [] as string[],
+      cached: false,
+      errors,
     };
 
     cache = { data: response, timestamp: Date.now(), timeframe };
@@ -228,7 +252,7 @@ export async function GET(request: Request) {
   } catch (error: any) {
     console.error('API error:', error.message);
     if (cache && cache.timeframe === timeframe) {
-      return NextResponse.json({ ...cache.data, fetch_duration_ms: Date.now() - t0, stale: true, errors: [error.message] });
+      return NextResponse.json({ ...cache.data, fetch_duration_ms: Date.now() - t0, stale: true, errors: [...errors, error.message] });
     }
     return NextResponse.json(
       { error: 'Failed to fetch data', details: error.message },
