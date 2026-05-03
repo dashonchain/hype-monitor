@@ -104,12 +104,12 @@ export default function Home() {
   const [timeframe, setTimeframe] = useState('1d');
   const [fetchCount, setFetchCount] = useState(0);
 
-  const API_URL = 'https://mayor-titled-mathematics-choices.trycloudflare.com';
+  const API_URL = '';
 
   const fetchData = useCallback(async (tf?: string) => {
     try {
       setRefreshing(true);
-      const res = await fetch(`${API_URL}/api/live-data?timeframe=${tf || timeframe}`, {
+      const res = await fetch(`${API_URL}/api/hype?timeframe=${tf || timeframe}`, {
         signal: AbortSignal.timeout(15000),
       });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);

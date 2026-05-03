@@ -1,13 +1,13 @@
 {
-  "price": 41.16388254176188,
+  "price": 41.12947176320592,
   "price_change": {
-    "24h": "-2.29%",
-    "7d": "-0.33%",
-    "30d": "14.82%"
+    "24h": "-2.16%",
+    "7d": "-0.30%",
+    "30d": "14.86%"
   },
-  "market_cap": 9814869230,
+  "market_cap": 9808151477,
   "market_cap_rank": 13,
-  "total_volume": 17308463.813408,
+  "total_volume": 17234225.306659,
   "indicators": {
     "trend": [
       {
@@ -44,39 +44,39 @@
     "momentum": [
       {
         "name": "RSI(14)",
-        "value": 52,
+        "value": 52.01,
         "action": "neutral",
         "detail": "Momentum: falling"
       },
       {
         "name": "Stochastic(14,3,3)",
-        "value": 44.96,
+        "value": 44.98,
         "action": "neutral",
         "detail": "Direction: bull"
       },
       {
         "name": "KDJ(14,3,3)",
-        "value": 68,
+        "value": 68.05,
         "action": "buy",
-        "detail": "K: 44.96"
+        "detail": "K: 44.98"
       },
       {
         "name": "CCI(20)",
-        "value": -36.53,
+        "value": -36.48,
         "action": "neutral",
         "detail": "neutral"
       },
       {
         "name": "MACD(12,26,9)",
-        "value": -0.2334,
+        "value": -0.2332,
         "action": "sell",
-        "detail": "DIF: 0.3007"
+        "detail": "DIF: 0.3009"
       }
     ],
     "volatility": [
       {
         "name": "Bollinger(20,2)",
-        "value": 0.411,
+        "value": 0.412,
         "action": "neutral",
         "detail": "Mid: 41.69"
       },
@@ -96,13 +96,13 @@
     "volume_indicators": [
       {
         "name": "Volume 1d",
-        "value": 1393791.62,
+        "value": 1411303.48,
         "action": "sell",
-        "detail": "vs MA20: -80.6%"
+        "detail": "vs MA20: -80.4%"
       },
       {
         "name": "Vol MA20",
-        "value": 7187737.71,
+        "value": 7188613.3,
         "action": "neutral",
         "detail": "Moving Average"
       }
@@ -173,7 +173,7 @@
       "rolling": [
         {
           "bars": 20,
-          "value": 41.9093
+          "value": 41.9092
         },
         {
           "bars": 60,
@@ -199,14 +199,14 @@
   },
   "events": [],
   "timeframe": "1d",
-  "last_updated": "2026-05-03T09:39:01.801Z",
+  "last_updated": "2026-05-03T09:45:22.173Z",
   "source": "TrueNorth AI",
   "derivatives": {
     "open_interest": {
-      "current_oi": 206656441.27870002,
-      "oi_change_1d": -5134252,
-      "oi_change_4h": 383189,
-      "oi_percentile_7d": 60.4,
+      "current_oi": 206573875.17933,
+      "oi_change_1d": -5149903,
+      "oi_change_4h": 365795,
+      "oi_percentile_7d": 60.1,
       "oi_mcap_ratio": 1.97
     },
     "funding_rate": {
@@ -218,11 +218,11 @@
     "liquidations": {
       "short_liq_points": [],
       "long_liq_points": [],
-      "imbalance_ratio": 1.036,
+      "imbalance_ratio": 1.027,
       "interpretation": "heavily_favors_shorts"
     }
   },
-  "fetch_duration_ms": 671,
+  "fetch_duration_ms": 640,
   "errors": null,
   "signal_score": 39,
   "signal_emoji": "🔴",
@@ -9034,26 +9034,26 @@
     "type": null,
     "description": null
   },
-  "bid": 41.1433,
-  "ask": 41.1471,
-  "spread_bps": 0.9231393555126381,
+  "bid": 41.1292,
+  "ask": 41.133,
+  "spread_bps": 0.9239116957002711,
   "funding_rate": 0.1095,
   "funding_interval_h": 8,
   "open_interest": {
-    "total": 9787226.351036735,
-    "long": 5413197.072146919,
-    "short": 4374029.278889817,
-    "long_pct": "55.3",
-    "short_pct": "44.7"
+    "total": 9770561.811778706,
+    "long": 5415042.606866829,
+    "short": 4355519.204911877,
+    "long_pct": "55.4",
+    "short_pct": "44.6"
   },
-  "bid_100k": 41.1294,
-  "ask_100k": 41.161,
-  "variational_updated_at": "2026-05-03T09:38:20.914201756Z",
-  "platform_volume_24h": 275163187.195716,
+  "bid_100k": 41.1153,
+  "ask_100k": 41.1469,
+  "variational_updated_at": "2026-05-03T09:44:02.163733409Z",
+  "platform_volume_24h": 277166755.496217,
   "platform_tvl": 81790387.226896,
-  "platform_oi": 694182764.7782336,
+  "platform_oi": 692473700.4535242,
   "num_markets": 456,
-  "high_24h": 42.12,
+  "high_24h": 42.08,
   "low_24h": 40.82,
   "circulating_supply": 238385315.9541414,
   "total_supply": 962274028.9541414,
