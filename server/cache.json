@@ -1,14 +1,14 @@
 {
-  "price": 40.975,
+  "price": 41,
   "price_change": {
     "aligned": {
-      "4h": "0.09%",
-      "24h": "-2.60%",
-      "7d": "-0.34%"
+      "4h": "0.15%",
+      "24h": "-2.54%",
+      "7d": "-0.28%"
     },
     "calendar": {
-      "24h": "-2.60%",
-      "7d": "-0.34%",
+      "24h": "-2.54%",
+      "7d": "-0.28%",
       "30d": null
     }
   },
@@ -19,13 +19,13 @@
     "trend": [
       {
         "name": "SMA(10)",
-        "value": 41.03,
+        "value": 41.04,
         "action": "sell",
         "detail": "Slope: down"
       },
       {
         "name": "SMA(20)",
-        "value": 41.29,
+        "value": 41.3,
         "action": "sell",
         "detail": "Slope: down"
       },
@@ -43,7 +43,7 @@
       },
       {
         "name": "VWAP",
-        "value": 40.2929,
+        "value": 40.2933,
         "action": "buy",
         "detail": "Source: 1h"
       }
@@ -51,41 +51,41 @@
     "momentum": [
       {
         "name": "RSI(14)",
-        "value": 41.43,
+        "value": 42.22,
         "action": "neutral",
         "detail": "Momentum: falling"
       },
       {
         "name": "Stochastic(14,3,3)",
-        "value": 16.97,
+        "value": 17.75,
         "action": "buy",
         "detail": "Direction: bull"
       },
       {
         "name": "KDJ(14,3,3)",
-        "value": 22.29,
+        "value": 24.12,
         "action": "buy",
-        "detail": "K: 16.97"
+        "detail": "K: 17.75"
       },
       {
         "name": "CCI(20)",
-        "value": -83.12,
+        "value": -81.16,
         "action": "neutral",
         "detail": "neutral"
       },
       {
         "name": "MACD(12,26,9)",
-        "value": -0.0651,
+        "value": -0.0635,
         "action": "sell",
-        "detail": "DIF: -0.0873"
+        "detail": "DIF: -0.0853"
       }
     ],
     "volatility": [
       {
         "name": "Bollinger(20,2)",
-        "value": 0.226,
+        "value": 0.245,
         "action": "neutral",
-        "detail": "Mid: 41.29"
+        "detail": "Mid: 41.3"
       },
       {
         "name": "ATR(14)",
@@ -95,7 +95,7 @@
       },
       {
         "name": "Bollinger Bandwidth",
-        "value": 0.0282,
+        "value": 0.0281,
         "action": "neutral",
         "detail": "Relative Bands"
       }
@@ -103,13 +103,13 @@
     "volume": [
       {
         "name": "Volume 1d",
-        "value": 78105.95,
+        "value": 91418.51,
         "action": "sell",
-        "detail": "vs MA20: -41.4%"
+        "detail": "vs MA20: -31.7%"
       },
       {
         "name": "Volume MA20",
-        "value": 133195.67,
+        "value": 133861.3,
         "action": "neutral",
         "detail": "Moving Average"
       }
@@ -173,22 +173,22 @@
       "cumulative": {
         "scope": "last_96_bars",
         "bars": 96,
-        "value": 40.2929,
+        "value": 40.2933,
         "slope": "flat",
         "state": "price_above"
       },
       "rolling": [
         {
           "bars": 20,
-          "value": 41.3139
+          "value": 41.3125
         },
         {
           "bars": 60,
-          "value": 40.9362
+          "value": 40.9363
         },
         {
           "bars": 96,
-          "value": 40.2929
+          "value": 40.2933
         }
       ]
     }
@@ -206,13 +206,13 @@
   },
   "events": [],
   "timeframe": "1h",
-  "last_updated": "2026-05-03T08:33:28.178Z",
+  "last_updated": "2026-05-03T08:42:46.429Z",
   "source": "TrueNorth CLI",
   "derivatives": {
     "open_interest": {
-      "current_oi": 205229534.29472,
-      "oi_change_1d": -3187367,
-      "oi_change_4h": -573289,
+      "current_oi": 205322027.36626,
+      "oi_change_1d": -2864098,
+      "oi_change_4h": -565607,
       "oi_percentile_7d": 54.7,
       "oi_mcap_ratio": 1.966
     },
@@ -225,11 +225,11 @@
     "liquidations": {
       "short_liq_points": [],
       "long_liq_points": [],
-      "imbalance_ratio": 2.526,
+      "imbalance_ratio": 2.493,
       "interpretation": "heavily_favors_shorts"
     }
   },
-  "fetch_duration_ms": 615,
+  "fetch_duration_ms": 955,
   "errors": null,
   "signal_score": 24,
   "signal_emoji": "🔴",

@@ -48,7 +48,7 @@ async function fetchCoinGeckoMarketData() {
     }
   } catch (e) {}
 
-  // Retry up to 3 times
+  // Retry up to 3 times with increasing delay
   for (let attempt = 1; attempt <= 3; attempt++) {
     try {
       const cmd = `curl -s --max-time 10 "https://api.coingecko.com/api/v3/coins/hyperliquid"`;
@@ -59,7 +59,7 @@ async function fetchCoinGeckoMarketData() {
         });
       });
       const data = JSON.parse(output);
-      if (data.market_data) {
+      if (data.market_data && !data.error) {
         const md = data.market_data;
         const result = {
           price: md.current_price?.usd || 0,
@@ -82,7 +82,7 @@ async function fetchCoinGeckoMarketData() {
       }
     } catch (e) {
       console.warn(`CoinGecko attempt ${attempt} failed: ${e.message}`);
-      if (attempt < 3) await sleep(2000 * attempt);
+      if (attempt < 3) await sleep(5000 * attempt);
     }
   }
 
