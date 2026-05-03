@@ -95,6 +95,53 @@ async function fetchCoinGeckoMarketData() {
   return null;
 }
 
+// ─── Fetch HYPE data from Variational Omni API ───
+async function fetchVariationalData() {
+  const https = require('https');
+  return new Promise((resolve) => {
+    const req = https.get('https://omni-client-api.prod.ap-northeast-1.variational.io/metadata/stats', {
+      timeout: 30000,
+      headers: { 'User-Agent': 'HYPE-Monitor/1.0' },
+    }, (res) => {
+      let data = '';
+      res.on('data', (chunk) => data += chunk);
+      res.on('end', () => {
+        try {
+          const parsed = JSON.parse(data);
+          const hype = parsed.listings?.find((l) => l.ticker === 'HYPE');
+          if (!hype) { resolve(null); return; }
+          const oiLong = parseFloat(hype.open_interest?.long_open_interest || '0');
+          const oiShort = parseFloat(hype.open_interest?.short_open_interest || '0');
+          const oiTotal = oiLong + oiShort;
+          resolve({
+            price: parseFloat(hype.mark_price || '0'),
+            volume_24h: parseFloat(hype.volume_24h || '0'),
+            open_interest: {
+              total: oiTotal, long: oiLong, short: oiShort,
+              long_pct: oiTotal > 0 ? ((oiLong / oiTotal) * 100).toFixed(1) : '0',
+              short_pct: oiTotal > 0 ? ((oiShort / oiTotal) * 100).toFixed(1) : '0',
+            },
+            funding_rate: parseFloat(hype.funding_rate || '0'),
+            funding_interval_h: (hype.funding_interval_s || 0) / 3600,
+            bid: parseFloat(hype.quotes?.base?.bid || '0'),
+            ask: parseFloat(hype.quotes?.base?.ask || '0'),
+            spread_bps: parseFloat(hype.base_spread_bps || '0'),
+            bid_100k: parseFloat(hype.quotes?.size_100k?.bid || '0'),
+            ask_100k: parseFloat(hype.quotes?.size_100k?.ask || '0'),
+            updated_at: hype.quotes?.updated_at || '',
+            platform_volume_24h: parseFloat(parsed.total_volume_24h || '0'),
+            platform_tvl: parseFloat(parsed.tvl || '0'),
+            platform_oi: parseFloat(parsed.open_interest || '0'),
+            num_markets: parsed.num_markets || 0,
+          });
+        } catch (e) { resolve(null); }
+      });
+    });
+    req.on('error', () => resolve(null));
+    req.on('timeout', () => { req.destroy(); resolve(null); });
+  });
+}
+
 // ─── Fetch 1-year daily price+volume history from CoinGecko ───
 async function fetchCoinGeckoHistory() {
   try {
@@ -357,11 +404,12 @@ app.get('/api/live-data', async (req, res) => {
 
   try {
     // Run all fetches in parallel
-    const [taData, derivData, marketData, history] = await Promise.allSettled([
+    const [taData, derivData, marketData, history, variData] = await Promise.allSettled([
       execCommand(`tn ta hyperliquid --timeframe ${timeframe} --json`),
       execCommand('tn deriv hyperliquid --json'),
       fetchCoinGeckoMarketData(),
       fetchCoinGeckoHistory(),
+      fetchVariationalData(),
     ]);
 
     let responseData = readCache() || {};
@@ -381,13 +429,31 @@ app.get('/api/live-data', async (req, res) => {
       errors.push(`Derivatives: ${derivData.reason.message}`);
     }
 
-    // Market Data from CoinGecko
+    // Market Data: Variational (primary) + CoinGecko (supplemental)
+    if (variData.status === 'fulfilled' && variData.value) {
+      const v = variData.value;
+      responseData.price = v.price;
+      responseData.total_volume = v.volume_24h;
+      responseData.bid = v.bid;
+      responseData.ask = v.ask;
+      responseData.spread_bps = v.spread_bps;
+      responseData.funding_rate = v.funding_rate;
+      responseData.funding_interval_h = v.funding_interval_h;
+      responseData.open_interest = v.open_interest;
+      responseData.bid_100k = v.bid_100k;
+      responseData.ask_100k = v.ask_100k;
+      responseData.variational_updated_at = v.updated_at;
+      responseData.platform_volume_24h = v.platform_volume_24h;
+      responseData.platform_tvl = v.platform_tvl;
+      responseData.platform_oi = v.platform_oi;
+      responseData.num_markets = v.num_markets;
+    }
+
+    // CoinGecko supplemental data (market cap, rank, price change, ATH, etc.)
     if (marketData.status === 'fulfilled' && marketData.value) {
       const m = marketData.value;
-      responseData.price = m.price;
       responseData.market_cap = m.market_cap;
       responseData.market_cap_rank = m.market_cap_rank;
-      responseData.total_volume = m.total_volume;
       responseData.high_24h = m.high_24h;
       responseData.low_24h = m.low_24h;
       responseData.price_change = {
@@ -407,7 +473,6 @@ app.get('/api/live-data', async (req, res) => {
           const m = mc.data;
           responseData.market_cap = m.market_cap;
           responseData.market_cap_rank = m.market_cap_rank;
-          responseData.total_volume = m.total_volume;
           responseData.high_24h = m.high_24h;
           responseData.low_24h = m.low_24h;
           responseData.price_change = {
@@ -419,7 +484,6 @@ app.get('/api/live-data', async (req, res) => {
           responseData.total_supply = m.total_supply;
           responseData.ath = m.ath;
           responseData.atl = m.atl;
-          console.log('Using cached market data');
         }
       } catch (e) {}
     }

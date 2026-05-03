@@ -1,115 +1,108 @@
 {
-  "price": 41,
+  "price": 41.168882466763,
   "price_change": {
-    "aligned": {
-      "4h": "0.15%",
-      "24h": "-2.54%",
-      "7d": "-0.28%"
-    },
-    "calendar": {
-      "24h": "-2.54%",
-      "7d": "-0.28%",
-      "30d": null
-    }
+    "24h": "-2.35%",
+    "7d": "-0.31%",
+    "30d": "14.85%"
   },
-  "market_cap": 0,
-  "market_cap_rank": 0,
-  "total_volume": 0,
+  "market_cap": 9810314939,
+  "market_cap_rank": 13,
+  "total_volume": 17385703.909932,
   "indicators": {
     "trend": [
       {
         "name": "SMA(10)",
-        "value": 41.04,
-        "action": "sell",
-        "detail": "Slope: down"
+        "value": 41.01,
+        "action": "buy",
+        "detail": "Slope: flat"
       },
       {
         "name": "SMA(20)",
-        "value": 41.3,
+        "value": 41.7,
         "action": "sell",
         "detail": "Slope: down"
       },
       {
         "name": "SMA(50)",
-        "value": 41.19,
-        "action": "sell",
+        "value": 40,
+        "action": "buy",
         "detail": "Slope: up"
       },
       {
         "name": "ADX(14)",
-        "value": 20.69,
-        "action": "sell",
-        "detail": "Strength: moderate"
+        "value": 14.25,
+        "action": "buy",
+        "detail": "Strength: weak"
       },
       {
         "name": "VWAP",
-        "value": 40.2933,
+        "value": 34.7267,
         "action": "buy",
-        "detail": "Source: 1h"
+        "detail": "Source: 1d"
       }
     ],
     "momentum": [
       {
         "name": "RSI(14)",
-        "value": 42.22,
+        "value": 52.42,
         "action": "neutral",
         "detail": "Momentum: falling"
       },
       {
         "name": "Stochastic(14,3,3)",
-        "value": 17.75,
-        "action": "buy",
+        "value": 45.58,
+        "action": "neutral",
         "detail": "Direction: bull"
       },
       {
         "name": "KDJ(14,3,3)",
-        "value": 24.12,
+        "value": 69.47,
         "action": "buy",
-        "detail": "K: 17.75"
+        "detail": "K: 45.58"
       },
       {
         "name": "CCI(20)",
-        "value": -81.16,
+        "value": -35.04,
         "action": "neutral",
         "detail": "neutral"
       },
       {
         "name": "MACD(12,26,9)",
-        "value": -0.0635,
+        "value": -0.2275,
         "action": "sell",
-        "detail": "DIF: -0.0853"
+        "detail": "DIF: 0.308"
       }
     ],
     "volatility": [
       {
         "name": "Bollinger(20,2)",
-        "value": 0.245,
+        "value": 0.425,
         "action": "neutral",
-        "detail": "Mid: 41.3"
+        "detail": "Mid: 41.7"
       },
       {
         "name": "ATR(14)",
-        "value": 0.2489,
+        "value": 1.864,
         "action": "buy",
-        "detail": "Pct: 0.0061"
+        "detail": "4.52%"
       },
       {
-        "name": "Bollinger Bandwidth",
-        "value": 0.0281,
+        "name": "BB Width",
+        "value": 0.1497,
         "action": "neutral",
         "detail": "Relative Bands"
       }
     ],
-    "volume": [
+    "volume_indicators": [
       {
         "name": "Volume 1d",
-        "value": 91418.51,
+        "value": 1381164.18,
         "action": "sell",
-        "detail": "vs MA20: -31.7%"
+        "detail": "vs MA20: -80.8%"
       },
       {
-        "name": "Volume MA20",
-        "value": 133861.3,
+        "name": "Vol MA20",
+        "value": 7187106.34,
         "action": "neutral",
         "detail": "Moving Average"
       }
@@ -119,33 +112,33 @@
     "support and resistance channel": {
       "channels": [
         {
-          "hi": 41.554,
-          "lo": 41.4,
-          "strength": 108
+          "hi": 40.415,
+          "lo": 38.483,
+          "strength": 109
         },
         {
-          "hi": 40.931,
-          "lo": 40.825,
-          "strength": 89
+          "hi": 51.496,
+          "lo": 49.564,
+          "strength": 93
         },
         {
-          "hi": 41.9,
-          "lo": 41.72,
-          "strength": 81
+          "hi": 35.493,
+          "lo": 34.444,
+          "strength": 79
         },
         {
-          "hi": 40.5,
-          "lo": 40.348,
-          "strength": 58
+          "hi": 22.185,
+          "lo": 20.475,
+          "strength": 68
         },
         {
-          "hi": 38.867,
-          "lo": 38.706,
-          "strength": 44
+          "hi": 45.75,
+          "lo": 45.75,
+          "strength": 21
         },
         {
-          "hi": 42.456,
-          "lo": 42.456,
+          "hi": 43.753,
+          "lo": 43.753,
           "strength": 21
         }
       ],
@@ -158,63 +151,63 @@
     "pivot": null,
     "recent_high_low": {
       "calendar": {
-        "high_24h": 42.456,
+        "high_24h": 41.37,
         "low_24h": 40.8,
         "high_7d": 43.6,
         "low_7d": 38.706,
-        "high_30d": null,
-        "low_30d": null
+        "high_30d": 45.75,
+        "low_30d": 35.116
       }
     },
     "vwap": {
       "method": "unanchored",
-      "tf_source": "1h",
-      "asof": "2026-05-03T08:00:00Z",
+      "tf_source": "1d",
+      "asof": "2026-05-03T00:00:00Z",
       "cumulative": {
         "scope": "last_96_bars",
         "bars": 96,
-        "value": 40.2933,
-        "slope": "flat",
+        "value": 34.7267,
+        "slope": "up",
         "state": "price_above"
       },
       "rolling": [
         {
           "bars": 20,
-          "value": 41.3125
+          "value": 41.9096
         },
         {
           "bars": 60,
-          "value": 40.9363
+          "value": 38.8086
         },
         {
           "bars": 96,
-          "value": 40.2933
+          "value": 34.7267
         }
       ]
     }
   },
   "overall_decision": {
-    "action": "Sell",
-    "action_display": "🔴 SELL",
-    "buy_signals": 1,
-    "sell_signals": 5,
-    "neutral_signals": 5,
-    "buy_ratio": 0.0909,
-    "sell_ratio": 0.4545,
-    "score_percent": 24,
-    "summary": "🔴 Score: 24% | 1 buys, 5 sells. Source: TrueNorth CLI."
+    "action": "Neutral",
+    "action_display": "🔴 NEUTRAL",
+    "buy_signals": 2,
+    "sell_signals": 2,
+    "neutral_signals": 7,
+    "buy_ratio": 0.1818,
+    "sell_ratio": 0.1818,
+    "score_percent": 39,
+    "summary": "🔴 Score: 39% | 2 buys, 2 sells. Source: TrueNorth AI."
   },
   "events": [],
-  "timeframe": "1h",
-  "last_updated": "2026-05-03T08:42:46.429Z",
-  "source": "TrueNorth CLI",
+  "timeframe": "1d",
+  "last_updated": "2026-05-03T09:35:12.553Z",
+  "source": "TrueNorth AI",
   "derivatives": {
     "open_interest": {
-      "current_oi": 205322027.36626,
-      "oi_change_1d": -2864098,
-      "oi_change_4h": -565607,
-      "oi_percentile_7d": 54.7,
-      "oi_mcap_ratio": 1.966
+      "current_oi": 206727234.50763997,
+      "oi_change_1d": -5099490,
+      "oi_change_4h": 418890,
+      "oi_percentile_7d": 61.4,
+      "oi_mcap_ratio": 1.971
     },
     "funding_rate": {
       "current_rate_pct": 0.005,
@@ -225,13 +218,13 @@
     "liquidations": {
       "short_liq_points": [],
       "long_liq_points": [],
-      "imbalance_ratio": 2.493,
+      "imbalance_ratio": 1.046,
       "interpretation": "heavily_favors_shorts"
     }
   },
-  "fetch_duration_ms": 955,
+  "fetch_duration_ms": 852,
   "errors": null,
-  "signal_score": 24,
+  "signal_score": 39,
   "signal_emoji": "🔴",
   "history": {
     "prices": [
@@ -1696,8 +1689,8 @@
         41.293629795689256
       ],
       [
-        1777794585000,
-        41.01091217361462
+        1777798207000,
+        41.01381173792325
       ]
     ],
     "volumes": [
@@ -3162,15 +3155,15 @@
         188214181.18006817
       ],
       [
-        1777794585000,
-        183777565.0713139
+        1777798207000,
+        172400642.59167117
       ]
     ]
   },
-  "ema20": 40.92842189572369,
-  "ema50": 39.28050076839431,
-  "ema200": 35.792750930102834,
-  "obv": -11931215876.624561,
+  "ema20": 40.928698044705456,
+  "ema50": 39.28061447679857,
+  "ema200": 35.79277978148899,
+  "obv": -11919838954.144918,
   "ema20History": [
     [
       1746316800000,
@@ -4633,8 +4626,8 @@
       40.91973870857727
     ],
     [
-      1777794585000,
-      40.92842189572369
+      1777798207000,
+      40.928698044705456
     ]
   ],
   "ema50History": [
@@ -6099,8 +6092,8 @@
       39.20987173144654
     ],
     [
-      1777794585000,
-      39.28050076839431
+      1777798207000,
+      39.28061447679857
     ]
   ],
   "ema200History": [
@@ -7565,8 +7558,8 @@
       35.74030709850975
     ],
     [
-      1777794585000,
-      35.792750930102834
+      1777798207000,
+      35.79277978148899
     ]
   ],
   "rsiHistory": [
@@ -9031,14 +9024,39 @@
       52.87112996022559
     ],
     [
-      1777794585000,
-      51.59665159905877
+      1777798207000,
+      51.609410775425985
     ]
   ],
-  "rsi": 51.59665159905877,
+  "rsi": 51.609410775425985,
   "rsiDivergence": {
     "hasDivergence": false,
     "type": null,
     "description": null
-  }
+  },
+  "bid": 41.1426,
+  "ask": 41.1464,
+  "spread_bps": 0.9230272410400904,
+  "funding_rate": 0.1095,
+  "funding_interval_h": 8,
+  "open_interest": {
+    "total": 9810817.203793945,
+    "long": 5435374.775508368,
+    "short": 4375442.428285576,
+    "long_pct": "55.4",
+    "short_pct": "44.6"
+  },
+  "bid_100k": 41.1287,
+  "ask_100k": 41.1603,
+  "variational_updated_at": "2026-05-03T09:33:54.346145391Z",
+  "platform_volume_24h": 275922056.901889,
+  "platform_tvl": 81790387.226896,
+  "platform_oi": 694220894.9294572,
+  "num_markets": 456,
+  "high_24h": 42.15,
+  "low_24h": 40.82,
+  "circulating_supply": 238385315.9541414,
+  "total_supply": 962274028.9541414,
+  "ath": 59.3,
+  "atl": 3.81
 }

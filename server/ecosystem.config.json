@@ -1,0 +1,17 @@
+{
+  "apps": [{
+    "name": "hype-monitor",
+    "script": "server.js",
+    "cwd": "/root/hype-monitor/server",
+    "instances": 1,
+    "exec_mode": "fork",
+    "max_restarts": 10,
+    "restart_delay": 5000,
+    "max_memory_restart": "500M",
+    "env": { "NODE_ENV": "production" },
+    "log_date_format": "YYYY-MM-DD HH:mm:ss Z",
+    "error_file": "/root/.pm2/logs/hype-monitor-error.log",
+    "out_file": "/root/.pm2/logs/hype-monitor-out.log",
+    "merge_logs": true
+  }]
+}

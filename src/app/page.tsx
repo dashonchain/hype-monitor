@@ -39,6 +39,20 @@ type Data = {
   ema200?: number | null;
   obv?: number | null;
   rsi?: number | null;
+  // Variational Omni data
+  open_interest?: { total: number; long: number; short: number; long_pct: string; short_pct: string };
+  funding_rate?: number;
+  funding_interval_h?: number;
+  bid?: number;
+  ask?: number;
+  spread_bps?: number;
+  bid_100k?: number;
+  ask_100k?: number;
+  variational_updated_at?: string;
+  platform_volume_24h?: number;
+  platform_tvl?: number;
+  platform_oi?: number;
+  num_markets?: number;
   rsiHistory?: [number, number][];
   rsiDivergence?: { hasDivergence: boolean; type: string | null; description: string | null };
   history?: { prices: [number, number][]; volumes: [number, number][] };
@@ -358,50 +372,84 @@ export default function Home() {
             )}
 
             {/* Derivatives */}
-            {data.derivatives && (
+            {(data.derivatives || data.open_interest) && (
               <div className="bg-slate-900/50 border border-slate-800/40 rounded-xl overflow-hidden">
-                <div className="px-4 py-2.5 border-b border-slate-800/40">
+                <div className="px-4 py-2.5 border-b border-slate-800/40 flex items-center justify-between">
                   <h2 className="text-sm font-semibold">📑 Derivatives & Liquidations</h2>
+                  {data.variational_updated_at && (
+                    <span className="text-[10px] text-gray-500">Live: {new Date(data.variational_updated_at).toLocaleTimeString('en-US', {hour:'2-digit',minute:'2-digit',second:'2-digit'})}</span>
+                  )}
                 </div>
-                <div className="p-4 grid grid-cols-1 md:grid-cols-3 gap-3">
-                  {/* Open Interest */}
-                  <div className="bg-slate-800/30 rounded-lg p-3">
-                    <div className="text-[10px] text-gray-500 uppercase">Open Interest</div>
-                    <div className="text-lg font-bold mt-1">{fmt(data.derivatives.open_interest.current_oi)}</div>
-                    <div className="text-xs mt-1">
-                      <span className={data.derivatives.open_interest.oi_change_1d >= 0 ? 'text-emerald-400' : 'text-red-400'}>
-                        1d: {data.derivatives.open_interest.oi_change_1d >= 0 ? '+' : ''}{fmtCompact(data.derivatives.open_interest.oi_change_1d)}
-                      </span>
-                      <span className="text-gray-600 ml-1">({data.derivatives.open_interest.oi_percentile_7d}th)</span>
+                <div className="p-4 grid grid-cols-1 md:grid-cols-4 gap-3">
+
+                  {/* Open Interest - Variational */}
+                  {data.open_interest && (
+                    <div className="bg-slate-800/30 rounded-lg p-3">
+                      <div className="text-[10px] text-gray-500 uppercase">Open Interest (Omni)</div>
+                      <div className="text-lg font-bold mt-1">{fmt(data.open_interest.total)}</div>
+                      <div className="flex gap-2 text-xs mt-1">
+                        <span className="text-emerald-400">L: {data.open_interest.long_pct}%</span>
+                        <span className="text-red-400">S: {data.open_interest.short_pct}%</span>
+                      </div>
+                      <div className="text-[10px] text-gray-500 mt-0.5">{fmtCompact(data.open_interest.long)} / {fmtCompact(data.open_interest.short)}</div>
                     </div>
-                  </div>
+                  )}
+
+                  {/* OI from TrueNorth fallback */}
+                  {!data.open_interest && data.derivatives && (
+                    <div className="bg-slate-800/30 rounded-lg p-3">
+                      <div className="text-[10px] text-gray-500 uppercase">Open Interest (TN)</div>
+                      <div className="text-lg font-bold mt-1">{fmt(data.derivatives!.open_interest.current_oi)}</div>
+                      <div className="text-xs mt-1">
+                        <span className={data.derivatives!.open_interest.oi_change_1d >= 0 ? 'text-emerald-400' : 'text-red-400'}>
+                          1d: {data.derivatives!.open_interest.oi_change_1d >= 0 ? '+' : ''}{fmtCompact(data.derivatives!.open_interest.oi_change_1d)}
+                        </span>
+                        <span className="text-gray-600 ml-1">({data.derivatives!.open_interest.oi_percentile_7d}th)</span>
+                      </div>
+                    </div>
+                  )}
 
                   {/* Funding Rate */}
                   <div className="bg-slate-800/30 rounded-lg p-3">
-                    <div className="text-[10px] text-gray-500 uppercase">Funding Rate (1h)</div>
-                    <div className="text-lg font-bold mt-1">{(data.derivatives.funding_rate.current_rate_pct * 100).toFixed(3)}%</div>
+                    <div className="text-[10px] text-gray-500 uppercase">Funding Rate</div>
+                    <div className="text-lg font-bold mt-1">
+                      {data.funding_rate ? `${(data.funding_rate * 100).toFixed(4)}%` : data.derivatives ? `${(data.derivatives!.funding_rate.current_rate_pct * 100).toFixed(3)}%` : '—'}
+                    </div>
                     <div className="text-xs text-gray-400 mt-1">
-                      Annualized: {data.derivatives.funding_rate.annualized_cost_pct.toFixed(2)}%
+                      {data.funding_interval_h ? `Every ${data.funding_interval_h}h` : data.derivatives ? `Ann. ${data.derivatives!.funding_rate.annualized_cost_pct.toFixed(2)}%` : ''}
                     </div>
                   </div>
+
+                  {/* Spread */}
+                  {data.bid && data.ask && (
+                    <div className="bg-slate-800/30 rounded-lg p-3">
+                      <div className="text-[10px] text-gray-500 uppercase">Bid / Ask</div>
+                      <div className="text-lg font-bold mt-1 font-mono">${data.bid.toFixed(4)} / ${data.ask.toFixed(4)}</div>
+                      <div className="text-xs text-gray-400 mt-1">
+                        Spread: {data.spread_bps?.toFixed(2)} bps
+                      </div>
+                    </div>
+                  )}
 
                   {/* Liquidation Imbalance */}
-                  <div className="bg-slate-800/30 rounded-lg p-3">
-                    <div className="text-[10px] text-gray-500 uppercase">Liquidation Imbalance</div>
-                    <div className="text-lg font-bold mt-1">
-                      {data.derivatives.liquidations.imbalance_ratio > 0 ? '🟢 Longs' : '🔴 Shorts'} Favored
+                  {data.derivatives && (
+                    <div className="bg-slate-800/30 rounded-lg p-3">
+                      <div className="text-[10px] text-gray-500 uppercase">Liq. Imbalance</div>
+                      <div className="text-lg font-bold mt-1">
+                        {data.derivatives!.liquidations.imbalance_ratio > 0 ? '🟢 Longs' : '🔴 Shorts'} Favored
+                      </div>
+                      <div className="text-xs text-gray-400 mt-1">
+                        Ratio: {data.derivatives!.liquidations.imbalance_ratio.toFixed(3)}
+                      </div>
                     </div>
-                    <div className="text-xs text-gray-400 mt-1">
-                      Ratio: {data.derivatives.liquidations.imbalance_ratio.toFixed(3)}
-                    </div>
-                  </div>
+                  )}
 
                   {/* Short Liq Points */}
-                  {data.derivatives.liquidations.short_liq_points?.length > 0 && (
+                  {data.derivatives!.liquidations.short_liq_points?.length > 0 && (
                     <div className="md:col-span-3 bg-red-950/20 rounded-lg p-3 border border-red-900/30">
                       <div className="text-xs text-red-400 font-medium mb-2">Short Liquidation Levels (Top 3)</div>
                       <div className="grid grid-cols-3 gap-2">
-                        {data.derivatives.liquidations.short_liq_points.map((pt, i) => (
+                        {data.derivatives!.liquidations.short_liq_points.map((pt, i) => (
                           <div key={i} className="bg-red-950/30 rounded p-2 border border-red-900/20">
                             <div className="font-mono text-sm">${pt.price.toFixed(2)}</div>
                             <div className="text-[10px] text-gray-400">{fmtCompact(pt.liq_usd)} USD</div>
@@ -413,11 +461,11 @@ export default function Home() {
                   )}
 
                   {/* Long Liq Points */}
-                  {data.derivatives.liquidations.long_liq_points?.length > 0 && (
+                  {data.derivatives!.liquidations.long_liq_points?.length > 0 && (
                     <div className="md:col-span-3 bg-emerald-950/20 rounded-lg p-3 border border-emerald-900/30">
                       <div className="text-xs text-emerald-400 font-medium mb-2">Long Liquidation Levels (Top 3)</div>
                       <div className="grid grid-cols-3 gap-2">
-                        {data.derivatives.liquidations.long_liq_points.map((pt, i) => (
+                        {data.derivatives!.liquidations.long_liq_points.map((pt, i) => (
                           <div key={i} className="bg-emerald-950/30 rounded p-2 border border-emerald-900/20">
                             <div className="font-mono text-sm">${pt.price.toFixed(2)}</div>
                             <div className="text-[10px] text-gray-400">{fmtCompact(pt.liq_usd)} USD</div>
