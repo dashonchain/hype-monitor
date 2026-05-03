@@ -71,8 +71,7 @@ function computeSignal(d: Data) {
     neutral++;
   }
   if (d.open_interest) {
-    // OI > $15M is high for HYPE
-    if (d.open_interest.usd > 15e6) neutral++; // high OI = caution
+    if (d.open_interest.usd > 15e6) neutral++;
   }
 
   const total = buy + sell + neutral || 1;
@@ -83,7 +82,6 @@ function computeSignal(d: Data) {
   else if (score <= 30) { action = 'strong_sell'; display = 'STRONG SELL'; summary = 'Strong bearish consensus'; }
   else if (score <= 42) { action = 'sell'; display = 'SELL'; summary = 'Bearish bias'; }
 
-  // Disable signal if stale
   if (isStale(d.last_updated)) {
     action = 'neutral';
     display = 'STALE';
@@ -107,6 +105,120 @@ const TFS = [
   { key: '1d', label: '1D', minutes: 1440 },
 ];
 
+// ─── Hyperliquid API helpers (client-side) ───
+const HL_API = 'https://api.hyperliquid.xyz/info';
+
+async function hlPost(body: any) {
+  const res = await fetch(HL_API, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) throw new Error(`HL HTTP ${res.status}`);
+  return res.json();
+}
+
+function calcSMA(values: number[], period: number): number[] {
+  if (values.length < period) return [];
+  const sma: number[] = [];
+  for (let i = period - 1; i < values.length; i++) {
+    const slice = values.slice(i - period + 1, i + 1);
+    sma.push(slice.reduce((a, b) => a + b, 0) / period);
+  }
+  return sma;
+}
+
+function calcRSI(closes: number[], period = 14): number[] {
+  if (closes.length < period + 1) return [];
+  const changes = closes.slice(1).map((c, i) => c - closes[i]);
+  let avgGain = changes.slice(0, period).filter(c => c > 0).reduce((a, b) => a + b, 0) / period;
+  let avgLoss = changes.slice(0, period).filter(c => c < 0).reduce((a, b) => a + Math.abs(b), 0) / period;
+  const rsi: number[] = [];
+  for (let i = period; i < changes.length; i++) {
+    avgGain = (avgGain * (period - 1) + Math.max(changes[i], 0)) / period;
+    avgLoss = (avgLoss * (period - 1) + Math.max(-changes[i], 0)) / period;
+    const rs = avgLoss === 0 ? 100 : avgGain / avgLoss;
+    rsi.push(100 - 100 / (1 + rs));
+  }
+  return rsi;
+}
+
+async function fetchAllData(timeframe: string): Promise<Data> {
+  const t0 = Date.now();
+  const days = timeframe === '1h' ? 7 : timeframe === '4h' ? 30 : 365;
+  const interval = timeframe === '1h' ? '1h' : timeframe === '4h' ? '4h' : '1d';
+  const end = Date.now();
+  const start = end - days * 86400 * 1000;
+  const errors: string[] = [];
+
+  // Fetch in parallel
+  const [candlesRaw, metaResult] = await Promise.all([
+    hlPost({ type: 'candleSnapshot', req: { coin: 'HYPE', interval, startTime: start, endTime: end } }),
+    hlPost({ type: 'metaAndAssetCtxs' }),
+  ]);
+
+  // Parse candles
+  const ts: number[] = [], opens: number[] = [], highs: number[] = [], lows: number[] = [], closes: number[] = [], volumes: number[] = [];
+  for (const c of candlesRaw) {
+    const o = parseFloat(c.o), h = parseFloat(c.h), l = parseFloat(c.l), cl = parseFloat(c.c), v = parseFloat(c.v);
+    if (isNaN(o) || isNaN(h) || isNaN(l) || isNaN(cl)) continue;
+    ts.push(c.t); opens.push(o); highs.push(h); lows.push(l); closes.push(cl); volumes.push(v);
+  }
+
+  // Find HYPE in meta
+  let meta, ctxs;
+  if (Array.isArray(metaResult) && metaResult.length === 2) [meta, ctxs] = metaResult;
+  else if (metaResult?.universe) { meta = { universe: metaResult.universe }; ctxs = metaResult.assetCtxs; }
+  const idx = meta?.universe?.findIndex((a: any) => a.name === 'HYPE') ?? -1;
+  const ctx = idx >= 0 ? ctxs?.[idx] : null;
+
+  // Indicators
+  const sma10 = calcSMA(closes, 10);
+  const sma20 = calcSMA(closes, 20);
+  const sma50 = calcSMA(closes, 50);
+  const rsiArr = calcRSI(closes, 14);
+
+  const offset10 = ts.length - sma10.length;
+  const offset20 = ts.length - sma20.length;
+  const offset50 = ts.length - sma50.length;
+  const offsetRsi = ts.length - rsiArr.length;
+
+  // Derivatives
+  const fundingRate = parseFloat(ctx?.funding) || 0;
+  const markPrice = parseFloat(ctx?.markPx) || closes[closes.length - 1] || 0;
+  const prevDayPx = parseFloat(ctx?.prevDayPx) || 0;
+  const oi = parseFloat(ctx?.openInterest) || 0;
+  const vol24h = parseFloat(ctx?.dayNtlVlm) || 0;
+
+  return {
+    price: markPrice,
+    price_change: {
+      '24h': prevDayPx > 0 ? (((markPrice / prevDayPx) - 1) * 100).toFixed(2) : '0',
+      '7d': '0', '30d': '0',
+    },
+    high_24h: highs.length ? Math.max(...highs.slice(-24)) : markPrice,
+    low_24h: lows.length ? Math.min(...lows.slice(-24)) : markPrice,
+    market_cap: 0, market_cap_rank: 0, total_volume: vol24h,
+    circulating_supply: 0, total_supply: 962274028, ath: 59.3,
+    sma10: sma10.length ? sma10[sma10.length - 1] : null,
+    sma20: sma20.length ? sma20[sma20.length - 1] : null,
+    sma50: sma50.length ? sma50[sma50.length - 1] : null,
+    rsi: rsiArr.length ? rsiArr[rsiArr.length - 1] : null,
+    candles: ts.map((t, i) => ({ time: t, open: opens[i], high: highs[i], low: lows[i], close: closes[i], volume: volumes[i] })),
+    sma10History: ts.slice(offset10).map((t, i) => [t, sma10[i]] as [number, number]),
+    sma20History: ts.slice(offset20).map((t, i) => [t, sma20[i]] as [number, number]),
+    sma50History: ts.slice(offset50).map((t, i) => [t, sma50[i]] as [number, number]),
+    rsiHistory: ts.slice(offsetRsi).map((t, i) => [t, rsiArr[i]] as [number, number]),
+    prices: ts.map((t, i) => [t, closes[i]] as [number, number]),
+    open_interest: oi > 0 ? { usd: oi * markPrice, tokens: oi } : null,
+    funding_rate: fundingRate,
+    funding_8h_pct: fundingRate * 100,
+    funding_annual_pct: fundingRate * 3 * 365 * 100,
+    timeframe, last_updated: new Date().toISOString(), source: 'Hyperliquid',
+    fetch_duration_ms: Date.now() - t0, cached: false, errors,
+  };
+}
+
 // ─── Stat Card ───
 function Stat({ label, value, sub, color }: { label: string; value: string; sub?: string; color?: string }) {
   return (
@@ -129,26 +241,19 @@ export default function Home() {
   const abortRef = useRef<AbortController | null>(null);
 
   const fetchData = useCallback(async (timeframe?: string, silent = false) => {
-    // Cancel previous request
     abortRef.current?.abort();
     abortRef.current = new AbortController();
 
     try {
       if (!silent) setTfLoading(true);
-      const res = await fetch(`/api/hype?timeframe=${timeframe || tf}`, {
-        signal: AbortSignal.timeout(15000),
-      });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const raw: any = await res.json();
-      if (raw.error) throw new Error(raw.error);
-      const d: Data = raw;
+      const d = await fetchAllData(timeframe || tf);
       d.decision = computeSignal(d);
       setData(d);
       setFetchCount(c => c + 1);
       setError('');
     } catch (e: any) {
       if (e.name !== 'AbortError') {
-        setError(e.name === 'TimeoutError' ? 'Timeout' : e.message || 'Error');
+        setError(e.message || 'Error');
       }
     } finally {
       setLoading(false);
