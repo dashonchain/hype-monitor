@@ -1,18 +1,18 @@
 {
-  "price": 41.12947176320592,
+  "price": 41.06938395924062,
   "price_change": {
-    "24h": "-2.16%",
-    "7d": "-0.30%",
-    "30d": "14.86%"
+    "24h": "-1.86%",
+    "7d": "-0.37%",
+    "30d": "14.29%"
   },
-  "market_cap": 9808151477,
+  "market_cap": 9792114337,
   "market_cap_rank": 13,
-  "total_volume": 17234225.306659,
+  "total_volume": 17196256.444403,
   "indicators": {
     "trend": [
       {
         "name": "SMA(10)",
-        "value": 41,
+        "value": 40.99,
         "action": "buy",
         "detail": "Slope: flat"
       },
@@ -36,7 +36,7 @@
       },
       {
         "name": "VWAP",
-        "value": 34.7268,
+        "value": 34.7274,
         "action": "buy",
         "detail": "Source: 1d"
       }
@@ -44,39 +44,39 @@
     "momentum": [
       {
         "name": "RSI(14)",
-        "value": 52.01,
+        "value": 51.46,
         "action": "neutral",
         "detail": "Momentum: falling"
       },
       {
         "name": "Stochastic(14,3,3)",
-        "value": 44.98,
+        "value": 44.14,
         "action": "neutral",
         "detail": "Direction: bull"
       },
       {
         "name": "KDJ(14,3,3)",
-        "value": 68.05,
+        "value": 66.11,
         "action": "buy",
-        "detail": "K: 44.98"
+        "detail": "K: 44.14"
       },
       {
         "name": "CCI(20)",
-        "value": -36.48,
+        "value": -38.45,
         "action": "neutral",
         "detail": "neutral"
       },
       {
         "name": "MACD(12,26,9)",
-        "value": -0.2332,
+        "value": -0.2409,
         "action": "sell",
-        "detail": "DIF: 0.3009"
+        "detail": "DIF: 0.2912"
       }
     ],
     "volatility": [
       {
         "name": "Bollinger(20,2)",
-        "value": 0.412,
+        "value": 0.393,
         "action": "neutral",
         "detail": "Mid: 41.69"
       },
@@ -84,11 +84,11 @@
         "name": "ATR(14)",
         "value": 1.864,
         "action": "buy",
-        "detail": "4.53%"
+        "detail": "4.54%"
       },
       {
         "name": "BB Width",
-        "value": 0.1498,
+        "value": 0.1501,
         "action": "neutral",
         "detail": "Relative Bands"
       }
@@ -96,13 +96,13 @@
     "volume_indicators": [
       {
         "name": "Volume 1d",
-        "value": 1411303.48,
+        "value": 1536689.35,
         "action": "sell",
-        "detail": "vs MA20: -80.4%"
+        "detail": "vs MA20: -78.6%"
       },
       {
         "name": "Vol MA20",
-        "value": 7188613.3,
+        "value": 7194882.6,
         "action": "neutral",
         "detail": "Moving Average"
       }
@@ -166,22 +166,22 @@
       "cumulative": {
         "scope": "last_96_bars",
         "bars": 96,
-        "value": 34.7268,
+        "value": 34.7274,
         "slope": "up",
         "state": "price_above"
       },
       "rolling": [
         {
           "bars": 20,
-          "value": 41.9092
+          "value": 41.908
         },
         {
           "bars": 60,
-          "value": 38.8086
+          "value": 38.8091
         },
         {
           "bars": 96,
-          "value": 34.7268
+          "value": 34.7274
         }
       ]
     }
@@ -199,30 +199,30 @@
   },
   "events": [],
   "timeframe": "1d",
-  "last_updated": "2026-05-03T09:45:22.173Z",
+  "last_updated": "2026-05-03T10:06:22.736Z",
   "source": "TrueNorth AI",
   "derivatives": {
     "open_interest": {
-      "current_oi": 206573875.17933,
-      "oi_change_1d": -5149903,
-      "oi_change_4h": 365795,
-      "oi_percentile_7d": 60.1,
-      "oi_mcap_ratio": 1.97
+      "current_oi": 206215263.6558,
+      "oi_change_1d": -4384472,
+      "oi_change_4h": 370886,
+      "oi_percentile_7d": 64.1,
+      "oi_mcap_ratio": 1.972
     },
     "funding_rate": {
       "current_rate_pct": 0.005,
       "annualized_cost_pct": 5.47,
-      "funding_percentile_7d": 63.1,
+      "funding_percentile_7d": 62.5,
       "change_1d_pct": 0
     },
     "liquidations": {
       "short_liq_points": [],
       "long_liq_points": [],
-      "imbalance_ratio": 1.027,
+      "imbalance_ratio": 0.757,
       "interpretation": "heavily_favors_shorts"
     }
   },
-  "fetch_duration_ms": 640,
+  "fetch_duration_ms": 1105,
   "errors": null,
   "signal_score": 39,
   "signal_emoji": "🔴",
@@ -1689,8 +1689,8 @@
         41.293629795689256
       ],
       [
-        1777798207000,
-        41.01381173792325
+        1777802773000,
+        41.06580261320089
       ]
     ],
     "volumes": [
@@ -3155,15 +3155,15 @@
         188214181.18006817
       ],
       [
-        1777798207000,
-        172400642.59167117
+        1777802773000,
+        159102763.01539314
       ]
     ]
   },
-  "ema20": 40.928698044705456,
-  "ema50": 39.28061447679857,
-  "ema200": 35.79277978148899,
-  "obv": -11919838954.144918,
+  "ema20": 40.93364955663666,
+  "ema50": 39.28265333465259,
+  "ema200": 35.793297103631055,
+  "obv": -11906541074.56864,
   "ema20History": [
     [
       1746316800000,
@@ -4626,8 +4626,8 @@
       40.91973870857727
     ],
     [
-      1777798207000,
-      40.928698044705456
+      1777802773000,
+      40.93364955663666
     ]
   ],
   "ema50History": [
@@ -6092,8 +6092,8 @@
       39.20987173144654
     ],
     [
-      1777798207000,
-      39.28061447679857
+      1777802773000,
+      39.28265333465259
     ]
   ],
   "ema200History": [
@@ -7558,8 +7558,8 @@
       35.74030709850975
     ],
     [
-      1777798207000,
-      35.79277978148899
+      1777802773000,
+      35.793297103631055
     ]
   ],
   "rsiHistory": [
@@ -9024,36 +9024,36 @@
       52.87112996022559
     ],
     [
-      1777798207000,
-      51.609410775425985
+      1777802773000,
+      51.839265983840484
     ]
   ],
-  "rsi": 51.609410775425985,
+  "rsi": 51.839265983840484,
   "rsiDivergence": {
     "hasDivergence": false,
     "type": null,
     "description": null
   },
-  "bid": 41.1292,
-  "ask": 41.133,
-  "spread_bps": 0.9239116957002711,
+  "bid": 41.0452,
+  "ask": 41.049,
+  "spread_bps": 0.9252634526418309,
   "funding_rate": 0.1095,
   "funding_interval_h": 8,
   "open_interest": {
-    "total": 9770561.811778706,
-    "long": 5415042.606866829,
-    "short": 4355519.204911877,
-    "long_pct": "55.4",
-    "short_pct": "44.6"
+    "total": 9695993.048054282,
+    "long": 5438117.42471663,
+    "short": 4257875.623337651,
+    "long_pct": "56.1",
+    "short_pct": "43.9"
   },
-  "bid_100k": 41.1153,
-  "ask_100k": 41.1469,
-  "variational_updated_at": "2026-05-03T09:44:02.163733409Z",
-  "platform_volume_24h": 277166755.496217,
+  "bid_100k": 41.0389,
+  "ask_100k": 41.0554,
+  "variational_updated_at": "2026-05-03T10:04:56.480863485Z",
+  "platform_volume_24h": 275084402.93006,
   "platform_tvl": 81790387.226896,
-  "platform_oi": 692473700.4535242,
+  "platform_oi": 691392646.1913217,
   "num_markets": 456,
-  "high_24h": 42.08,
+  "high_24h": 41.89,
   "low_24h": 40.82,
   "circulating_supply": 238385315.9541414,
   "total_supply": 962274028.9541414,

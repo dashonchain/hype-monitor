@@ -2107,3 +2107,23 @@ To https://github.com/dashonchain/hype-monitor.git
 To https://github.com/dashonchain/hype-monitor.git
    8da6b1c..c84ae4d  main -> main
 ✅ Script terminé à Sun May  3 10:00:03 UTC 2026
+🔄 Mise à jour des données HYPE... Sun May  3 10:05:01 UTC 2026
+📊 Technical Analysis...
+ℹ️ Market Info...
+📅 Events...
+⚠️ Certaines commandes TN ont échoué, on garde les données existantes
+[main fa54a35] data: Auto-update HYPE timestamp (2026-05-03T10:05:01Z)
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+To https://github.com/dashonchain/hype-monitor.git
+   750955c..fa54a35  main -> main
+✅ Script terminé à Sun May  3 10:05:02 UTC 2026
+🔄 Mise à jour des données HYPE... Sun May  3 10:10:01 UTC 2026
+📊 Technical Analysis...
+ℹ️ Market Info...
+📅 Events...
+⚠️ Certaines commandes TN ont échoué, on garde les données existantes
+[main a8ea704] data: Auto-update HYPE timestamp (2026-05-03T10:10:01Z)
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+To https://github.com/dashonchain/hype-monitor.git
+   fa54a35..a8ea704  main -> main
+✅ Script terminé à Sun May  3 10:10:02 UTC 2026
