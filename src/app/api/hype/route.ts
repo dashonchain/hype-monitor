@@ -7,39 +7,46 @@ let cache: { data: any; timestamp: number } | null = null;
 // ─── Fetch Variational (Omni DEX data) ───
 async function fetchVariational() {
   try {
-    const res = await fetch('https://api.variational.io/v1/markets', {
+    const res = await fetch('https://omni-client-api.prod.ap-northeast-1.variational.io/metadata/stats', {
       signal: AbortSignal.timeout(8000),
       headers: { 'Accept': 'application/json' }
     });
     if (!res.ok) throw new Error(`Variational HTTP ${res.status}`);
     const data = await res.json();
 
-    const markets: any[] = Array.isArray(data) ? data : data?.markets || data?.data || [];
-    const hype = markets.find((m: any) =>
-      m?.symbol === 'HYPE' || m?.name === 'HYPE' || m?.base === 'HYPE' || m?.underlying === 'HYPE'
+    const listings: any[] = data?.listings || [];
+    const hype = listings.find((m: any) =>
+      m?.ticker === 'HYPE' || m?.name === 'Hyperliquid' || m?.symbol === 'HYPE'
     );
 
     if (!hype) return null;
 
-    const markPrice = parseFloat(hype.mark_price ?? hype.markPrice ?? hype.price ?? 0);
-    const bidPrice = parseFloat(hype.bid_price ?? hype.bidPrice ?? hype.bid ?? 0);
-    const askPrice = parseFloat(hype.ask_price ?? hype.askPrice ?? hype.ask ?? 0);
-    const volume24h = parseFloat(hype.volume_24h ?? hype.volume24h ?? hype.volume ?? 0);
-    const oiLong = parseFloat(hype.open_interest_long ?? hype.oiLong ?? hype.oi_long ?? 0);
-    const oiShort = parseFloat(hype.open_interest_short ?? hype.oiShort ?? hype.oi_short ?? 0);
-    const fundingRate = parseFloat(hype.funding_rate ?? hype.fundingRate ?? hype.funding ?? 0);
-    const oiTotal = parseFloat(hype.open_interest ?? hype.openInterest ?? hype.oi ?? (oiLong + oiShort));
+    const markPrice = parseFloat(hype.mark_price ?? 0);
+    const volume24h = parseFloat(hype.volume_24h ?? 0);
+    const fundingRate = parseFloat(hype.funding_rate ?? 0);
+    const fundingIntervalS = parseInt(hype.funding_interval_s ?? 28800);
+    const spreadBps = parseFloat(hype.base_spread_bps ?? 0);
+
+    const oiLong = parseFloat(hype.open_interest?.long_open_interest ?? 0);
+    const oiShort = parseFloat(hype.open_interest?.short_open_interest ?? 0);
+    const oiTotal = oiLong + oiShort;
+
+    // Variational provides quotes array with bid/ask
+    const quotes: any[] = hype.quotes || [];
+    const firstQuote = quotes[0] || {};
+    const bidPrice = parseFloat(firstQuote.bid_price ?? firstQuote.bid ?? 0);
+    const askPrice = parseFloat(firstQuote.ask_price ?? firstQuote.ask ?? 0);
 
     const spread = askPrice > 0 && bidPrice > 0 ? askPrice - bidPrice : 0;
     const midPrice = (askPrice + bidPrice) / 2;
-    const spreadBps = midPrice > 0 ? (spread / midPrice) * 10000 : 0;
+    const computedSpreadBps = spreadBps > 0 ? spreadBps : (midPrice > 0 ? (spread / midPrice) * 10000 : 0);
 
     return {
       price: markPrice,
       bid: bidPrice,
       ask: askPrice,
       spread,
-      spread_bps: spreadBps,
+      spread_bps: computedSpreadBps,
       volume_24h: volume24h,
       open_interest: {
         total: oiTotal,
@@ -50,6 +57,7 @@ async function fetchVariational() {
       },
       funding_rate: fundingRate,
       funding_rate_pct: fundingRate * 100,
+      funding_interval_s: fundingIntervalS,
       updated_at: new Date().toISOString()
     };
   } catch (e: any) {
@@ -293,7 +301,7 @@ export async function GET(request: Request) {
       spread: variational?.spread || 0,
       spread_bps: variational?.spread_bps || 0,
       funding_rate: variational?.funding_rate || 0,
-      funding_interval_h: 8,
+      funding_interval_h: Math.round((variational?.funding_interval_s ?? 28800) / 3600),
       open_interest: variational?.open_interest || null,
       derivatives,
       ema20, ema50, ema200, rsi,
