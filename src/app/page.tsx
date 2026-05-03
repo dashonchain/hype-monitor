@@ -104,7 +104,7 @@ export default function Home() {
   const [timeframe, setTimeframe] = useState('1d');
   const [fetchCount, setFetchCount] = useState(0);
 
-  const API_URL = 'https://renew-willing-inflation-bangkok.trycloudflare.com';
+  const API_URL = 'https://mayor-titled-mathematics-choices.trycloudflare.com';
 
   const fetchData = useCallback(async (tf?: string) => {
     try {

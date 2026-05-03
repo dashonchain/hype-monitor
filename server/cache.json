@@ -1,24 +1,24 @@
 {
-  "price": 41.168882466763,
+  "price": 41.16388254176188,
   "price_change": {
-    "24h": "-2.35%",
-    "7d": "-0.31%",
-    "30d": "14.85%"
+    "24h": "-2.29%",
+    "7d": "-0.33%",
+    "30d": "14.82%"
   },
-  "market_cap": 9810314939,
+  "market_cap": 9814869230,
   "market_cap_rank": 13,
-  "total_volume": 17385703.909932,
+  "total_volume": 17308463.813408,
   "indicators": {
     "trend": [
       {
         "name": "SMA(10)",
-        "value": 41.01,
+        "value": 41,
         "action": "buy",
         "detail": "Slope: flat"
       },
       {
         "name": "SMA(20)",
-        "value": 41.7,
+        "value": 41.69,
         "action": "sell",
         "detail": "Slope: down"
       },
@@ -36,7 +36,7 @@
       },
       {
         "name": "VWAP",
-        "value": 34.7267,
+        "value": 34.7268,
         "action": "buy",
         "detail": "Source: 1d"
       }
@@ -44,51 +44,51 @@
     "momentum": [
       {
         "name": "RSI(14)",
-        "value": 52.42,
+        "value": 52,
         "action": "neutral",
         "detail": "Momentum: falling"
       },
       {
         "name": "Stochastic(14,3,3)",
-        "value": 45.58,
+        "value": 44.96,
         "action": "neutral",
         "detail": "Direction: bull"
       },
       {
         "name": "KDJ(14,3,3)",
-        "value": 69.47,
+        "value": 68,
         "action": "buy",
-        "detail": "K: 45.58"
+        "detail": "K: 44.96"
       },
       {
         "name": "CCI(20)",
-        "value": -35.04,
+        "value": -36.53,
         "action": "neutral",
         "detail": "neutral"
       },
       {
         "name": "MACD(12,26,9)",
-        "value": -0.2275,
+        "value": -0.2334,
         "action": "sell",
-        "detail": "DIF: 0.308"
+        "detail": "DIF: 0.3007"
       }
     ],
     "volatility": [
       {
         "name": "Bollinger(20,2)",
-        "value": 0.425,
+        "value": 0.411,
         "action": "neutral",
-        "detail": "Mid: 41.7"
+        "detail": "Mid: 41.69"
       },
       {
         "name": "ATR(14)",
         "value": 1.864,
         "action": "buy",
-        "detail": "4.52%"
+        "detail": "4.53%"
       },
       {
         "name": "BB Width",
-        "value": 0.1497,
+        "value": 0.1498,
         "action": "neutral",
         "detail": "Relative Bands"
       }
@@ -96,13 +96,13 @@
     "volume_indicators": [
       {
         "name": "Volume 1d",
-        "value": 1381164.18,
+        "value": 1393791.62,
         "action": "sell",
-        "detail": "vs MA20: -80.8%"
+        "detail": "vs MA20: -80.6%"
       },
       {
         "name": "Vol MA20",
-        "value": 7187106.34,
+        "value": 7187737.71,
         "action": "neutral",
         "detail": "Moving Average"
       }
@@ -166,14 +166,14 @@
       "cumulative": {
         "scope": "last_96_bars",
         "bars": 96,
-        "value": 34.7267,
+        "value": 34.7268,
         "slope": "up",
         "state": "price_above"
       },
       "rolling": [
         {
           "bars": 20,
-          "value": 41.9096
+          "value": 41.9093
         },
         {
           "bars": 60,
@@ -181,7 +181,7 @@
         },
         {
           "bars": 96,
-          "value": 34.7267
+          "value": 34.7268
         }
       ]
     }
@@ -199,15 +199,15 @@
   },
   "events": [],
   "timeframe": "1d",
-  "last_updated": "2026-05-03T09:35:12.553Z",
+  "last_updated": "2026-05-03T09:39:01.801Z",
   "source": "TrueNorth AI",
   "derivatives": {
     "open_interest": {
-      "current_oi": 206727234.50763997,
-      "oi_change_1d": -5099490,
-      "oi_change_4h": 418890,
-      "oi_percentile_7d": 61.4,
-      "oi_mcap_ratio": 1.971
+      "current_oi": 206656441.27870002,
+      "oi_change_1d": -5134252,
+      "oi_change_4h": 383189,
+      "oi_percentile_7d": 60.4,
+      "oi_mcap_ratio": 1.97
     },
     "funding_rate": {
       "current_rate_pct": 0.005,
@@ -218,11 +218,11 @@
     "liquidations": {
       "short_liq_points": [],
       "long_liq_points": [],
-      "imbalance_ratio": 1.046,
+      "imbalance_ratio": 1.036,
       "interpretation": "heavily_favors_shorts"
     }
   },
-  "fetch_duration_ms": 852,
+  "fetch_duration_ms": 671,
   "errors": null,
   "signal_score": 39,
   "signal_emoji": "🔴",
@@ -9034,26 +9034,26 @@
     "type": null,
     "description": null
   },
-  "bid": 41.1426,
-  "ask": 41.1464,
-  "spread_bps": 0.9230272410400904,
+  "bid": 41.1433,
+  "ask": 41.1471,
+  "spread_bps": 0.9231393555126381,
   "funding_rate": 0.1095,
   "funding_interval_h": 8,
   "open_interest": {
-    "total": 9810817.203793945,
-    "long": 5435374.775508368,
-    "short": 4375442.428285576,
-    "long_pct": "55.4",
-    "short_pct": "44.6"
+    "total": 9787226.351036735,
+    "long": 5413197.072146919,
+    "short": 4374029.278889817,
+    "long_pct": "55.3",
+    "short_pct": "44.7"
   },
-  "bid_100k": 41.1287,
-  "ask_100k": 41.1603,
-  "variational_updated_at": "2026-05-03T09:33:54.346145391Z",
-  "platform_volume_24h": 275922056.901889,
+  "bid_100k": 41.1294,
+  "ask_100k": 41.161,
+  "variational_updated_at": "2026-05-03T09:38:20.914201756Z",
+  "platform_volume_24h": 275163187.195716,
   "platform_tvl": 81790387.226896,
-  "platform_oi": 694220894.9294572,
+  "platform_oi": 694182764.7782336,
   "num_markets": 456,
-  "high_24h": 42.15,
+  "high_24h": 42.12,
   "low_24h": 40.82,
   "circulating_supply": 238385315.9541414,
   "total_supply": 962274028.9541414,
