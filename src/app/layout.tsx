@@ -1,11 +1,6 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Geist_Mono } from "next/font/google";
 import "./globals.css";
-
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
 
 const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
@@ -13,21 +8,17 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "HYPE Monitor - Real-time Crypto Analytics",
-  description: "Monitor HYPE indicators with TrueNorth API",
+  title: "HYPE Monitor — Real-time Hyperliquid Analytics",
+  description: "Professional HYPE/USDT trading dashboard with live indicators, S/R levels, liquidation zones, and derivatives data.",
 };
 
-export default function RootLayout({
-  children,
-}: Readonly<{
-  children: React.ReactNode;
-}>) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html
-      lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
-    >
-      <body className="min-h-full flex flex-col">{children}</body>
+    <html lang="en" className={`${geistMono.variable} h-full antialiased`}>
+      <body className="min-h-full flex flex-col bg-[#09090b]">
+        {children}
+        <script src="https://s3.tradingview.com/tv.js" async />
+      </body>
     </html>
   );
 }
