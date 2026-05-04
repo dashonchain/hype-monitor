@@ -151,39 +151,70 @@ async function fetchAll(tf: string): Promise<AppData> {
 }
 
 /* ══════════════════════════════════════════════
-   TRADINGVIEW — dynamic script load + widget
+   TRADINGVIEW — robust script load + widget
    ══════════════════════════════════════════════ */
 declare global { interface Window { TradingView: any; } }
 
 function loadTVScript(): Promise<void> {
   return new Promise((resolve, reject) => {
-    if (window.TradingView) { resolve(); return; }
+    if (window.TradingView?.widget) { resolve(); return; }
+    // Check if script tag already exists
+    const existing = document.querySelector('script[src*="tradingview.com/tv.js"]');
+    if (existing) {
+      // Poll for TradingView to be ready
+      const poll = setInterval(() => {
+        if (window.TradingView?.widget) { clearInterval(poll); resolve(); }
+      }, 200);
+      setTimeout(() => { clearInterval(poll); reject(new Error('TV load timeout')); }, 15000);
+      return;
+    }
     const s = document.createElement('script');
     s.src = 'https://s3.tradingview.com/tv.js';
     s.async = true;
-    s.onload = () => resolve();
-    s.onerror = () => reject(new Error('TV script failed'));
+    s.onload = () => {
+      // Poll after load to ensure TV is fully initialized
+      const poll = setInterval(() => {
+        if (window.TradingView?.widget) { clearInterval(poll); resolve(); }
+      }, 200);
+      setTimeout(() => { clearInterval(poll); resolve(); }, 5000);
+    };
+    s.onerror = () => reject(new Error('TV script failed to load'));
     document.body.appendChild(s);
   });
 }
 
 function TradingViewChart({ timeframe, data }: { timeframe: string; data: AppData | null }) {
-  const ref = useRef<HTMLDivElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
   const widgetRef = useRef<any>(null);
-  const [ready, setReady] = useState(false);
-  const [err, setErr] = useState('');
+  const [status, setStatus] = useState<'loading' | 'ready' | 'error'>('loading');
+  const [errMsg, setErrMsg] = useState('');
 
   useEffect(() => {
     let mounted = true;
-    (async () => {
+    let retryCount = 0;
+
+    const init = async () => {
       try {
+        if (!mounted || !containerRef.current) return;
+        setStatus('loading');
+        setErrMsg('');
+
         await loadTVScript();
-        if (!mounted || !ref.current || !data) return;
-        if (widgetRef.current) { try { widgetRef.current.remove(); } catch {} widgetRef.current = null; }
-        ref.current.innerHTML = '';
+        if (!mounted || !containerRef.current || !data) return;
+
+        // Remove previous widget
+        if (widgetRef.current) {
+          try { widgetRef.current.remove(); } catch {}
+          widgetRef.current = null;
+        }
+
+        const container = containerRef.current;
+        container.innerHTML = '';
+
         const res = TF_CFG[timeframe]?.tvRes || '240';
+
         widgetRef.current = new window.TradingView.widget({
-          container_id: ref.current.id,
+          container_id: 'tv_chart_container',
           symbol: 'BINANCE:HYPEUSDT',
           interval: res,
           timezone: 'Etc/UTC',
@@ -213,34 +244,117 @@ function TradingViewChart({ timeframe, data }: { timeframe: string; data: AppDat
           disabled_features: ['header_symbol_search', 'header_compare'],
           loading_screen: { backgroundColor: '#0a0a0f' },
         });
+
+        // Wait for chart ready with timeout
+        const readyTimeout = setTimeout(() => {
+          if (mounted) {
+            setStatus('ready'); // Show chart even if annotations fail
+          }
+        }, 8000);
+
         widgetRef.current.onChartReady(() => {
+          clearTimeout(readyTimeout);
           if (!mounted) return;
           try {
             const chart = widgetRef.current.activeChart();
+            if (!chart) return;
             chart.removeAllShapes();
+
+            // S/R lines
             data.srLevels.resistances.forEach(r => {
-              chart.createShape({ price: r.price, time: Math.floor(Date.now()/1000) }, { shape: 'horizontal_line', lock: true, disableSelection: true, text: `R ${r.strength}%`, overrides: { linecolor: 'rgba(239,68,68,0.6)', linewidth: 2, showLabel: true, textcolor: '#ef4444' } });
+              try {
+                chart.createShape(
+                  { price: r.price, time: Math.floor(Date.now() / 1000) },
+                  { shape: 'horizontal_line', lock: true, disableSelection: true, text: `R ${r.strength}%`, overrides: { linecolor: 'rgba(239,68,68,0.6)', linewidth: 2, showLabel: true, textcolor: '#ef4444' } }
+                );
+              } catch {}
             });
             data.srLevels.supports.forEach(s => {
-              chart.createShape({ price: s.price, time: Math.floor(Date.now()/1000) }, { shape: 'horizontal_line', lock: true, disableSelection: true, text: `S ${s.strength}%`, overrides: { linecolor: 'rgba(34,197,94,0.6)', linewidth: 2, showLabel: true, textcolor: '#22c55e' } });
+              try {
+                chart.createShape(
+                  { price: s.price, time: Math.floor(Date.now() / 1000) },
+                  { shape: 'horizontal_line', lock: true, disableSelection: true, text: `S ${s.strength}%`, overrides: { linecolor: 'rgba(34,197,94,0.6)', linewidth: 2, showLabel: true, textcolor: '#22c55e' } }
+                );
+              } catch {}
             });
+
+            // Liquidation zones
             data.liqZones.forEach(z => {
-              chart.createShape([{ price: z.priceLow, time: Math.floor((Date.now()-86400000)/1000) }, { price: z.priceHigh, time: Math.floor(Date.now()/1000) }], { shape: 'rectangle', lock: true, disableSelection: true, text: `${z.side==='short'?'Liq Shorts':'Liq Longs'} ${fmt(z.valueUsd)}`, overrides: { backgroundColor: z.side==='short'?'rgba(6,182,212,0.10)':'rgba(34,197,94,0.08)', borderColor: z.side==='short'?'rgba(6,182,212,0.35)':'rgba(34,197,94,0.25)', showLabel: true, textcolor: z.side==='short'?'#06b6d4':'#22c55e' } });
+              try {
+                chart.createShape(
+                  [
+                    { price: z.priceLow, time: Math.floor((Date.now() - 86400000) / 1000) },
+                    { price: z.priceHigh, time: Math.floor(Date.now() / 1000) },
+                  ],
+                  { shape: 'rectangle', lock: true, disableSelection: true, text: `${z.side === 'short' ? 'Liq Shorts' : 'Liq Longs'} ${fmt(z.valueUsd)}`, overrides: { backgroundColor: z.side === 'short' ? 'rgba(6,182,212,0.10)' : 'rgba(34,197,94,0.08)', borderColor: z.side === 'short' ? 'rgba(6,182,212,0.35)' : 'rgba(34,197,94,0.25)', showLabel: true, textcolor: z.side === 'short' ? '#06b6d4' : '#22c55e' } }
+                );
+              } catch {}
             });
+
+            // Signal marker
             const sig = computeSignal(data);
             if (sig.action !== 'neutral') {
-              chart.createShape({ price: data.price, time: Math.floor(Date.now()/1000) }, { shape: sig.action.includes('buy')?'arrow_up':'arrow_down', text: sig.display, overrides: { color: sig.action.includes('buy')?'#22c55e':'#ef4444' } });
+              try {
+                chart.createShape(
+                  { price: data.price, time: Math.floor(Date.now() / 1000) },
+                  { shape: sig.action.includes('buy') ? 'arrow_up' : 'arrow_down', text: sig.display, overrides: { color: sig.action.includes('buy') ? '#22c55e' : '#ef4444' } }
+                );
+              } catch {}
             }
-          } catch(e) { console.warn('Annotation error:', e); }
-          setReady(true);
+          } catch (e) {
+            console.warn('Annotation error:', e);
+          }
+          setStatus('ready');
         });
-      } catch(e: any) { if (mounted) setErr(e.message); }
-    })();
-    return () => { mounted = false; if (widgetRef.current) { try { widgetRef.current.remove(); } catch {} widgetRef.current = null; } };
+      } catch (e: any) {
+        console.error('TV init error:', e);
+        if (mounted) {
+          setStatus('error');
+          setErrMsg(e.message || 'Chart failed to load');
+          // Retry once after 3s
+          if (retryCount === 0) {
+            retryCount++;
+            setTimeout(() => { if (mounted) init(); }, 3000);
+          }
+        }
+      }
+    };
+
+    init();
+
+    return () => {
+      mounted = false;
+      if (widgetRef.current) {
+        try { widgetRef.current.remove(); } catch {}
+        widgetRef.current = null;
+      }
+    };
   }, [timeframe, data]);
 
-  if (err) return <div className="flex items-center justify-center h-[500px] text-zinc-600 text-sm bg-[#0a0a0f] rounded-xl">{err}</div>;
-  return <div ref={ref} id={`tv_${timeframe}`} style={{ width: '100%', height: 500, opacity: ready ? 1 : 0.3, transition: 'opacity 0.5s' }} />;
+  if (status === 'error') {
+    return (
+      <div className="flex flex-col items-center justify-center h-[500px] bg-[#0a0a0f] rounded-b-2xl gap-3">
+        <div className="text-3xl">📊</div>
+        <p className="text-zinc-500 text-sm font-medium">Chart unavailable</p>
+        <p className="text-zinc-700 text-xs">{errMsg}</p>
+        <button onClick={() => window.location.reload()} className="mt-2 px-4 py-1.5 bg-zinc-800 border border-zinc-700 rounded-lg text-zinc-400 text-xs hover:bg-zinc-700 transition">Reload page</button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="relative">
+      {status === 'loading' && (
+        <div className="absolute inset-0 z-10 flex items-center justify-center bg-[#0a0a0f]">
+          <div className="flex flex-col items-center gap-3">
+            <div className="w-8 h-8 rounded-full border-2 border-zinc-700 border-t-cyan-500 animate-spin" />
+            <p className="text-zinc-600 text-xs">Loading TradingView...</p>
+          </div>
+        </div>
+      )}
+      <div ref={containerRef} id="tv_chart_container" style={{ width: '100%', height: 500 }} />
+    </div>
+  );
 }
 
 /* ══════════════════════════════════════════════
