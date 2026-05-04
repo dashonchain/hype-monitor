@@ -1,90 +1,66 @@
 'use client';
 
-import { useEffect, useState, useCallback, useRef } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 
-/* ══════════════════════════════════════════════
-   TYPES
-   ══════════════════════════════════════════════ */
+/* ─── TYPES ─── */
 interface ParsedCandle { time: number; open: number; high: number; low: number; close: number; volume: number }
-interface IndicatorSet {
-  sma10: number; sma20: number; sma50: number; rsi14: number;
-  ema12: number; ema26: number;
-  macd: number; macdSignal: number; macdHist: number;
-  stochK: number; stochD: number;
-  kdjK: number; kdjD: number; kdjJ: number;
-  cci: number; adx: number;
-  bbUpper: number; bbMiddle: number; bbLower: number; bbPercentB: number;
+interface Indicators {
+  sma10:number; sma20:number; sma50:number; rsi14:number;
+  macd:number; macdSignal:number; macdHist:number;
+  stochK:number; stochD:number; kdjK:number; kdjD:number; kdjJ:number;
+  cci:number; adx:number;
+  bbUpper:number; bbMiddle:number; bbLower:number; bbPercentB:number;
 }
-interface SRLevel { price: number; strength: number; type: 'support' | 'resistance' }
-interface LiqZone { priceLow: number; priceHigh: number; valueUsd: number; side: 'long' | 'short' }
+interface SRLevel { price:number; strength:number; type:'support'|'resistance' }
+interface LiqZone { priceLow:number; priceHigh:number; valueUsd:number; side:'long'|'short' }
 interface AppData {
-  price: number; change24h: number; change7d: number; change30d: number;
-  high24h: number; low24h: number; marketCap: number; volume24h: number;
-  oiUsd: number; oiTokens: number; funding8h: number; fundingAnn: number;
-  indicators: IndicatorSet;
-  srLevels: { supports: SRLevel[]; resistances: SRLevel[] };
-  liqZones: LiqZone[]; lastUpdated: number; timeframe: string;
+  price:number; change24h:number; change7d:number; change30d:number;
+  high24h:number; low24h:number; marketCap:number; volume24h:number;
+  oiUsd:number; oiTokens:number; funding8h:number; fundingAnn:number;
+  indicators:Indicators; srLevels:{supports:SRLevel[];resistances:SRLevel[]};
+  liqZones:LiqZone[]; lastUpdated:number; timeframe:string;
 }
-type SignalAction = 'strong_buy' | 'buy' | 'neutral' | 'sell' | 'strong_sell';
-interface Signal {
-  action: SignalAction; display: string; score: number; summary: string;
-  buy: number; sell: number; neutral: number;
-}
+type SigAct = 'strong_buy'|'buy'|'neutral'|'sell'|'strong_sell';
+interface Signal { action:SigAct; display:string; score:number; summary:string; buy:number; sell:number; neutral:number; }
 
-/* ══════════════════════════════════════════════
-   CONSTANTS
-   ══════════════════════════════════════════════ */
+/* ─── CONSTANTS ─── */
 const HL_API = 'https://api.hyperliquid.xyz/info';
 const CG_URL = 'https://api.coingecko.com/api/v3/simple/price?ids=hyperliquid&vs_currencies=usd&include_market_cap=true';
-const TF_CFG: Record<string, { interval: string; tvRes: string; days: number; label: string }> = {
-  '1h':  { interval: '1h',  tvRes: '60',  days: 7,   label: '1H' },
-  '4h':  { interval: '4h',  tvRes: '240', days: 30,  label: '4H' },
-  '1d':  { interval: '1d',  tvRes: 'D',   days: 365, label: '1D' },
+const TF: Record<string,{interval:string; tvRes:string; days:number; label:string}> = {
+  '1h': {interval:'1h',  tvRes:'60',  days:7,   label:'1H'},
+  '4h': {interval:'4h',  tvRes:'240', days:30,  label:'4H'},
+  '1d': {interval:'1d',  tvRes:'D',   days:365, label:'1D'},
 };
 
-/* ══════════════════════════════════════════════
-   HELPERS
-   ══════════════════════════════════════════════ */
-const fmt = (n: number, d = 2): string => {
-  if (!n || isNaN(n)) return '—';
-  if (Math.abs(n) >= 1e9) return `$${(Math.abs(n) / 1e9).toFixed(d)}B`;
-  if (Math.abs(n) >= 1e6) return `$${(Math.abs(n) / 1e6).toFixed(d)}M`;
-  if (Math.abs(n) >= 1e3) return `$${(Math.abs(n) / 1e3).toFixed(1)}K`;
-  return `$${n.toFixed(d)}`;
-};
-const fmtPct = (n: number) => `${n >= 0 ? '+' : ''}${n.toFixed(2)}%`;
-const timeAgo = (ts: number) => { const s = Math.floor((Date.now() - ts) / 1000); return s < 60 ? `${s}s` : s < 3600 ? `${Math.floor(s/60)}m` : `${Math.floor(s/3600)}h`; };
-const isStale = (ts: number) => (Date.now() - ts) > 120_000;
+/* ─── HELPERS ─── */
+const fmt = (n:number,d=2) => { if(!n||isNaN(n))return'—';if(Math.abs(n)>=1e9)return`$${(Math.abs(n)/1e9).toFixed(d)}B`;if(Math.abs(n)>=1e6)return`$${(Math.abs(n)/1e6).toFixed(d)}M`;if(Math.abs(n)>=1e3)return`$${(Math.abs(n)/1e3).toFixed(1)}K`;return`$${n.toFixed(d)}`; };
+const fmtPct = (n:number) => `${n>=0?'+':''}${n.toFixed(2)}%`;
+const timeAgo = (ts:number) => { const s=Math.floor((Date.now()-ts)/1000);return s<60?`${s}s`:s<3600?`${Math.floor(s/60)}m`:`${Math.floor(s/3600)}h`; };
+const isStale = (ts:number) => (Date.now()-ts)>120000;
 
-/* ══════════════════════════════════════════════
-   INDICATORS
-   ══════════════════════════════════════════════ */
-function SMA(d: number[], p: number): number[] { if (d.length < p) return []; const r: number[] = []; for (let i = p-1; i < d.length; i++) r.push(d.slice(i-p+1, i+1).reduce((a,b)=>a+b,0)/p); return r; }
-function EMA(d: number[], p: number): number[] { if (d.length < p) return []; const k=2/(p+1); const r: number[] = [d.slice(0,p).reduce((a,b)=>a+b,0)/p]; for (let i=p;i<d.length;i++) r.push(d[i]*k+r[r.length-1]*(1-k)); return r; }
-function RSI(d: number[], p=14): number { if (d.length<p+1) return 50; const ch=d.slice(1).map((c,i)=>c-d[i]); let g=ch.slice(0,p).filter(x=>x>0).reduce((a,b)=>a+b,0)/p,l=ch.slice(0,p).filter(x=>x<0).reduce((a,b)=>a+Math.abs(b),0)/p; for(let i=p;i<ch.length;i++){g=(g*(p-1)+Math.max(ch[i],0))/p;l=(l*(p-1)+Math.max(-ch[i],0))/p;} return l===0?100:100-100/(1+g/l); }
-function MACD(c: number[]): {macd:number;signal:number;hist:number} { const e12=EMA(c,12),e26=EMA(c,26); if(!e12.length||!e26.length) return {macd:0,signal:0,hist:0}; const ml: number[]=[]; const off=e12.length-Math.min(e12.length,e26.length); for(let i=0;i<Math.min(e12.length,e26.length);i++) ml.push(e12[i+off]-e26[i]); const sl=EMA(ml,9); if(!sl.length) return {macd:0,signal:0,hist:0}; const mv=ml[ml.length-1],sv=sl[sl.length-1]; return {macd:mv,signal:sv,hist:mv-sv}; }
-function Stoch(h: number[],l: number[],c: number[],kP=14,dP=3): {k:number;d:number} { if(c.length<kP) return {k:50,d:50}; const kv: number[]=[]; for(let i=kP-1;i<c.length;i++){const hh=Math.max(...h.slice(i-kP+1,i+1)),ll=Math.min(...l.slice(i-kP+1,i+1)); kv.push(hh===ll?50:((c[i]-ll)/(hh-ll))*100);} const dv=SMA(kv,dP); return {k:kv[kv.length-1]||50,d:dv[dv.length-1]||50}; }
-function KDJ(h: number[],l: number[],c: number[],p=9): {k:number;d:number;j:number} { if(c.length<p) return {k:50,d:50,j:50}; const rv: number[]=[]; for(let i=p-1;i<c.length;i++){const hh=Math.max(...h.slice(i-p+1,i+1)),ll=Math.min(...l.slice(i-p+1,i+1)); rv.push(hh===ll?50:((c[i]-ll)/(hh-ll))*100);} let k=50,d=50; for(const r of rv){k=(2/3)*k+(1/3)*r;d=(2/3)*d+(1/3)*k;} return {k,d,j:3*k-2*d}; }
-function CCI(h: number[],l: number[],c: number[],p=20): number { if(c.length<p) return 0; const tp=c.map((v,i)=>(h[i]+l[i]+v)/3); const s=tp.slice(-p).reduce((a,b)=>a+b,0)/p; const md=tp.slice(-p).reduce((a,v)=>a+Math.abs(v-s),0)/p; return md===0?0:(tp[tp.length-1]-s)/(0.015*md); }
-function ADX(h: number[],l: number[],c: number[],p=14): number { if(c.length<p+1) return 25; const tr: number[]=[],pDM: number[]=[],mDM: number[]=[]; for(let i=1;i<c.length;i++){tr.push(Math.max(h[i]-l[i],Math.abs(h[i]-c[i-1]),Math.abs(l[i]-c[i-1])));const up=h[i]-h[i-1],dn=l[i-1]-l[i];pDM.push(up>dn&&up>0?up:0);mDM.push(dn>up&&dn>0?dn:0);} if(tr.length<p) return 25; let atr=tr.slice(0,p).reduce((a,b)=>a+b,0)/p,sp=pDM.slice(0,p).reduce((a,b)=>a+b,0)/p,sm=mDM.slice(0,p).reduce((a,b)=>a+b,0)/p; for(let i=p;i<tr.length;i++){atr=(atr*(p-1)+tr[i])/p;sp=(sp*(p-1)+pDM[i])/p;sm=(sm*(p-1)+mDM[i])/p;} if(atr===0) return 25; const pDI=(sp/atr)*100,mDI=(sm/atr)*100; return pDI+mDI===0?0:Math.abs(pDI-mDI)/(pDI+mDI)*100; }
-function BB(c: number[],p=20,m=2): {upper:number;middle:number;lower:number;percentB:number} { if(c.length<p) return {upper:0,middle:0,lower:0,percentB:0.5}; const s=c.slice(-p); const mid=s.reduce((a,b)=>a+b,0)/p; const std=Math.sqrt(s.reduce((a,v)=>a+(v-mid)**2,0)/p); const u=mid+m*std,l=mid-m*std; return {upper:u,middle:mid,lower:l,percentB:u===l?0.5:(c[c.length-1]-l)/(u-l)}; }
+/* ─── INDICATORS ─── */
+function SMA(d:number[],p:number):number[]{if(d.length<p)return[];const r:number[]=[];for(let i=p-1;i<d.length;i++)r.push(d.slice(i-p+1,i+1).reduce((a,b)=>a+b,0)/p);return r;}
+function EMA(d:number[],p:number):number[]{if(d.length<p)return[];const k=2/(p+1);const r:number[]=[d.slice(0,p).reduce((a,b)=>a+b,0)/p];for(let i=p;i<d.length;i++)r.push(d[i]*k+r[r.length-1]*(1-k));return r;}
+function RSI(d:number[],p=14):number{if(d.length<p+1)return 50;const ch=d.slice(1).map((c,i)=>c-d[i]);let g=ch.slice(0,p).filter(x=>x>0).reduce((a,b)=>a+b,0)/p,l=ch.slice(0,p).filter(x=>x<0).reduce((a,b)=>a+Math.abs(b),0)/p;for(let i=p;i<ch.length;i++){g=(g*(p-1)+Math.max(ch[i],0))/p;l=(l*(p-1)+Math.max(-ch[i],0))/p;}return l===0?100:100-100/(1+g/l);}
+function MACD(c:number[]):{macd:number;signal:number;hist:number}{const e12=EMA(c,12),e26=EMA(c,26);if(!e12.length||!e26.length)return{macd:0,signal:0,hist:0};const ml:number[]=[];const off=e12.length-Math.min(e12.length,e26.length);for(let i=0;i<Math.min(e12.length,e26.length);i++)ml.push(e12[i+off]-e26[i]);const sl=EMA(ml,9);if(!sl.length)return{macd:0,signal:0,hist:0};const mv=ml[ml.length-1],sv=sl[sl.length-1];return{macd:mv,signal:sv,hist:mv-sv};}
+function Stoch(h:number[],l:number[],c:number[],kP=14,dP=3):{k:number;d:number}{if(c.length<kP)return{k:50,d:50};const kv:number[]=[];for(let i=kP-1;i<c.length;i++){const hh=Math.max(...h.slice(i-kP+1,i+1)),ll=Math.min(...l.slice(i-kP+1,i+1));kv.push(hh===ll?50:((c[i]-ll)/(hh-ll))*100);}const dv=SMA(kv,dP);return{k:kv[kv.length-1]||50,d:dv[dv.length-1]||50};}
+function KDJ(h:number[],l:number[],c:number[],p=9):{k:number;d:number;j:number}{if(c.length<p)return{k:50,d:50,j:50};const rv:number[]=[];for(let i=p-1;i<c.length;i++){const hh=Math.max(...h.slice(i-p+1,i+1)),ll=Math.min(...l.slice(i-p+1,i+1));rv.push(hh===ll?50:((c[i]-ll)/(hh-ll))*100);}let k=50,d=50;for(const r of rv){k=(2/3)*k+(1/3)*r;d=(2/3)*d+(1/3)*k;}return{k,d,j:3*k-2*d};}
+function CCI(h:number[],l:number[],c:number[],p=20):number{if(c.length<p)return 0;const tp=c.map((v,i)=>(h[i]+l[i]+v)/3);const s=tp.slice(-p).reduce((a,b)=>a+b,0)/p;const md=tp.slice(-p).reduce((a,v)=>a+Math.abs(v-s),0)/p;return md===0?0:(tp[tp.length-1]-s)/(0.015*md);}
+function ADX(h:number[],l:number[],c:number[],p=14):number{if(c.length<p+1)return 25;const tr:number[]=[],pDM:number[]=[],mDM:number[]=[];for(let i=1;i<c.length;i++){tr.push(Math.max(h[i]-l[i],Math.abs(h[i]-c[i-1]),Math.abs(l[i]-c[i-1])));const up=h[i]-h[i-1],dn=l[i-1]-l[i];pDM.push(up>dn&&up>0?up:0);mDM.push(dn>up&&dn>0?dn:0);}if(tr.length<p)return 25;let atr=tr.slice(0,p).reduce((a,b)=>a+b,0)/p,sp=pDM.slice(0,p).reduce((a,b)=>a+b,0)/p,sm=mDM.slice(0,p).reduce((a,b)=>a+b,0)/p;for(let i=p;i<tr.length;i++){atr=(atr*(p-1)+tr[i])/p;sp=(sp*(p-1)+pDM[i])/p;sm=(sm*(p-1)+mDM[i])/p;}if(atr===0)return 25;const pDI=(sp/atr)*100,mDI=(sm/atr)*100;return pDI+mDI===0?0:Math.abs(pDI-mDI)/(pDI+mDI)*100;}
+function BB(c:number[],p=20,m=2):{upper:number;middle:number;lower:number;percentB:number}{if(c.length<p)return{upper:0,middle:0,lower:0,percentB:0.5};const s=c.slice(-p);const mid=s.reduce((a,b)=>a+b,0)/p;const std=Math.sqrt(s.reduce((a,v)=>a+(v-mid)**2,0)/p);const u=mid+m*std,l=mid-m*std;return{upper:u,middle:mid,lower:l,percentB:u===l?0.5:(c[c.length-1]-l)/(u-l)};}
 
-/* ══════════════════════════════════════════════
-   S/R LEVELS
-   ══════════════════════════════════════════════ */
-function calculateSR(candles: ParsedCandle[]): {supports:SRLevel[];resistances:SRLevel[]} {
-  if(candles.length<20) return {supports:[],resistances:[]};
+/* ─── S/R ─── */
+function calcSR(candles:ParsedCandle[]):{supports:SRLevel[];resistances:SRLevel[]}{
+  if(candles.length<20)return{supports:[],resistances:[]};
   const sh:{price:number;idx:number}[]=[],sl:{price:number;idx:number}[]=[];
   for(let i=2;i<candles.length-2;i++){const hi=candles[i].high;if(hi>candles[i-1].high&&hi>candles[i-2].high&&hi>candles[i+1].high&&hi>candles[i+2].high)sh.push({price:hi,idx:i});const lo=candles[i].low;if(lo<candles[i-1].low&&lo<candles[i-2].low&&lo<candles[i+1].low&&lo<candles[i+2].low)sl.push({price:lo,idx:i});}
-  const cp=candles[candles.length-1].close, r=cp*0.005;
+  const cp=candles[candles.length-1].close,r=cp*0.005;
   const cl=(lv:{price:number;idx:number}[],res:boolean):SRLevel[]=>{if(!lv.length)return[];const s=[...lv].sort((a,b)=>a.price-b.price);const cl:{price:number;count:number}[]=[];for(const l of s){const e=cl.find(c=>Math.abs(c.price-l.price)<r);if(e){e.price=(e.price*e.count+l.price)/(e.count+1);e.count++;}else cl.push({price:l.price,count:1});}return cl.filter(c=>res?c.price>cp:c.price<cp).sort((a,b)=>res?a.price-b.price:b.price-a.price).slice(0,3).map(c=>({price:c.price,strength:Math.min(99,50+c.count*15),type:res?'resistance' as const:'support' as const}));};
-  return {resistances:cl(sh,true),supports:cl(sl,false)};
+  return{resistances:cl(sh,true),supports:cl(sl,false)};
 }
 
-/* ══════════════════════════════════════════════
-   SIGNAL
-   ══════════════════════════════════════════════ */
-function computeSignal(d: AppData): Signal {
+/* ─── SIGNAL ─── */
+function computeSignal(d:AppData):Signal{
   let buy=0,sell=0,neutral=0;const p=d.price,ind=d.indicators;
   if(p>ind.sma10)buy++;else sell++;if(p>ind.sma20)buy++;else sell++;if(p>ind.sma50)buy++;else sell++;
   if(ind.sma10>ind.sma20)buy++;else sell++;if(ind.sma20>ind.sma50)buy++;else sell++;
@@ -96,31 +72,26 @@ function computeSignal(d: AppData): Signal {
   if(ind.bbPercentB<0)buy++;else if(ind.bbPercentB>1)sell++;else neutral++;
   if(d.funding8h<0)buy++;else if(d.funding8h>0.01)neutral++;
   const total=buy+sell+neutral||1;const score=Math.round((buy/total)*100);
-  let action:SignalAction='neutral',display='NEUTRAL',summary='Mixed signals';
+  let action:SigAct='neutral',display='NEUTRAL',summary='Mixed signals';
   if(score>=70){action='strong_buy';display='STRONG BUY';summary='Strong bullish';}
   else if(score>=58){action='buy';display='BUY';summary='Bullish bias';}
   else if(score<=30){action='strong_sell';display='STRONG SELL';summary='Strong bearish';}
   else if(score<=42){action='sell';display='SELL';summary='Bearish bias';}
   if(isStale(d.lastUpdated)){action='neutral';display='STALE';summary='Data stale';}
-  return {action,display,score,summary,buy,sell,neutral};
+  return{action,display,score,summary,buy,sell,neutral};
 }
 
-/* ══════════════════════════════════════════════
-   DATA FETCH
-   ══════════════════════════════════════════════ */
-async function hlPost(body: any) {
-  const r = await fetch(HL_API,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
-  if(!r.ok) throw new Error(`HL ${r.status}`);return r.json();
-}
+/* ─── FETCH ─── */
+async function hlPost(body:any){const r=await fetch(HL_API,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});if(!r.ok)throw new Error(`HL ${r.status}`);return r.json();}
 
-async function fetchAll(tf: string): Promise<AppData> {
-  const cfg=TF_CFG[tf]||TF_CFG['4h'],now=Date.now(),start=now-cfg.days*86400*1000;
+async function fetchAll(tf:string):Promise<AppData>{
+  const cfg=TF[tf]||TF['4h'],now=Date.now(),start=now-cfg.days*86400*1000;
   const [raw,meta,cg]=await Promise.all([
     hlPost({type:'candleSnapshot',req:{coin:'HYPE',interval:cfg.interval,startTime:start,endTime:now}}),
     hlPost({type:'metaAndAssetCtxs'}),
     fetch(CG_URL).then(r=>r.json()).catch(()=>null),
   ]);
-  const candles: ParsedCandle[]=[];
+  const candles:ParsedCandle[]=[];
   for(const c of raw){const o=parseFloat(c.o),h=parseFloat(c.h),l=parseFloat(c.l),cl=parseFloat(c.c),v=parseFloat(c.v);if(isNaN(o)||isNaN(h)||isNaN(l)||isNaN(cl))continue;candles.push({time:c.t,open:o,high:h,low:l,close:cl,volume:v});}
   const closes=candles.map(c=>c.close),highs=candles.map(c=>c.high),lows=candles.map(c=>c.low);
   let ctx=null;if(Array.isArray(meta)&&meta.length===2){const m=meta[0],cx=meta[1];if(m?.universe&&Array.isArray(cx)){const i=m.universe.findIndex((a:any)=>a.name==='HYPE');if(i>=0)ctx=cx[i];}}
@@ -133,16 +104,16 @@ async function fetchAll(tf: string): Promise<AppData> {
   const macdR=MACD(closes),st=Stoch(highs,lows,closes),kj=KDJ(highs,lows,closes),bb=BB(closes);
   const ot=parseFloat(ctx?.openInterest)||0,fr=parseFloat(ctx?.funding)||0,v24=parseFloat(ctx?.dayNtlVlm)||0;
   const mc=cg?.hyperliquid?.usd_market_cap||0;
-  const sr=calculateSR(candles);
+  const sr=calcSR(candles);
   const rct=candles.slice(-cpd);
   const h24=rct.length?Math.max(...rct.map(c=>c.high)):mp,l24=rct.length?Math.min(...rct.map(c=>c.low)):mp;
-  const liq: LiqZone[]=ot?[{priceLow:mp*0.97,priceHigh:mp*0.975,valueUsd:ot*mp*0.075,side:'long' as const},{priceLow:mp*1.025,priceHigh:mp*1.03,valueUsd:ot*mp*0.075,side:'short' as const}]:[];
-  return {
+  const liq:LiqZone[]=ot?[{priceLow:mp*0.97,priceHigh:mp*0.975,valueUsd:ot*mp*0.075,side:'long' as const},{priceLow:mp*1.025,priceHigh:mp*1.03,valueUsd:ot*mp*0.075,side:'short' as const}]:[];
+  return{
     price:mp,change24h:c24,change7d:c7,change30d:c30,high24h:h24,low24h:l24,
     marketCap:mc,volume24h:v24,oiUsd:ot*mp,oiTokens:ot,funding8h:fr*100,fundingAnn:fr*3*365*100,
     indicators:{
       sma10:s10.length?s10[s10.length-1]:0,sma20:s20.length?s20[s20.length-1]:0,sma50:s50.length?s50[s50.length-1]:0,
-      rsi14:RSI(closes),ema12:0,ema26:0,macd:macdR.macd,macdSignal:macdR.signal,macdHist:macdR.hist,
+      rsi14:RSI(closes),macd:macdR.macd,macdSignal:macdR.signal,macdHist:macdR.hist,
       stochK:st.k,stochD:st.d,kdjK:kj.k,kdjD:kj.d,kdjJ:kj.j,cci:CCI(highs,lows,closes),adx:ADX(highs,lows,closes),
       bbUpper:bb.upper,bbMiddle:bb.middle,bbLower:bb.lower,bbPercentB:bb.percentB,
     },
@@ -150,229 +121,64 @@ async function fetchAll(tf: string): Promise<AppData> {
   };
 }
 
-/* ══════════════════════════════════════════════
-   TRADINGVIEW — robust script load + widget
-   ══════════════════════════════════════════════ */
-declare global { interface Window { TradingView: any; } }
+/* ─── TRADINGVIEW EMBED (iframe) ─── */
+function TVChart({timeframe}:{timeframe:string}){
+  const res=TF[timeframe]?.tvRes||'240';
+  const symbol='HYPEUSDT';
+  const exchange='BINANCE';
+  const height=520;
 
-function loadTVScript(): Promise<void> {
-  return new Promise((resolve, reject) => {
-    if (window.TradingView?.widget) { resolve(); return; }
-    // Check if script tag already exists
-    const existing = document.querySelector('script[src*="tradingview.com/tv.js"]');
-    if (existing) {
-      // Poll for TradingView to be ready
-      const poll = setInterval(() => {
-        if (window.TradingView?.widget) { clearInterval(poll); resolve(); }
-      }, 200);
-      setTimeout(() => { clearInterval(poll); reject(new Error('TV load timeout')); }, 15000);
-      return;
-    }
-    const s = document.createElement('script');
-    s.src = 'https://s3.tradingview.com/tv.js';
-    s.async = true;
-    s.onload = () => {
-      // Poll after load to ensure TV is fully initialized
-      const poll = setInterval(() => {
-        if (window.TradingView?.widget) { clearInterval(poll); resolve(); }
-      }, 200);
-      setTimeout(() => { clearInterval(poll); resolve(); }, 5000);
-    };
-    s.onerror = () => reject(new Error('TV script failed to load'));
-    document.body.appendChild(s);
+  const params = new URLSearchParams({
+    symbol: `${exchange}:${symbol}`,
+    interval: res,
+    timezone: 'Etc/UTC',
+    theme: 'dark',
+    style: '1',
+    locale: 'en',
+    toolbar_bg: '#0a0a0f',
+    enable_publishing: 'false',
+    hide_side_toolbar: 'false',
+    allow_symbol_change: 'false',
+    studies: 'RSI@tv-basicstudies,MACD@tv-basicstudies',
+    hide_top_toolbar: 'false',
+    save_image: 'false',
+    backgroundColor: 'rgba(10,10,15,1)',
+    gridColor: 'rgba(255,255,255,0.03)',
+    width: '100%',
+    height: String(height),
   });
-}
 
-function TradingViewChart({ timeframe, data }: { timeframe: string; data: AppData | null }) {
-  const containerRef = useRef<HTMLDivElement>(null);
-  const widgetRef = useRef<any>(null);
-  const [status, setStatus] = useState<'loading' | 'ready' | 'error'>('loading');
-  const [errMsg, setErrMsg] = useState('');
-
-  useEffect(() => {
-    let mounted = true;
-    let retryCount = 0;
-
-    const init = async () => {
-      try {
-        if (!mounted || !containerRef.current) return;
-        setStatus('loading');
-        setErrMsg('');
-
-        await loadTVScript();
-        if (!mounted || !containerRef.current || !data) return;
-
-        // Remove previous widget
-        if (widgetRef.current) {
-          try { widgetRef.current.remove(); } catch {}
-          widgetRef.current = null;
-        }
-
-        const container = containerRef.current;
-        container.innerHTML = '';
-
-        const res = TF_CFG[timeframe]?.tvRes || '240';
-
-        widgetRef.current = new window.TradingView.widget({
-          container_id: 'tv_chart_container',
-          symbol: 'BINANCE:HYPEUSDT',
-          interval: res,
-          timezone: 'Etc/UTC',
-          theme: 'dark',
-          style: '1',
-          locale: 'en',
-          toolbar_bg: '#0a0a0f',
-          enable_publishing: false,
-          hide_side_toolbar: false,
-          allow_symbol_change: false,
-          height: 500,
-          width: '100%',
-          studies: ['RSI@tv-basicstudies', 'MACD@tv-basicstudies'],
-          overrides: {
-            'paneProperties.background': '#0a0a0f',
-            'paneProperties.backgroundType': 'solid',
-            'scalesProperties.textColor': '#6b7280',
-            'paneProperties.vertGridProperties.color': '#111114',
-            'paneProperties.horzGridProperties.color': '#111114',
-            'mainSeriesProperties.candleStyle.upColor': '#22c55e',
-            'mainSeriesProperties.candleStyle.downColor': '#ef4444',
-            'mainSeriesProperties.candleStyle.borderUpColor': '#22c55e',
-            'mainSeriesProperties.candleStyle.borderDownColor': '#ef4444',
-            'mainSeriesProperties.candleStyle.wickUpColor': '#22c55e',
-            'mainSeriesProperties.candleStyle.wickDownColor': '#ef4444',
-          },
-          disabled_features: ['header_symbol_search', 'header_compare'],
-          loading_screen: { backgroundColor: '#0a0a0f' },
-        });
-
-        // Wait for chart ready with timeout
-        const readyTimeout = setTimeout(() => {
-          if (mounted) {
-            setStatus('ready'); // Show chart even if annotations fail
-          }
-        }, 8000);
-
-        widgetRef.current.onChartReady(() => {
-          clearTimeout(readyTimeout);
-          if (!mounted) return;
-          try {
-            const chart = widgetRef.current.activeChart();
-            if (!chart) return;
-            chart.removeAllShapes();
-
-            // S/R lines
-            data.srLevels.resistances.forEach(r => {
-              try {
-                chart.createShape(
-                  { price: r.price, time: Math.floor(Date.now() / 1000) },
-                  { shape: 'horizontal_line', lock: true, disableSelection: true, text: `R ${r.strength}%`, overrides: { linecolor: 'rgba(239,68,68,0.6)', linewidth: 2, showLabel: true, textcolor: '#ef4444' } }
-                );
-              } catch {}
-            });
-            data.srLevels.supports.forEach(s => {
-              try {
-                chart.createShape(
-                  { price: s.price, time: Math.floor(Date.now() / 1000) },
-                  { shape: 'horizontal_line', lock: true, disableSelection: true, text: `S ${s.strength}%`, overrides: { linecolor: 'rgba(34,197,94,0.6)', linewidth: 2, showLabel: true, textcolor: '#22c55e' } }
-                );
-              } catch {}
-            });
-
-            // Liquidation zones
-            data.liqZones.forEach(z => {
-              try {
-                chart.createShape(
-                  [
-                    { price: z.priceLow, time: Math.floor((Date.now() - 86400000) / 1000) },
-                    { price: z.priceHigh, time: Math.floor(Date.now() / 1000) },
-                  ],
-                  { shape: 'rectangle', lock: true, disableSelection: true, text: `${z.side === 'short' ? 'Liq Shorts' : 'Liq Longs'} ${fmt(z.valueUsd)}`, overrides: { backgroundColor: z.side === 'short' ? 'rgba(6,182,212,0.10)' : 'rgba(34,197,94,0.08)', borderColor: z.side === 'short' ? 'rgba(6,182,212,0.35)' : 'rgba(34,197,94,0.25)', showLabel: true, textcolor: z.side === 'short' ? '#06b6d4' : '#22c55e' } }
-                );
-              } catch {}
-            });
-
-            // Signal marker
-            const sig = computeSignal(data);
-            if (sig.action !== 'neutral') {
-              try {
-                chart.createShape(
-                  { price: data.price, time: Math.floor(Date.now() / 1000) },
-                  { shape: sig.action.includes('buy') ? 'arrow_up' : 'arrow_down', text: sig.display, overrides: { color: sig.action.includes('buy') ? '#22c55e' : '#ef4444' } }
-                );
-              } catch {}
-            }
-          } catch (e) {
-            console.warn('Annotation error:', e);
-          }
-          setStatus('ready');
-        });
-      } catch (e: any) {
-        console.error('TV init error:', e);
-        if (mounted) {
-          setStatus('error');
-          setErrMsg(e.message || 'Chart failed to load');
-          // Retry once after 3s
-          if (retryCount === 0) {
-            retryCount++;
-            setTimeout(() => { if (mounted) init(); }, 3000);
-          }
-        }
-      }
-    };
-
-    init();
-
-    return () => {
-      mounted = false;
-      if (widgetRef.current) {
-        try { widgetRef.current.remove(); } catch {}
-        widgetRef.current = null;
-      }
-    };
-  }, [timeframe, data]);
-
-  if (status === 'error') {
-    return (
-      <div className="flex flex-col items-center justify-center h-[500px] bg-[#0a0a0f] rounded-b-2xl gap-3">
-        <div className="text-3xl">📊</div>
-        <p className="text-zinc-500 text-sm font-medium">Chart unavailable</p>
-        <p className="text-zinc-700 text-xs">{errMsg}</p>
-        <button onClick={() => window.location.reload()} className="mt-2 px-4 py-1.5 bg-zinc-800 border border-zinc-700 rounded-lg text-zinc-400 text-xs hover:bg-zinc-700 transition">Reload page</button>
-      </div>
-    );
-  }
+  const src = `https://www.tradingview.com/widgetembed/?frameElementId=tv_chart&${params.toString()}`;
 
   return (
-    <div className="relative">
-      {status === 'loading' && (
-        <div className="absolute inset-0 z-10 flex items-center justify-center bg-[#0a0a0f]">
-          <div className="flex flex-col items-center gap-3">
-            <div className="w-8 h-8 rounded-full border-2 border-zinc-700 border-t-cyan-500 animate-spin" />
-            <p className="text-zinc-600 text-xs">Loading TradingView...</p>
-          </div>
-        </div>
-      )}
-      <div ref={containerRef} id="tv_chart_container" style={{ width: '100%', height: 500 }} />
+    <div style={{width:'100%',height}} className="rounded-b-2xl overflow-hidden bg-[#0a0a0f]">
+      <iframe
+        id="tv_chart"
+        src={src}
+        width="100%"
+        height={height}
+        frameBorder="0"
+        allowTransparency
+        scrolling="no"
+        style={{display:'block',border:'none'}}
+        title="TradingView Chart"
+      />
     </div>
   );
 }
 
-/* ══════════════════════════════════════════════
-   SIGNAL COLORS
-   ══════════════════════════════════════════════ */
-const SC: Record<SignalAction,{bg:string;border:string;text:string}> = {
+/* ─── SIGNAL COLORS ─── */
+const SC:Record<SigAct,{bg:string;border:string;text:string}> = {
   strong_buy:{bg:'bg-emerald-500/10',border:'border-emerald-500/30',text:'text-emerald-400'},
   buy:{bg:'bg-emerald-500/5',border:'border-emerald-500/20',text:'text-emerald-400'},
   neutral:{bg:'bg-zinc-500/5',border:'border-zinc-500/20',text:'text-zinc-400'},
   sell:{bg:'bg-red-500/5',border:'border-red-500/20',text:'text-red-400'},
   strong_sell:{bg:'bg-red-500/10',border:'border-red-500/30',text:'text-red-400'},
 };
-const SI: Record<SignalAction,string> = {strong_buy:'↑↑',buy:'↑',neutral:'—',sell:'↓',strong_sell:'↓↓'};
+const SI:Record<SigAct,string> = {strong_buy:'↑↑',buy:'↑',neutral:'—',sell:'↓',strong_sell:'↓↓'};
 
-/* ══════════════════════════════════════════════
-   MAIN
-   ══════════════════════════════════════════════ */
-export default function Home() {
+/* ─── MAIN ─── */
+export default function Home(){
   const [data,setData]=useState<AppData|null>(null);
   const [loading,setLoading]=useState(true);
   const [error,setError]=useState('');
@@ -381,11 +187,8 @@ export default function Home() {
   const [tfl,setTfl]=useState(false);
 
   const fetchData=useCallback(async(t?:string,silent=false)=>{
-    try{
-      if(!silent)setTfl(true);
-      const d=await fetchAll(t||tf);
-      setData(d);setFc(c=>c+1);setError('');
-    }catch(e:any){if(e.name!=='AbortError')setError(e.message||'Error');}
+    try{if(!silent)setTfl(true);const d=await fetchAll(t||tf);setData(d);setFc(c=>c+1);setError('');}
+    catch(e:any){if(e.name!=='AbortError')setError(e.message||'Error');}
     finally{setLoading(false);setTfl(false);}
   },[tf]);
 
@@ -425,14 +228,14 @@ export default function Home() {
         </div>
       </header>
 
-      <main className="max-w-[1400px] mx-auto px-4 sm:px-6 py-5 space-y-5">
+      <main className="max-w-[1400px] mx-auto px-4 sm:px-6 py-5 space-y-4">
         {/* SIGNAL */}
         <div className={`rounded-2xl border ${sc.border} ${sc.bg} p-5 ${stale?'opacity-50':''}`}>
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
             <div className="flex items-center gap-4">
               <div className={`w-12 h-12 rounded-xl ${sc.bg} border ${sc.border} flex items-center justify-center text-2xl font-black ${sc.text}`}>{SI[sig.action]}</div>
               <div>
-                <div className="text-[10px] text-zinc-500 uppercase tracking-[0.15em] font-semibold">Signal · {TF_CFG[data.timeframe]?.label} · Hyperliquid</div>
+                <div className="text-[10px] text-zinc-500 uppercase tracking-[0.15em] font-semibold">Signal · {TF[data.timeframe]?.label} · Hyperliquid</div>
                 <div className={`text-2xl font-black tracking-tight ${sc.text}`}>{sig.display}</div>
                 <div className="text-[11px] text-zinc-500 mt-0.5">{sig.summary}</div>
               </div>
@@ -453,13 +256,21 @@ export default function Home() {
 
         {/* METRICS ROW 1 */}
         <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-2">
-          <div className="bg-white/[0.02] border border-white/[0.04] rounded-xl px-3 py-3"><div className="text-[9px] text-zinc-600 uppercase tracking-wider font-semibold">MCap</div><div className="text-sm font-bold font-mono mt-1">{data.marketCap>0?fmt(data.marketCap):'—'}</div></div>
-          <div className="bg-white/[0.02] border border-white/[0.04] rounded-xl px-3 py-3"><div className="text-[9px] text-zinc-600 uppercase tracking-wider font-semibold">Vol 24h</div><div className="text-sm font-bold font-mono mt-1">{fmt(data.volume24h)}</div></div>
-          <div className="bg-white/[0.02] border border-white/[0.04] rounded-xl px-3 py-3"><div className="text-[9px] text-zinc-600 uppercase tracking-wider font-semibold">High 24h</div><div className="text-sm font-bold font-mono mt-1">${data.high24h.toFixed(2)}</div></div>
-          <div className="bg-white/[0.02] border border-white/[0.04] rounded-xl px-3 py-3"><div className="text-[9px] text-zinc-600 uppercase tracking-wider font-semibold">Low 24h</div><div className="text-sm font-bold font-mono mt-1">${data.low24h.toFixed(2)}</div></div>
-          <div className="bg-white/[0.02] border border-white/[0.04] rounded-xl px-3 py-3"><div className="text-[9px] text-zinc-600 uppercase tracking-wider font-semibold">OI</div><div className="text-sm font-bold font-mono mt-1">{fmt(data.oiUsd)}</div><div className="text-[9px] text-zinc-600 mt-0.5">{fmt(data.oiTokens)} HYPE</div></div>
-          <div className="bg-white/[0.02] border border-white/[0.04] rounded-xl px-3 py-3"><div className="text-[9px] text-zinc-600 uppercase tracking-wider font-semibold">Funding 8h</div><div className={`text-sm font-bold font-mono mt-1 ${data.funding8h>0?'text-emerald-400':'text-red-400'}`}>{data.funding8h>=0?'+':''}{data.funding8h.toFixed(4)}%</div><div className="text-[9px] text-zinc-600 mt-0.5">Ann. {data.fundingAnn.toFixed(1)}%</div></div>
-          <div className="bg-white/[0.02] border border-white/[0.04] rounded-xl px-3 py-3"><div className="text-[9px] text-zinc-600 uppercase tracking-wider font-semibold">RSI 14</div><div className={`text-sm font-bold font-mono mt-1 ${rc}`}>{ind.rsi14.toFixed(1)}</div><div className="text-[9px] text-zinc-600 mt-0.5">{rz}</div></div>
+          {([
+            ['MCap', data.marketCap>0?fmt(data.marketCap):'—', ''],
+            ['Vol 24h', fmt(data.volume24h), ''],
+            ['High 24h', `$${data.high24h.toFixed(2)}`, ''],
+            ['Low 24h', `$${data.low24h.toFixed(2)}`, ''],
+            ['OI', fmt(data.oiUsd), fmt(data.oiTokens)+' HYPE'],
+            ['Funding 8h', `${data.funding8h>=0?'+':''}${data.funding8h.toFixed(4)}%`, `Ann. ${data.fundingAnn.toFixed(1)}%`],
+            ['RSI 14', ind.rsi14.toFixed(1), rz],
+          ] as const).map(([label,value,sub])=>(
+            <div key={label} className="bg-white/[0.02] border border-white/[0.04] rounded-xl px-3 py-3">
+              <div className="text-[9px] text-zinc-600 uppercase tracking-wider font-semibold">{label}</div>
+              <div className={`text-sm font-bold font-mono mt-1 ${label==='Funding 8h'?(data.funding8h>0?'text-emerald-400':'text-red-400'):label==='RSI 14'?rc:''}`}>{value}</div>
+              {sub&&<div className="text-[9px] text-zinc-600 mt-0.5">{sub}</div>}
+            </div>
+          ))}
         </div>
 
         {/* DERIVATIVES + SMA */}
@@ -472,17 +283,17 @@ export default function Home() {
 
         {/* TIMEFRAMES */}
         <div className="flex items-center gap-1.5">
-          {Object.keys(TF_CFG).map(k=>(
+          {Object.keys(TF).map(k=>(
             <button key={k} onClick={()=>ctf(k)} className={`relative px-6 py-2 rounded-lg text-xs font-bold transition-all ${tf===k?'bg-cyan-500/10 text-cyan-400 border border-cyan-500/25 shadow-lg shadow-cyan-500/5':'bg-white/[0.02] text-zinc-500 border border-white/[0.04] hover:text-zinc-300 hover:bg-white/[0.04]'}`}>
-              {TF_CFG[k].label}
+              {TF[k].label}
               {tfl&&tf===k&&<span className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-cyan-500 rounded-full animate-pulse"/>}
             </button>
           ))}
         </div>
 
         {/* MAIN GRID */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
-          <div className="lg:col-span-2 space-y-5">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+          <div className="lg:col-span-2 space-y-4">
             {/* CHART */}
             <div className="bg-white/[0.02] border border-white/[0.04] rounded-2xl overflow-hidden">
               <div className="px-4 py-3 border-b border-white/[0.04] flex items-center justify-between">
@@ -490,11 +301,9 @@ export default function Home() {
                 <div className="flex gap-3 text-[9px] text-zinc-500">
                   <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-sm bg-emerald-500"/> Bull</span>
                   <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-sm bg-red-500"/> Bear</span>
-                  <span className="flex items-center gap-1"><span className="w-2 h-0.5 bg-red-500/60 rounded"/> R</span>
-                  <span className="flex items-center gap-1"><span className="w-2 h-0.5 bg-green-500/60 rounded"/> S</span>
                 </div>
               </div>
-              <TradingViewChart timeframe={tf} data={data}/>
+              <TVChart timeframe={tf}/>
             </div>
             {/* PERFORMANCE */}
             <div className="grid grid-cols-3 gap-2">
@@ -509,9 +318,8 @@ export default function Home() {
 
           {/* SIDEBAR */}
           <aside className="space-y-4">
-            {/* INDICATORS */}
             <div className="bg-white/[0.02] border border-white/[0.04] rounded-2xl overflow-hidden">
-              <div className="px-4 py-3 border-b border-white/[0.04]"><h3 className="text-[10px] font-bold text-zinc-400 uppercase tracking-[0.12em]">Indicators · {TF_CFG[data.timeframe]?.label}</h3></div>
+              <div className="px-4 py-3 border-b border-white/[0.04]"><h3 className="text-[10px] font-bold text-zinc-400 uppercase tracking-[0.12em]">Indicators · {TF[data.timeframe]?.label}</h3></div>
               <div className="p-4 space-y-2.5">
                 {([
                   ['SMA 10',`$${ind.sma10.toFixed(2)}`,data.price>ind.sma10?'text-emerald-400':'text-red-400',data.price>ind.sma10?'Above':'Below'],
@@ -533,7 +341,6 @@ export default function Home() {
               </div>
             </div>
 
-            {/* RSI GAUGE */}
             <div className="bg-white/[0.02] border border-white/[0.04] rounded-2xl p-4">
               <div className="flex items-center justify-between mb-2"><h3 className="text-[10px] font-bold text-zinc-400 uppercase tracking-[0.12em]">RSI 14</h3><span className={`text-base font-black font-mono ${rc}`}>{ind.rsi14.toFixed(1)}</span></div>
               <div className="relative h-2 rounded-full overflow-hidden" style={{background:'linear-gradient(to right,#22c55e 0%,#22c55e 30%,#eab308 30%,#eab308 70%,#ef4444 70%,#ef4444 100%)'}}>
@@ -542,7 +349,6 @@ export default function Home() {
               <div className="flex justify-between text-[8px] text-zinc-700 mt-1.5"><span>Oversold</span><span>Neutral</span><span>Overbought</span></div>
             </div>
 
-            {/* S/R */}
             {(data.srLevels.resistances.length>0||data.srLevels.supports.length>0)&&(
               <div className="bg-white/[0.02] border border-white/[0.04] rounded-2xl overflow-hidden">
                 <div className="px-4 py-3 border-b border-white/[0.04]"><h3 className="text-[10px] font-bold text-zinc-400 uppercase tracking-[0.12em]">Support / Resistance</h3></div>
@@ -553,7 +359,6 @@ export default function Home() {
               </div>
             )}
 
-            {/* FOOTER */}
             <div className="text-[9px] text-zinc-700 space-y-0.5 pt-2 px-1">
               <div>Hyperliquid · {fc} fetches</div>
               <div>Updated {new Date(data.lastUpdated).toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',second:'2-digit'})}</div>
