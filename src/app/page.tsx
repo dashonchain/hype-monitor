@@ -124,12 +124,11 @@ async function fetchAll(tf:string):Promise<AppData>{
 /* ─── TRADINGVIEW EMBED (iframe) ─── */
 function TVChart({timeframe}:{timeframe:string}){
   const res=TF[timeframe]?.tvRes||'240';
-  const symbol='HYPEUSDT';
-  const exchange='BINANCE';
   const height=520;
 
   const params = new URLSearchParams({
-    symbol: `${exchange}:${symbol}`,
+    frameElementId: 'tv_chart',
+    symbol: 'KUCOIN:HYPEUSDT',
     interval: res,
     timezone: 'Etc/UTC',
     theme: 'dark',
@@ -140,15 +139,11 @@ function TVChart({timeframe}:{timeframe:string}){
     hide_side_toolbar: 'false',
     allow_symbol_change: 'false',
     studies: 'RSI@tv-basicstudies,MACD@tv-basicstudies',
-    hide_top_toolbar: 'false',
-    save_image: 'false',
-    backgroundColor: 'rgba(10,10,15,1)',
-    gridColor: 'rgba(255,255,255,0.03)',
     width: '100%',
     height: String(height),
   });
 
-  const src = `https://www.tradingview.com/widgetembed/?frameElementId=tv_chart&${params.toString()}`;
+  const src = `https://www.tradingview.com/widgetembed/?${params.toString()}`;
 
   return (
     <div style={{width:'100%',height}} className="rounded-b-2xl overflow-hidden bg-[#0a0a0f]">
