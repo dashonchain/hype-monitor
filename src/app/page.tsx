@@ -10,14 +10,49 @@ import { TIMEFRAME_CONFIG } from '../types';
 const TFS: Timeframe[] = ['1h', '4h', '1d'];
 
 /* ═══════════════════════════════════════════
-   INFO — tiny grey tooltip, CSS-only
+   INFO OVERLAY — dynamic grey tooltip
    ═══════════════════════════════════════════ */
+const tooltipState = { text: '', x: 0, y: 0, show: false };
+
 function Info({ tip }: { tip: string }) {
   return (
-    <span className="info-wrap">
+    <span
+      className="info-trigger"
+      onMouseEnter={() => { tooltipState.show = true; tooltipState.text = tip; }}
+      onMouseMove={(e) => { tooltipState.x = e.clientX; tooltipState.y = e.clientY; }}
+      onMouseLeave={() => { tooltipState.show = false; }}
+    >
       <span className="info-dot" />
-      <span className="info-tip">{tip}</span>
     </span>
+  );
+}
+
+function TooltipOverlay() {
+  const [, setTick] = useState(0);
+
+  useEffect(() => {
+    const id = setInterval(() => {
+      if (tooltipState.show) setTick(t => t + 1);
+    }, 50);
+    return () => clearInterval(id);
+  }, []);
+
+  if (!tooltipState.show) return null;
+
+  return (
+    <div
+      className="info-overlay"
+      style={{
+        position: 'fixed',
+        left: tooltipState.x,
+        top: tooltipState.y - 12,
+        transform: 'translate(-50%, -100%)',
+        zIndex: 9999,
+        pointerEvents: 'none',
+      }}
+    >
+      <span className="info-overlay-text">{tooltipState.text}</span>
+    </div>
   );
 }
 
@@ -112,11 +147,11 @@ export default function Home() {
 
   return (
     <div className="min-h-screen text-[#E5E7EB] antialiased" style={{ background: '#0A0F0D' }}>
+      <TooltipOverlay />
 
       {/* Tooltip styles */}
       <style>{`
-        .info-wrap {
-          position: relative;
+        .info-trigger {
           display: inline-flex;
           align-items: center;
           margin-left: 4px;
@@ -124,37 +159,27 @@ export default function Home() {
         }
         .info-dot {
           display: inline-block;
-          width: 4px;
-          height: 4px;
+          width: 5px;
+          height: 5px;
           border-radius: 50%;
           background: #4B5563;
           flex-shrink: 0;
           transition: background 0.15s;
         }
-        .info-wrap:hover .info-dot {
+        .info-trigger:hover .info-dot {
           background: #9CA3AF;
         }
-        .info-tip {
-          position: absolute;
-          z-index: 999;
-          bottom: calc(100% + 6px);
-          left: 50%;
-          transform: translateX(-50%);
+        .info-overlay-text {
+          display: block;
           padding: 6px 10px;
-          font-size: 10px;
+          font-size: 11px;
           line-height: 1.4;
           color: #9CA3AF;
           background: #141E17;
           border: 1px solid #263328;
           border-radius: 6px;
-          box-shadow: 0 4px 16px rgba(0,0,0,0.6);
+          box-shadow: 0 4px 20px rgba(0,0,0,0.7);
           white-space: nowrap;
-          pointer-events: none;
-          opacity: 0;
-          transition: opacity 0.15s;
-        }
-        .info-wrap:hover .info-tip {
-          opacity: 1;
         }
       `}</style>
 
