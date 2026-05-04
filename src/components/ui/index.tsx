@@ -33,11 +33,11 @@ interface BadgeProps {
 }
 
 const badgeColors = {
-  success: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20',
-  danger: 'bg-red-500/10 text-red-400 border-red-500/20',
-  warning: 'bg-amber-500/10 text-amber-400 border-amber-500/20',
-  info: 'bg-cyan-500/10 text-cyan-400 border-cyan-500/20',
-  neutral: 'bg-zinc-500/10 text-zinc-400 border-zinc-500/20',
+  success: 'bg-[var(--success-bg)] text-[var(--success)] border-[var(--success-border)]',
+  danger: 'bg-[var(--danger-bg)] text-[var(--danger)] border-[var(--danger-border)]',
+  warning: 'bg-[var(--warning-bg)] text-[var(--warning)] border-[var(--warning-border)]',
+  info: 'bg-[var(--info-bg)] text-[var(--info)] border-[var(--info-border)]',
+  neutral: 'bg-[var(--bg-tertiary)] text-[var(--text-secondary)] border-[var(--border-primary)]',
 };
 
 export function Badge({ variant, children, size = 'sm' }: BadgeProps) {
@@ -77,10 +77,10 @@ export function Button({ children, onClick, active = false, className = '' }: Bu
   return (
     <button
       onClick={onClick}
-      className={`relative px-6 py-2 rounded-lg text-xs font-bold transition-all ${
+      className={`relative px-5 py-2 rounded-lg text-xs font-bold transition-all ${
         active
-          ? 'bg-cyan-500/10 text-cyan-400 border border-cyan-500/25 shadow-lg shadow-cyan-500/5'
-          : 'bg-[var(--bg-secondary)] text-[var(--text-muted)] border border-[var(--border-primary)] hover:text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)]'
+          ? 'bg-[var(--accent-blue)]/10 text-[var(--accent-blue)] border border-[var(--accent-blue)]/30'
+          : 'bg-[var(--bg-tertiary)] text-[var(--text-secondary)] border border-[var(--border-primary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-surface)]'
       } ${className}`}
     >
       {children}
