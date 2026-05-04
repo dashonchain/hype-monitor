@@ -10,22 +10,14 @@ import { TIMEFRAME_CONFIG } from '../types';
 const TFS: Timeframe[] = ['1h', '4h', '1d'];
 
 /* ═══════════════════════════════════════════
-   TOOLTIP — clean & minimal
+   INFO — tiny grey tooltip, CSS-only
    ═══════════════════════════════════════════ */
-function Tooltip({ content, children }: { content: string; children: ReactNode }) {
-  return (
-    <span className="tooltip-wrapper">
-      {children}
-      <span className="tooltip-box">{content}</span>
-    </span>
-  );
-}
-
 function Info({ tip }: { tip: string }) {
   return (
-    <Tooltip content={tip}>
-      <span className="info-icon">ⓘ</span>
-    </Tooltip>
+    <span className="info-wrap">
+      <span className="info-dot" />
+      <span className="info-tip">{tip}</span>
+    </span>
   );
 }
 
@@ -123,43 +115,47 @@ export default function Home() {
 
       {/* Tooltip styles */}
       <style>{`
-        .tooltip-wrapper { position: relative; display: inline-flex; align-items: center; }
-        .tooltip-box {
-          display: none;
+        .info-wrap {
+          position: relative;
+          display: inline-flex;
+          align-items: center;
+          margin-left: 4px;
+          cursor: help;
+        }
+        .info-dot {
+          display: inline-block;
+          width: 4px;
+          height: 4px;
+          border-radius: 50%;
+          background: #4B5563;
+          flex-shrink: 0;
+          transition: background 0.15s;
+        }
+        .info-wrap:hover .info-dot {
+          background: #9CA3AF;
+        }
+        .info-tip {
           position: absolute;
           z-index: 999;
-          padding: 8px 12px;
-          font-size: 11px;
-          line-height: 1.4;
-          color: #E5E7EB;
-          background: #1A2B20;
-          border: 1px solid #2F4032;
-          border-radius: 8px;
-          box-shadow: 0 8px 24px rgba(0,0,0,0.5);
-          white-space: normal;
-          max-width: 200px;
           bottom: calc(100% + 6px);
           left: 50%;
           transform: translateX(-50%);
+          padding: 6px 10px;
+          font-size: 10px;
+          line-height: 1.4;
+          color: #9CA3AF;
+          background: #141E17;
+          border: 1px solid #263328;
+          border-radius: 6px;
+          box-shadow: 0 4px 16px rgba(0,0,0,0.6);
+          white-space: nowrap;
           pointer-events: none;
+          opacity: 0;
+          transition: opacity 0.15s;
         }
-        .tooltip-wrapper:hover .tooltip-box { display: block; }
-        .info-icon {
-          display: inline-flex;
-          align-items: center;
-          justify-content: center;
-          width: 14px;
-          height: 14px;
-          margin-left: 4px;
-          font-size: 9px;
-          font-weight: bold;
-          color: #4ADE80;
-          border: 1px solid rgba(74,222,128,0.3);
-          border-radius: 50%;
-          cursor: help;
-          flex-shrink: 0;
+        .info-wrap:hover .info-tip {
+          opacity: 1;
         }
-        .info-icon:hover { background: rgba(74,222,128,0.1); }
       `}</style>
 
       {/* ═══ HEADER ═══ */}
