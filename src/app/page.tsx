@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback, useRef, type ReactNode } from 'react';
+import { TokenHYPE, TokenBTC, TokenETH } from '@web3icons/react';
 import { useMarketData } from '../hooks/useMarketData';
 import TradingViewChart from '../components/chart/TradingViewChart';
 import { fmtPct, isStale } from '../lib/format';
@@ -70,9 +71,9 @@ function DominancePanel({ data }: { data: NonNullable<ReturnType<typeof useMarke
   const fmtPrice = (n: number) => n >= 1000 ? `$${(n / 1000).toFixed(1)}k` : `$${n.toFixed(2)}`;
 
   const coins = [
-    { d: dom[0], color: '#4ADE80', icon: 'H', bg: 'rgba(74,222,128,0.08)', border: 'rgba(74,222,128,0.25)' },
-    { d: dom[1], color: '#F59E0B', icon: '₿', bg: 'rgba(245,158,11,0.08)', border: 'rgba(245,158,11,0.25)' },
-    { d: dom[2], color: '#60A5FA', icon: 'Ξ', bg: 'rgba(96,165,250,0.08)', border: 'rgba(96,165,250,0.25)' },
+    { d: dom[0], color: '#4ADE80', Icon: TokenHYPE, bg: 'rgba(74,222,128,0.08)', border: 'rgba(74,222,128,0.25)' },
+    { d: dom[1], color: '#F59E0B', Icon: TokenBTC, bg: 'rgba(245,158,11,0.08)', border: 'rgba(245,158,11,0.25)' },
+    { d: dom[2], color: '#60A5FA', Icon: TokenETH, bg: 'rgba(96,165,250,0.08)', border: 'rgba(96,165,250,0.25)' },
   ];
 
   return (
@@ -86,7 +87,7 @@ function DominancePanel({ data }: { data: NonNullable<ReturnType<typeof useMarke
           <div key={c.d.symbol} className="rounded-lg p-3" style={{ background: c.bg, border: `1px solid ${c.border}` }}>
             <div className="flex items-center justify-between mb-2">
               <div className="flex items-center gap-2">
-                <span className="w-6 h-6 rounded flex items-center justify-center text-[9px] font-black" style={{ background: `${c.color}20`, color: c.color }}>{c.icon}</span>
+                <c.Icon className="w-5 h-5 rounded" />
                 <span className="text-[11px] font-bold" style={{ color: c.color }}>{c.d.symbol}</span>
               </div>
               <span className="text-[10px] font-mono font-bold" style={{ color: '#9CA3AF' }}>{fmtPrice(c.d.price)}</span>
@@ -148,14 +149,13 @@ function SignalGauge({ data }: { data: NonNullable<ReturnType<typeof useMarketDa
 
   const mainColor = isBullish ? '#4ADE80' : isBearish ? '#F87171' : '#6B7280';
   const bgGlow = isBullish ? 'rgba(74,222,128,0.06)' : isBearish ? 'rgba(248,113,113,0.06)' : 'rgba(107,114,128,0.06)';
-  const icon = isBullish ? '▲' : isBearish ? '▼' : '—';
 
   return (
     <div className="rounded-xl p-5 transition-all" style={{ background: bgGlow, border: `2px solid ${mainColor}30`, opacity: isStale ? 0.5 : 1 }}>
       <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-5">
         <div className="flex items-center gap-4">
           <div className="w-14 h-14 rounded-xl flex items-center justify-center" style={{ background: `${mainColor}15`, border: `2px solid ${mainColor}40` }}>
-            <span className="text-2xl font-black" style={{ color: mainColor }}>{icon}</span>
+            <TokenHYPE className="w-8 h-8 rounded-lg" />
           </div>
           <div>
             <div className="text-[10px] uppercase tracking-[0.15em] font-semibold mb-1" style={{ color: '#6B7280' }}>
@@ -268,7 +268,7 @@ export default function Home() {
       <header className="sticky top-0 z-50 backdrop-blur-sm" style={{ background: 'rgba(10,15,13,0.95)', borderBottom: '1px solid #263328' }}>
         <div className="max-w-[1440px] mx-auto px-4 sm:px-6 h-14 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-lg flex items-center justify-center text-[#0A0F0D] text-xs font-black" style={{ background: '#4ADE80' }}>H</div>
+            <TokenHYPE className="w-8 h-8 rounded-lg" />
             <div>
               <span className="text-sm font-bold text-[#E5E7EB]">HYPE</span>
               <span className="text-sm font-normal ml-1" style={{ color: '#4B5563' }}>Monitor</span>
