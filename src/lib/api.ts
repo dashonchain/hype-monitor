@@ -1,10 +1,12 @@
-import type { ParsedCandle, Indicators, MarketData, Timeframe } from '../types';
+import type { ParsedCandle, Indicators, MarketData, Timeframe, DominanceData } from '../types';
 import { TIMEFRAME_CONFIG } from '../types';
 import { SMA, RSI, calcMACD, calcStoch, calcKDJ, calcCCI, calcADX, calcBB } from './indicators';
 import { calcSR, estimateLiqZones, computeSignal } from './signal';
 
 const HL_API = 'https://api.hyperliquid.xyz/info';
-const CG_URL = 'https://api.coingecko.com/api/v3/simple/price?ids=hyperliquid&vs_currencies=usd&include_market_cap=true';
+const CG_URL = 'https://api.coingecko.com/api/v3/simple/price?ids=hyperliquid,bitcoin,ethereum&vs_currencies=usd&include_market_cap=true&include_24hr_change=true';
+const CG_CHART_URL = (id: string, days: number) =>
+  `https://api.coingecko.com/api/v3/coins/${id}/market_chart?vs_currency=usd&days=${days}`;
 
 async function hlPost(body: any) {
   const r = await fetch(HL_API, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
@@ -12,15 +14,31 @@ async function hlPost(body: any) {
   return r.json();
 }
 
+async function fetchCoinDominance(coinId: string, symbol: string, name: string, days: number): Promise<DominanceData> {
+  const chart = await fetch(CG_CHART_URL(coinId, days)).then(r => r.json()).catch(() => null);
+  if (!chart?.prices?.length) {
+    return { symbol, name, price: 0, change24h: 0, change7d: 0, change30d: 0, marketCap: 0 };
+  }
+  const prices = chart.prices.map((p: number[]) => p[1]);
+  const current = prices[prices.length - 1];
+  const change24h = prices.length > 1 ? ((current / prices[Math.max(0, prices.length - 24)]) - 1) * 100 : 0;
+  const change7d = prices.length > 24 * 7 ? ((current / prices[prices.length - 24 * 7]) - 1) * 100 : 0;
+  const change30d = prices.length > 24 * 30 ? ((current / prices[prices.length - 24 * 30]) - 1) * 100 : 0;
+  return { symbol, name, price: current, change24h, change7d, change30d, marketCap: 0 };
+}
+
 export async function fetchMarketData(tf: Timeframe): Promise<MarketData> {
   const cfg = TIMEFRAME_CONFIG[tf];
   const now = Date.now();
   const start = now - cfg.days * 86400 * 1000;
 
-  const [raw, meta, cg] = await Promise.all([
+  const [raw, meta, cg, domHype, domBtc, domEth] = await Promise.all([
     hlPost({ type: 'candleSnapshot', req: { coin: 'HYPE', interval: cfg.interval, startTime: start, endTime: now } }),
     hlPost({ type: 'metaAndAssetCtxs' }),
     fetch(CG_URL).then(r => r.json()).catch(() => null),
+    fetchCoinDominance('hyperliquid', 'HYPE', 'Hyperliquid', 30),
+    fetchCoinDominance('bitcoin', 'BTC', 'Bitcoin', 30),
+    fetchCoinDominance('ethereum', 'ETH', 'Ethereum', 30),
   ]);
 
   // Parse candles
@@ -112,6 +130,7 @@ export async function fetchMarketData(tf: Timeframe): Promise<MarketData> {
     liqZones,
     lastUpdated: Date.now(),
     timeframe: tf,
+    dominance: [domHype, domBtc, domEth],
   };
 
   return { ...baseData, signal: computeSignal(baseData as MarketData) };

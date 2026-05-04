@@ -13,7 +13,6 @@ const TFS: Timeframe[] = ['1h', '4h', '1d'];
    INFO OVERLAY — dynamic grey tooltip
    ═══════════════════════════════════════════ */
 const tooltipState = { text: '', x: 0, y: 0, show: false };
-
 function Info({ tip }: { tip: string }) {
   return (
     <span
@@ -28,30 +27,112 @@ function Info({ tip }: { tip: string }) {
 }
 
 function TooltipOverlay() {
-  const [, setTick] = useState(0);
+  const [pos, setPos] = useState({ x: 0, y: 0, show: false, text: '' });
 
   useEffect(() => {
-    const id = setInterval(() => {
-      if (tooltipState.show) setTick(t => t + 1);
-    }, 50);
-    return () => clearInterval(id);
+    const handler = (e: MouseEvent) => {
+      if (tooltipState.show) {
+        setPos({ x: tooltipState.x, y: tooltipState.y, show: true, text: tooltipState.text });
+      } else {
+        setPos(p => ({ ...p, show: false }));
+      }
+    };
+    window.addEventListener('mousemove', handler);
+    return () => window.removeEventListener('mousemove', handler);
   }, []);
 
-  if (!tooltipState.show) return null;
+  if (!pos.show) return null;
 
   return (
     <div
-      className="info-overlay"
       style={{
         position: 'fixed',
-        left: tooltipState.x,
-        top: tooltipState.y - 12,
+        left: pos.x,
+        top: pos.y - 14,
         transform: 'translate(-50%, -100%)',
         zIndex: 9999,
         pointerEvents: 'none',
       }}
     >
-      <span className="info-overlay-text">{tooltipState.text}</span>
+      <span className="info-overlay-text">{pos.text}</span>
+    </div>
+  );
+}
+
+/* ═══════════════════════════════════════════
+   DOMINANCE PANEL — HYPE vs BTC vs ETH
+   ═══════════════════════════════════════════ */
+function DominancePanel({ data }: { data: NonNullable<ReturnType<typeof useMarketData>['data']> }) {
+  const dom = data.dominance;
+  if (!dom || dom.length < 3) return null;
+
+  const fmt = (n: number) => n >= 0 ? `+${n.toFixed(1)}%` : `${n.toFixed(1)}%`;
+  const fmtPrice = (n: number) => n >= 1000 ? `$${(n / 1000).toFixed(1)}k` : `$${n.toFixed(2)}`;
+
+  const coins = [
+    { d: dom[0], color: '#4ADE80', icon: 'H', bg: 'rgba(74,222,128,0.08)', border: 'rgba(74,222,128,0.25)' },
+    { d: dom[1], color: '#F59E0B', icon: '₿', bg: 'rgba(245,158,11,0.08)', border: 'rgba(245,158,11,0.25)' },
+    { d: dom[2], color: '#60A5FA', icon: 'Ξ', bg: 'rgba(96,165,250,0.08)', border: 'rgba(96,165,250,0.25)' },
+  ];
+
+  return (
+    <div className="rounded-xl overflow-hidden" style={{ background: '#0F1A14', border: '1px solid #263328' }}>
+      <div className="px-4 py-3 flex items-center" style={{ borderBottom: '1px solid #263328' }}>
+        <h3 className="text-[10px] font-bold uppercase tracking-[0.12em]" style={{ color: '#9CA3AF' }}>Market Dominance</h3>
+        <Info tip="HYPE performance vs BTC and ETH over 24h, 7d and 30d. Shows if HYPE is outperforming or underperforming the market." />
+      </div>
+      <div className="p-4 space-y-3">
+        {coins.map(c => (
+          <div key={c.d.symbol} className="rounded-lg p-3" style={{ background: c.bg, border: `1px solid ${c.border}` }}>
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center gap-2">
+                <span className="w-6 h-6 rounded flex items-center justify-center text-[9px] font-black" style={{ background: `${c.color}20`, color: c.color }}>{c.icon}</span>
+                <span className="text-[11px] font-bold" style={{ color: c.color }}>{c.d.symbol}</span>
+              </div>
+              <span className="text-[10px] font-mono font-bold" style={{ color: '#9CA3AF' }}>{fmtPrice(c.d.price)}</span>
+            </div>
+            <div className="grid grid-cols-3 gap-2">
+              {([
+                { label: '24h', val: c.d.change24h },
+                { label: '7d', val: c.d.change7d },
+                { label: '30d', val: c.d.change30d },
+              ] as const).map(p => (
+                <div key={p.label} className="text-center">
+                  <div className="text-[8px] font-bold uppercase" style={{ color: '#4B5563' }}>{p.label}</div>
+                  <div className="text-[10px] font-bold font-mono" style={{ color: p.val >= 0 ? '#4ADE80' : '#F87171' }}>{fmt(p.val)}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        ))}
+
+        {/* HYPE vs BTC/ETH delta */}
+        <div className="rounded-lg p-3" style={{ background: '#0A0F0D', border: '1px solid #1a2b20' }}>
+          <div className="text-[8px] font-bold uppercase tracking-wider mb-2" style={{ color: '#4B5563' }}>HYPE Delta</div>
+          {coins.slice(1).map(c => {
+            const delta24h = dom[0].change24h - c.d.change24h;
+            const delta7d = dom[0].change7d - c.d.change7d;
+            const delta30d = dom[0].change30d - c.d.change30d;
+            const isOut = delta24h > 0;
+            return (
+              <div key={c.d.symbol} className="flex items-center justify-between py-1.5" style={{ borderBottom: '1px solid rgba(38,51,40,0.3)' }}>
+                <span className="text-[10px] font-bold" style={{ color: c.color }}>vs {c.d.symbol}</span>
+                <div className="flex gap-3">
+                  <span className="text-[9px] font-mono font-bold" style={{ color: delta24h >= 0 ? '#4ADE80' : '#F87171' }}>24h {fmt(delta24h)}</span>
+                  <span className="text-[9px] font-mono font-bold" style={{ color: delta7d >= 0 ? '#4ADE80' : '#F87171' }}>7d {fmt(delta7d)}</span>
+                </div>
+              </div>
+            );
+          })}
+          <div className="text-[8px] mt-2 font-bold" style={{ color: '#4B5563' }}>
+            {dom[0].change24h > dom[1].change24h && dom[0].change24h > dom[2].change24h
+              ? '🟢 HYPE outperforming BTC & ETH (24h)'
+              : dom[0].change24h < dom[1].change24h && dom[0].change24h < dom[2].change24h
+              ? '🔴 HYPE underperforming BTC & ETH (24h)'
+              : '⚪ HYPE mixed vs BTC & ETH (24h)'}
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
@@ -404,6 +485,8 @@ export default function Home() {
                 </div>
               </div>
             )}
+
+            <DominancePanel data={data} />
 
             <div className="text-[10px] space-y-1.5 px-1" style={{ color: '#4B5563' }}>
               <div className="flex justify-between"><span>Source</span><span className="font-bold" style={{ color: '#9CA3AF' }}>Hyperliquid</span></div>

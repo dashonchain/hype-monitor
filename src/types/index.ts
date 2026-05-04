@@ -53,6 +53,16 @@ export interface Signal {
   neutral: number;
 }
 
+export interface DominanceData {
+  symbol: string;
+  name: string;
+  price: number;
+  change24h: number;
+  change7d: number;
+  change30d: number;
+  marketCap: number;
+}
+
 export interface MarketData {
   price: number;
   change24h: number;
@@ -72,6 +82,7 @@ export interface MarketData {
   lastUpdated: number;
   timeframe: string;
   signal: Signal;
+  dominance: DominanceData[];
 }
 
 export type Timeframe = '1h' | '4h' | '1d';
