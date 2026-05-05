@@ -13,7 +13,7 @@ const MF = "ui-monospace, SFMono-Regular, 'SF Mono', Menlo, monospace";
 const SF = "-apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Helvetica Neue', Arial, sans-serif";
 
 /* ═══════════════════════════════════════════
-   TOOLTIP — Apple-style subtle
+   TOOLTIP
    ═══════════════════════════════════════════ */
 const tooltipState = { text: '', x: 0, y: 0, show: false };
 
@@ -47,8 +47,7 @@ function TooltipOverlay() {
 }
 
 /* ═══════════════════════════════════════════
-   APPLE-STYLE SIGNAL GAUGE — Hero section
-   Only the most important signal, big & clear
+   SIGNAL GAUGE — Hero
    ═══════════════════════════════════════════ */
 const CRITERIA = [
   { key: 'sma10', label: 'Price > SMA 10' }, { key: 'sma20', label: 'Price > SMA 20' },
@@ -93,13 +92,11 @@ const SignalGauge = memo(function SignalGauge({ data }: { data: NonNullable<Retu
   const c = bull ? '#34D399' : bear ? '#F87171' : 'rgba(255,255,255,0.35)';
   const bg = bull ? 'rgba(52,211,153,0.06)' : bear ? 'rgba(248,113,113,0.06)' : 'rgba(255,255,255,0.03)';
   const borderC = bull ? 'rgba(52,211,153,0.15)' : bear ? 'rgba(248,113,113,0.15)' : 'rgba(255,255,255,0.06)';
-
   const breakdown = useMemo(() => computeCriteriaBreakdown(data.indicators, data.price, data.funding8h), [data]);
 
   return (
     <div className="glass-2" style={{ borderRadius: 24, padding: expanded ? '32px 36px 28px' : '32px 36px', background: bg, borderColor: borderC, opacity: stale ? 0.5 : 1, transition: 'all .3s' }}>
       <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-8">
-        {/* Left: Signal identity */}
         <div className="flex items-center gap-6">
           <div className="glass-3" style={{ width: 64, height: 64, borderRadius: 18, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <TokenHYPE style={{ width: 40, height: 40 }} />
@@ -112,8 +109,6 @@ const SignalGauge = memo(function SignalGauge({ data }: { data: NonNullable<Retu
             <div style={{ fontSize: 14, color: 'rgba(255,255,255,0.5)', marginTop: 4, fontFamily: SF }}>{sig.summary}</div>
           </div>
         </div>
-
-        {/* Right: Score + counts */}
         <div className="flex items-center gap-6 w-full lg:w-auto">
           <div className="flex-1 lg:w-48">
             <div className="flex justify-between items-center mb-3">
@@ -138,8 +133,6 @@ const SignalGauge = memo(function SignalGauge({ data }: { data: NonNullable<Retu
           </button>
         </div>
       </div>
-
-      {/* Expanded breakdown — Apple-style grid */}
       {expanded && (
         <div style={{ marginTop: 24, paddingTop: 20, borderTop: '1px solid rgba(255,255,255,0.06)' }}>
           <div style={{ fontSize: 10, fontWeight: 600, letterSpacing: '.1em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.3)', marginBottom: 12, fontFamily: SF }}>
@@ -162,8 +155,7 @@ const SignalGauge = memo(function SignalGauge({ data }: { data: NonNullable<Retu
 });
 
 /* ═══════════════════════════════════════════
-   KEY METRICS — Apple-style: only the essentials
-   Big numbers, clear hierarchy, no clutter
+   KEY METRICS
    ═══════════════════════════════════════════ */
 const KeyMetrics = memo(function KeyMetrics({ data, ind }: { data: any; ind: any }) {
   const rsiZ = ind.rsi14 > 70 ? 'Overbought' : ind.rsi14 < 30 ? 'Oversold' : ind.rsi14 > 50 ? 'Bullish' : 'Bearish';
@@ -182,15 +174,9 @@ const KeyMetrics = memo(function KeyMetrics({ data, ind }: { data: any; ind: any
     <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
       {metrics.map(m => (
         <div key={m.label} className="glass" style={{ borderRadius: 14, padding: '16px 18px', position: 'relative', overflow: 'hidden' }}>
-          {m.highlight && (
-            <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 2, background: m.subColor }} />
-          )}
-          <div style={{ fontSize: 9, fontWeight: 600, letterSpacing: '.08em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.25)', marginBottom: 8, fontFamily: SF }}>
-            {m.label}
-          </div>
-          <div style={{ fontSize: m.highlight ? 20 : 16, fontWeight: 700, fontFamily: MF, color: m.highlight ? '#fff' : 'rgba(255,255,255,0.85)', letterSpacing: '-.01em' }}>
-            {m.value}
-          </div>
+          {m.highlight && <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 2, background: m.subColor }} />}
+          <div style={{ fontSize: 9, fontWeight: 600, letterSpacing: '.08em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.25)', marginBottom: 8, fontFamily: SF }}>{m.label}</div>
+          <div style={{ fontSize: m.highlight ? 20 : 16, fontWeight: 700, fontFamily: MF, color: m.highlight ? '#fff' : 'rgba(255,255,255,0.85)', letterSpacing: '-.01em' }}>{m.value}</div>
           <div style={{ fontSize: 10, fontWeight: 600, color: m.subColor, marginTop: 3, fontFamily: SF }}>{m.sub}</div>
         </div>
       ))}
@@ -199,14 +185,52 @@ const KeyMetrics = memo(function KeyMetrics({ data, ind }: { data: any; ind: any
 });
 
 /* ═══════════════════════════════════════════
-   SMART MONEY — Highlighted panel
+   CHART WITH LIQUIDATION OVERLAY
+   ═══════════════════════════════════════════ */
+const ChartWithLiq = memo(function ChartWithLiq({ data, tf, liqZones, showLevels }: { data: any; tf: string; liqZones: any[]; showLevels: boolean }) {
+  return (
+    <div style={{ position: 'relative' }}>
+      <div className="glass-2" style={{ borderRadius: 18, overflow: 'hidden' }}>
+        <TradingViewChart timeframe={tf as Timeframe} />
+      </div>
+
+      {/* Liquidation levels overlay — shown when toggled */}
+      {showLevels && liqZones.length > 0 && (
+        <div style={{ marginTop: 12, display: 'flex', flexDirection: 'column', gap: 6 }}>
+          {/* Long liq zones — green */}
+          {liqZones.filter(z => z.side === 'long').map((z: any, i: number) => (
+            <div key={`liq-l-${i}`} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 14px', borderRadius: 10, background: 'rgba(52,211,153,0.06)', border: '1px solid rgba(52,211,153,0.15)' }}>
+              <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#34D399', flexShrink: 0 }} />
+              <span style={{ fontSize: 11, fontWeight: 600, color: '#34D399', fontFamily: SF }}>Long Liq</span>
+              <span style={{ fontSize: 12, fontWeight: 700, fontFamily: MF, color: '#34D399' }}>${z.priceLow.toFixed(2)} – ${z.priceHigh.toFixed(2)}</span>
+              <span style={{ fontSize: 10, fontWeight: 600, color: 'rgba(255,255,255,0.3)', marginLeft: 'auto', fontFamily: SF }}>${(z.valueUsd / 1e6).toFixed(1)}M</span>
+              <span style={{ fontSize: 9, fontWeight: 600, color: 'rgba(255,255,255,0.2)', fontFamily: SF }}>-{((data.price - z.priceHigh) / data.price * 100).toFixed(1)}%</span>
+            </div>
+          ))}
+          {/* Short liq zones — red */}
+          {liqZones.filter(z => z.side === 'short').map((z: any, i: number) => (
+            <div key={`liq-s-${i}`} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 14px', borderRadius: 10, background: 'rgba(248,113,113,0.06)', border: '1px solid rgba(248,113,113,0.15)' }}>
+              <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#F87171', flexShrink: 0 }} />
+              <span style={{ fontSize: 11, fontWeight: 600, color: '#F87171', fontFamily: SF }}>Short Liq</span>
+              <span style={{ fontSize: 12, fontWeight: 700, fontFamily: MF, color: '#F87171' }}>${z.priceLow.toFixed(2)} – ${z.priceHigh.toFixed(2)}</span>
+              <span style={{ fontSize: 10, fontWeight: 600, color: 'rgba(255,255,255,0.3)', marginLeft: 'auto', fontFamily: SF }}>${(z.valueUsd / 1e6).toFixed(1)}M</span>
+              <span style={{ fontSize: 9, fontWeight: 600, color: 'rgba(255,255,255,0.2)', fontFamily: SF }}>+{((z.priceLow - data.price) / data.price * 100).toFixed(1)}%</span>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+});
+
+/* ═══════════════════════════════════════════
+   SMART MONEY — compact
    ═══════════════════════════════════════════ */
 const SmartMoneyPanel = memo(function SmartMoneyPanel({ derivatives }: { derivatives: any }) {
   if (!derivatives) return null;
   const ls = derivatives.longShortRatio || {};
   const oi = derivatives.openInterest || {};
   const fund = derivatives.funding || {};
-
   const ratio = ls.ratio || 1;
   const longPct = ls.longPct ?? (ratio / (1 + ratio) * 100);
   const shortPct = ls.shortPct ?? (100 - longPct);
@@ -221,81 +245,29 @@ const SmartMoneyPanel = memo(function SmartMoneyPanel({ derivatives }: { derivat
     return `$${(n / 1e3).toFixed(0)}K`;
   };
 
-  const interpLabel = (s: string) => {
-    switch (s) {
-      case 'longs_dominant': return '🟢 Longs dominants';
-      case 'slight_long_bias': return '🟢 Léger biais long';
-      case 'shorts_dominant': return '🔴 Shorts dominants';
-      case 'slight_short_bias': return '🔴 Léger biais short';
-      default: return '⚪ Neutre';
-    }
-  };
-
   return (
-    <div className="glass" style={{ borderRadius: 18, overflow: 'hidden' }}>
-      <div style={{ padding: '14px 20px', borderBottom: '1px solid rgba(255,255,255,0.08)', display: 'flex', alignItems: 'center' }}>
-        <h3 style={{ fontSize: 11, fontWeight: 600, letterSpacing: '.1em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.5)', fontFamily: SF }}>Smart Money</h3>
-        <Info tip="L/S ratio from 24h order flow delta — Hyperliquid on-chain" />
+    <div className="grid grid-cols-2 gap-3">
+      {/* L/S Ratio card */}
+      <div className="glass" style={{ borderRadius: 14, padding: '14px 16px' }}>
+        <div style={{ fontSize: 9, fontWeight: 600, letterSpacing: '.08em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.25)', marginBottom: 8, fontFamily: SF }}>L/S Ratio</div>
+        <div style={{ fontSize: 22, fontWeight: 800, fontFamily: MF, color: accentColor, letterSpacing: '-.02em' }}>{ratio.toFixed(2)}</div>
+        <div style={{ display: 'flex', height: 4, borderRadius: 2, overflow: 'hidden', background: 'rgba(248,113,113,0.12)', marginTop: 6 }}>
+          <div style={{ width: `${longPct}%`, background: isLongBias ? 'rgba(52,211,153,0.5)' : 'rgba(52,211,153,0.25)', transition: 'width .5s' }} />
+        </div>
+        <div className="flex justify-between" style={{ marginTop: 4 }}>
+          <span style={{ fontSize: 9, fontWeight: 700, color: '#34D399', fontFamily: SF }}>L {longPct.toFixed(1)}%</span>
+          <span style={{ fontSize: 9, fontWeight: 700, color: '#F87171', fontFamily: SF }}>S {shortPct.toFixed(1)}%</span>
+        </div>
       </div>
-      <div style={{ padding: 18, display: 'flex', flexDirection: 'column', gap: 14 }}>
-
-        {/* L/S Ratio — HERO number */}
-        <div>
-          <div className="flex items-center justify-between" style={{ marginBottom: 8 }}>
-            <span style={{ fontSize: 10, fontWeight: 600, color: 'rgba(255,255,255,0.4)', fontFamily: SF }}>L/S Ratio</span>
-            <span style={{ fontSize: 22, fontWeight: 800, fontFamily: MF, color: accentColor, letterSpacing: '-.02em' }}>
-              {ratio.toFixed(2)}
-            </span>
-          </div>
-          <div style={{ display: 'flex', height: 8, borderRadius: 4, overflow: 'hidden', background: 'rgba(248,113,113,0.12)' }}>
-            <div style={{ width: `${longPct}%`, background: isLongBias ? 'rgba(52,211,153,0.5)' : 'rgba(52,211,153,0.25)', transition: 'width .5s' }} />
-          </div>
-          <div className="flex items-center justify-between" style={{ marginTop: 5 }}>
-            <span style={{ fontSize: 10, fontWeight: 700, color: '#34D399', fontFamily: SF }}>L {longPct.toFixed(1)}%</span>
-            <span style={{ fontSize: 10, fontWeight: 700, color: '#F87171', fontFamily: SF }}>S {shortPct.toFixed(1)}%</span>
-          </div>
+      {/* OI + Funding card */}
+      <div className="glass" style={{ borderRadius: 14, padding: '14px 16px' }}>
+        <div style={{ fontSize: 9, fontWeight: 600, letterSpacing: '.08em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.25)', marginBottom: 8, fontFamily: SF }}>OI / Funding</div>
+        <div style={{ fontSize: 14, fontWeight: 700, fontFamily: MF, color: 'rgba(255,255,255,0.85)' }}>{fmtUsd(oi.oiUsd)}</div>
+        <div style={{ fontSize: 12, fontWeight: 700, fontFamily: MF, color: (fund.current1h || 0) >= 0 ? '#F87171' : '#34D399', marginTop: 2 }}>
+          {(fund.current1h || 0).toFixed(4)}%
         </div>
-
-        {/* OI + Funding — compact */}
-        <div className="grid grid-cols-2 gap-2">
-          <div style={{ borderRadius: 10, padding: 12, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
-            <div style={{ fontSize: 8, fontWeight: 600, color: 'rgba(255,255,255,0.25)', textTransform: 'uppercase', marginBottom: 3, fontFamily: SF }}>Open Interest</div>
-            <div style={{ fontSize: 14, fontWeight: 700, fontFamily: MF, color: 'rgba(255,255,255,0.85)' }}>{fmtUsd(oi.oiUsd)}</div>
-          </div>
-          <div style={{ borderRadius: 10, padding: 12, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
-            <div style={{ fontSize: 8, fontWeight: 600, color: 'rgba(255,255,255,0.25)', textTransform: 'uppercase', marginBottom: 3, fontFamily: SF }}>Funding</div>
-            <div style={{ fontSize: 14, fontWeight: 700, fontFamily: MF, color: (fund.current1h || 0) >= 0 ? '#F87171' : '#34D399' }}>
-              {(fund.current1h || 0).toFixed(4)}%
-            </div>
-          </div>
-        </div>
-
-        {/* 24h Order Flow — compact */}
-        {(ls.buyVolume24h > 0 || ls.sellVolume24h > 0) && (
-          <div style={{ borderRadius: 10, padding: 12, background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)' }}>
-            <div style={{ fontSize: 8, fontWeight: 600, color: 'rgba(255,255,255,0.25)', textTransform: 'uppercase', marginBottom: 6, fontFamily: SF }}>24h Order Flow</div>
-            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-              <div>
-                <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.35)', fontFamily: SF }}>Buy</div>
-                <div style={{ fontSize: 13, fontWeight: 700, fontFamily: MF, color: '#34D399' }}>{fmtUsd(ls.buyVolume24h)}</div>
-              </div>
-              <div style={{ textAlign: 'center' }}>
-                <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.35)', fontFamily: SF }}>Delta</div>
-                <div style={{ fontSize: 13, fontWeight: 700, fontFamily: MF, color: (ls.delta24h || 0) >= 0 ? '#34D399' : '#F87171' }}>
-                  {(ls.delta24h || 0) >= 0 ? '+' : ''}{fmtUsd(ls.delta24h)}
-                </div>
-              </div>
-              <div style={{ textAlign: 'right' }}>
-                <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.35)', fontFamily: SF }}>Sell</div>
-                <div style={{ fontSize: 13, fontWeight: 700, fontFamily: MF, color: '#F87171' }}>{fmtUsd(ls.sellVolume24h)}</div>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Interpretation */}
-        <div style={{ fontSize: 10, fontWeight: 600, color: accentColor, textAlign: 'center', padding: '4px 0', fontFamily: SF }}>
-          {interpLabel(ls.interpretation || 'neutral')}
+        <div style={{ fontSize: 9, fontWeight: 600, color: 'rgba(255,255,255,0.25)', marginTop: 2, fontFamily: SF }}>
+          Delta: <span style={{ color: (ls.delta24h || 0) >= 0 ? '#34D399' : '#F87171' }}>{(ls.delta24h || 0) >= 0 ? '+' : ''}{fmtUsd(ls.delta24h)}</span>
         </div>
       </div>
     </div>
@@ -303,8 +275,94 @@ const SmartMoneyPanel = memo(function SmartMoneyPanel({ derivatives }: { derivat
 });
 
 /* ═══════════════════════════════════════════
-   SECONDARY INDICapsedATORS — Coll by default
-   Apple-style: details available but not in your face
+   VS MARKET — compact horizontal
+   ═══════════════════════════════════════════ */
+const DominancePanel = memo(function DominancePanel({ data }: { data: NonNullable<ReturnType<typeof useMarketData>['data']> }) {
+  const dom = data.dominance;
+  if (!dom || dom.length < 3) return null;
+  const fmt = (n: number) => `${n >= 0 ? '+' : ''}${n.toFixed(1)}%`;
+  const fp = (n: number) => n >= 1000 ? `$${(n / 1000).toFixed(1)}k` : `$${n.toFixed(2)}`;
+  const coins = [
+    { d: dom[0], Icon: TokenHYPE, hex: '#4ADE80' },
+    { d: dom[1], Icon: TokenBTC, hex: '#F59E0B' },
+    { d: dom[2], Icon: TokenETH, hex: '#60A5FA' },
+  ];
+
+  return (
+    <div className="glass" style={{ borderRadius: 14, padding: '14px 16px' }}>
+      <div style={{ fontSize: 9, fontWeight: 600, letterSpacing: '.08em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.25)', marginBottom: 10, fontFamily: SF }}>vs Market</div>
+      <div className="grid grid-cols-3 gap-3">
+        {coins.map(c => (
+          <div key={c.d.symbol} style={{ borderRadius: 10, padding: 10, background: `${c.hex}0a`, border: `1px solid ${c.hex}18` }}>
+            <div className="flex items-center gap-1.5" style={{ marginBottom: 4 }}>
+              <c.Icon style={{ width: 16, height: 16, borderRadius: 4 }} />
+              <span style={{ fontSize: 11, fontWeight: 700, color: c.hex, fontFamily: SF }}>{c.d.symbol}</span>
+            </div>
+            <div style={{ fontSize: 10, fontWeight: 600, fontFamily: MF, color: 'rgba(255,255,255,0.4)', marginBottom: 4 }}>{fp(c.d.price)}</div>
+            <div className="flex gap-2">
+              {(['24h', '7d', '30d'] as const).map(p => {
+                const v = p === '24h' ? c.d.change24h : p === '7d' ? c.d.change7d : c.d.change30d;
+                return (
+                  <div key={p} style={{ textAlign: 'center' }}>
+                    <div style={{ fontSize: 7, fontWeight: 600, color: 'rgba(255,255,255,0.15)', fontFamily: SF }}>{p}</div>
+                    <div style={{ fontSize: 10, fontWeight: 700, fontFamily: MF, color: v >= 0 ? '#34D399' : '#F87171' }}>{fmt(v)}</div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+});
+
+/* ═══════════════════════════════════════════
+   S/R LEVELS — compact
+   ═══════════════════════════════════════════ */
+const SRPanel = memo(function SRPanel({ data }: { data: any }) {
+  const hasLevels = data.srLevels.resistances.length > 0 || data.srLevels.supports.length > 0;
+  if (!hasLevels) return null;
+
+  return (
+    <div className="glass" style={{ borderRadius: 14, padding: '14px 16px' }}>
+      <div style={{ fontSize: 9, fontWeight: 600, letterSpacing: '.08em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.25)', marginBottom: 10, fontFamily: SF }}>S / R</div>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+        {data.srLevels.resistances.map((r: any, i: number) => (
+          <div key={`r${i}`} className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <span style={{ width: 18, height: 18, borderRadius: 4, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 8, fontWeight: 800, color: '#F87171', background: 'rgba(248,113,113,0.08)', border: '1px solid rgba(248,113,113,0.15)', fontFamily: SF }}>R{i + 1}</span>
+              <span style={{ fontSize: 11, fontWeight: 700, fontFamily: MF, color: '#F87171' }}>${r.price.toFixed(2)}</span>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <div style={{ width: 40, height: 3, borderRadius: 2, background: 'rgba(255,255,255,0.06)', overflow: 'hidden' }}>
+                <div style={{ height: '100%', width: `${r.strength}%`, background: '#F87171', borderRadius: 2 }} />
+              </div>
+              <span style={{ fontSize: 9, fontWeight: 600, color: 'rgba(255,255,255,0.2)', fontFamily: SF, width: 24, textAlign: 'right' }}>{r.strength}%</span>
+            </div>
+          </div>
+        ))}
+        {data.srLevels.supports.map((s: any, i: number) => (
+          <div key={`s${i}`} className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <span style={{ width: 18, height: 18, borderRadius: 4, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 8, fontWeight: 800, color: '#34D399', background: 'rgba(52,211,153,0.08)', border: '1px solid rgba(52,211,153,0.15)', fontFamily: SF }}>S{i + 1}</span>
+              <span style={{ fontSize: 11, fontWeight: 700, fontFamily: MF, color: '#34D399' }}>${s.price.toFixed(2)}</span>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <div style={{ width: 40, height: 3, borderRadius: 2, background: 'rgba(255,255,255,0.06)', overflow: 'hidden' }}>
+                <div style={{ height: '100%', width: `${s.strength}%`, background: '#34D399', borderRadius: 2 }} />
+              </div>
+              <span style={{ fontSize: 9, fontWeight: 600, color: 'rgba(255,255,255,0.2)', fontFamily: SF, width: 24, textAlign: 'right' }}>{s.strength}%</span>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+});
+
+/* ═══════════════════════════════════════════
+   SECONDARY INDICATORS — Collapsed
    ═══════════════════════════════════════════ */
 const SecondaryIndicators = memo(function SecondaryIndicators({ ind, price, tf }: { ind: any; price: number; tf: string }) {
   const [open, setOpen] = useState(false);
@@ -325,21 +383,19 @@ const SecondaryIndicators = memo(function SecondaryIndicators({ ind, price, tf }
   ];
 
   return (
-    <div className="glass" style={{ borderRadius: 18, overflow: 'hidden' }}>
-      <button onClick={() => setOpen(o => !o)} style={{ width: '100%', padding: '14px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'none', border: 'none', cursor: 'pointer' }}>
-        <h3 style={{ fontSize: 11, fontWeight: 600, letterSpacing: '.1em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.4)', fontFamily: SF }}>
-          All Indicators · {tf}
-        </h3>
-        <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)', fontFamily: SF }}>{open ? 'Hide' : 'Show'}</span>
+    <div className="glass" style={{ borderRadius: 14, overflow: 'hidden' }}>
+      <button onClick={() => setOpen(o => !o)} style={{ width: '100%', padding: '12px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'none', border: 'none', cursor: 'pointer' }}>
+        <span style={{ fontSize: 10, fontWeight: 600, letterSpacing: '.08em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.3)', fontFamily: SF }}>All Indicators · {tf}</span>
+        <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.25)', fontFamily: SF }}>{open ? 'Hide' : 'Show'}</span>
       </button>
       {open && (
-        <div style={{ padding: '4px 20px 14px' }}>
+        <div style={{ padding: '2px 16px 12px' }}>
           {rows.map((r, i) => (
-            <div key={r.l} className="flex items-center justify-between" style={{ padding: '7px 0', borderBottom: i < rows.length - 1 ? '1px solid rgba(255,255,255,0.04)' : 'none' }}>
-              <span style={{ fontSize: 11, fontWeight: 500, color: 'rgba(255,255,255,0.45)', fontFamily: SF }}>{r.l}</span>
+            <div key={r.l} className="flex items-center justify-between" style={{ padding: '6px 0', borderBottom: i < rows.length - 1 ? '1px solid rgba(255,255,255,0.04)' : 'none' }}>
+              <span style={{ fontSize: 10, fontWeight: 500, color: 'rgba(255,255,255,0.4)', fontFamily: SF }}>{r.l}</span>
               <div style={{ textAlign: 'right' }}>
-                <span style={{ fontSize: 12, fontWeight: 700, fontFamily: MF, color: r.c }}>{r.v}</span>
-                {r.s && <span style={{ fontSize: 9, marginLeft: 6, color: 'rgba(255,255,255,0.2)', fontFamily: SF }}>{r.s}</span>}
+                <span style={{ fontSize: 11, fontWeight: 700, fontFamily: MF, color: r.c }}>{r.v}</span>
+                {r.s && <span style={{ fontSize: 9, marginLeft: 5, color: 'rgba(255,255,255,0.2)', fontFamily: SF }}>{r.s}</span>}
               </div>
             </div>
           ))}
@@ -350,59 +406,13 @@ const SecondaryIndicators = memo(function SecondaryIndicators({ ind, price, tf }
 });
 
 /* ═══════════════════════════════════════════
-   DOMINANCE PANEL — Compact
-   ═══════════════════════════════════════════ */
-const DominancePanel = memo(function DominancePanel({ data }: { data: NonNullable<ReturnType<typeof useMarketData>['data']> }) {
-  const dom = data.dominance;
-  if (!dom || dom.length < 3) return null;
-  const fmt = (n: number) => `${n >= 0 ? '+' : ''}${n.toFixed(1)}%`;
-  const fp = (n: number) => n >= 1000 ? `$${(n / 1000).toFixed(1)}k` : `$${n.toFixed(2)}`;
-  const coins = [
-    { d: dom[0], Icon: TokenHYPE, hex: '#4ADE80' },
-    { d: dom[1], Icon: TokenBTC, hex: '#F59E0B' },
-    { d: dom[2], Icon: TokenETH, hex: '#60A5FA' },
-  ];
-
-  return (
-    <div className="glass" style={{ borderRadius: 18, overflow: 'hidden' }}>
-      <div style={{ padding: '14px 20px', borderBottom: '1px solid rgba(255,255,255,0.08)', display: 'flex', alignItems: 'center' }}>
-        <h3 style={{ fontSize: 11, fontWeight: 600, letterSpacing: '.1em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.5)', fontFamily: SF }}>vs Market</h3>
-        <Info tip="HYPE performance vs BTC and ETH" />
-      </div>
-      <div style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 8 }}>
-        {coins.map(c => (
-          <div key={c.d.symbol} style={{ borderRadius: 10, padding: 12, background: `${c.hex}0a`, border: `1px solid ${c.hex}18` }}>
-            <div className="flex items-center justify-between" style={{ marginBottom: 6 }}>
-              <div className="flex items-center gap-2">
-                <c.Icon style={{ width: 20, height: 20, borderRadius: 5 }} />
-                <span style={{ fontSize: 12, fontWeight: 700, color: c.hex, fontFamily: SF }}>{c.d.symbol}</span>
-              </div>
-              <span style={{ fontSize: 11, fontWeight: 600, fontFamily: MF, color: 'rgba(255,255,255,0.5)' }}>{fp(c.d.price)}</span>
-            </div>
-            <div className="grid grid-cols-3 gap-2">
-              {(['24h', '7d', '30d'] as const).map(p => {
-                const v = p === '24h' ? c.d.change24h : p === '7d' ? c.d.change7d : c.d.change30d;
-                return (
-                  <div key={p} className="text-center">
-                    <div style={{ fontSize: 8, fontWeight: 600, color: 'rgba(255,255,255,0.2)', textTransform: 'uppercase', fontFamily: SF }}>{p}</div>
-                    <div style={{ fontSize: 11, fontWeight: 700, fontFamily: MF, color: v >= 0 ? '#34D399' : '#F87171' }}>{fmt(v)}</div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-});
-
-/* ═══════════════════════════════════════════
-   MAIN PAGE — Apple-style layout
+   MAIN PAGE — Single column layout
+   Chart on top, panels below
    ═══════════════════════════════════════════ */
 export default function Home() {
   const { data, derivatives, loading, error, tf, tfLoading, fetchCount, changeTimeframe, refetch } = useMarketData('4h');
   const [now, setNow] = useState(Date.now());
+  const [showLiqLevels, setShowLiqLevels] = useState(false);
 
   useEffect(() => {
     const i = setInterval(() => setNow(Date.now()), 1000);
@@ -443,9 +453,9 @@ export default function Home() {
     <div className="ambient-bg">
       <TooltipOverlay />
 
-      {/* Header — Apple-style translucent nav */}
+      {/* Header */}
       <header className="glass-3" style={{ position: 'sticky', top: 0, zIndex: 50 }}>
-        <div style={{ maxWidth: 1440, margin: '0 auto', padding: '0 24px', height: 52, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <div style={{ maxWidth: 1280, margin: '0 auto', padding: '0 24px', height: 52, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div className="flex items-center gap-3">
             <TokenHYPE style={{ width: 26, height: 26, borderRadius: 6 }} />
             <div>
@@ -472,84 +482,55 @@ export default function Home() {
         </div>
       </header>
 
-      <main style={{ maxWidth: 1440, margin: '0 auto', padding: '24px', display: 'flex', flexDirection: 'column', gap: 20 }}>
+      <main style={{ maxWidth: 1280, margin: '0 auto', padding: '24px', display: 'flex', flexDirection: 'column', gap: 20 }}>
 
-        {/* HERO: Signal Gauge */}
+        {/* 1. HERO: Signal Gauge */}
         <SignalGauge data={data} />
 
-        {/* KEY METRICS — Only the essentials */}
+        {/* 2. KEY METRICS */}
         <KeyMetrics data={data} ind={ind} />
 
-        {/* Main grid: chart + sidebar */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
-          <div className="lg:col-span-2" style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+        {/* 3. CHART — full width */}
+        <ChartWithLiq data={data} tf={tf} liqZones={data.liqZones} showLevels={showLiqLevels} />
 
-            {/* Chart */}
-            <div className="glass-2" style={{ borderRadius: 18, overflow: 'hidden' }}>
-              <TradingViewChart timeframe={tf} />
-            </div>
+        {/* 3b. Show Levels button */}
+        {data.liqZones.length > 0 && (
+          <button
+            onClick={() => setShowLiqLevels(v => !v)}
+            className="glass"
+            style={{ alignSelf: 'flex-start', padding: '8px 16px', borderRadius: 8, fontSize: 11, fontWeight: 600, color: showLiqLevels ? '#4ADE80' : 'rgba(255,255,255,0.4)', cursor: 'pointer', fontFamily: SF, border: showLiqLevels ? '1px solid rgba(74,222,128,0.2)' : undefined }}
+          >
+            {showLiqLevels ? 'Hide Levels' : 'Show Levels'}
+          </button>
+        )}
 
-            {/* Performance — compact */}
-            <div className="grid grid-cols-3 gap-3">
-              {(['24h', '7d', '30d'] as const).map(p => {
-                const v = p === '24h' ? data.change24h : p === '7d' ? data.change7d : data.change30d;
-                return (
-                  <div key={p} className="glass" style={{ borderRadius: 14, padding: '14px 18px' }}>
-                    <div style={{ fontSize: 9, fontWeight: 600, letterSpacing: '.08em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.2)', marginBottom: 4, fontFamily: SF }}>{p}</div>
-                    <div style={{ fontSize: 16, fontWeight: 700, fontFamily: MF, color: v >= 0 ? '#34D399' : '#F87171' }}>{fmtPct(v)}</div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
+        {/* 4. PANELS ROW — Smart Money + vs Market + S/R */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+          <SmartMoneyPanel derivatives={derivatives} />
+          <DominancePanel data={data} />
+          <SRPanel data={data} />
+        </div>
 
-          {/* Sidebar */}
-          <aside style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-            {/* Smart Money — highlighted */}
-            <SmartMoneyPanel derivatives={derivatives} />
-
-            {/* Secondary indicators — collapsed */}
-            <SecondaryIndicators ind={ind} price={data.price} tf={data.timeframe.toUpperCase()} />
-
-            {/* Dominance */}
-            <DominancePanel data={data} />
-
-            {/* S/R — compact */}
-            {(data.srLevels.resistances.length > 0 || data.srLevels.supports.length > 0) && (
-              <div className="glass" style={{ borderRadius: 18, overflow: 'hidden' }}>
-                <div style={{ padding: '14px 20px', borderBottom: '1px solid rgba(255,255,255,0.08)', display: 'flex', alignItems: 'center' }}>
-                  <h3 style={{ fontSize: 11, fontWeight: 600, letterSpacing: '.1em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.5)', fontFamily: SF }}>S / R</h3>
-                  <Info key="sr-tip" tip="Support / Resistance levels" />
-                </div>
-                <div style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 8 }}>
-                  {data.srLevels.resistances.map((r, i) => (
-                    <div key={`r${i}`} className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <span style={{ width: 20, height: 20, borderRadius: 5, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 8, fontWeight: 800, color: '#F87171', background: 'rgba(248,113,113,0.08)', border: '1px solid rgba(248,113,113,0.15)', fontFamily: SF }}>R{i + 1}</span>
-                        <span style={{ fontSize: 12, fontWeight: 700, fontFamily: MF, color: '#F87171' }}>${r.price.toFixed(2)}</span>
-                      </div>
-                      <span style={{ fontSize: 9, fontWeight: 600, color: 'rgba(255,255,255,0.2)', fontFamily: SF }}>{r.strength}%</span>
-                    </div>
-                  ))}
-                  {data.srLevels.supports.map((s, i) => (
-                    <div key={`s${i}`} className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <span style={{ width: 20, height: 20, borderRadius: 5, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 8, fontWeight: 800, color: '#34D399', background: 'rgba(52,211,153,0.08)', border: '1px solid rgba(52,211,153,0.15)', fontFamily: SF }}>S{i + 1}</span>
-                        <span style={{ fontSize: 12, fontWeight: 700, fontFamily: MF, color: '#34D399' }}>${s.price.toFixed(2)}</span>
-                      </div>
-                      <span style={{ fontSize: 9, fontWeight: 600, color: 'rgba(255,255,255,0.2)', fontFamily: SF }}>{s.strength}%</span>
-                    </div>
-                  ))}
-                </div>
+        {/* 5. PERFORMANCE */}
+        <div className="grid grid-cols-3 gap-3">
+          {(['24h', '7d', '30d'] as const).map(p => {
+            const v = p === '24h' ? data.change24h : p === '7d' ? data.change7d : data.change30d;
+            return (
+              <div key={p} className="glass" style={{ borderRadius: 14, padding: '14px 18px' }}>
+                <div style={{ fontSize: 9, fontWeight: 600, letterSpacing: '.08em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.2)', marginBottom: 4, fontFamily: SF }}>{p}</div>
+                <div style={{ fontSize: 16, fontWeight: 700, fontFamily: MF, color: v >= 0 ? '#34D399' : '#F87171' }}>{fmtPct(v)}</div>
               </div>
-            )}
+            );
+          })}
+        </div>
 
-            {/* Footer info — minimal */}
-            <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.15)', padding: '0 4px', display: 'flex', justifyContent: 'space-between', fontFamily: SF }}>
-              <span>HL API · {fetchCount} fetches</span>
-              <span>{tsu < 60 ? `${tsu}s ago` : `${Math.floor(tsu / 60)}m ago`}</span>
-            </div>
-          </aside>
+        {/* 6. SECONDARY INDICATORS — collapsed */}
+        <SecondaryIndicators ind={ind} price={data.price} tf={data.timeframe.toUpperCase()} />
+
+        {/* Footer */}
+        <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.15)', padding: '0 4px', display: 'flex', justifyContent: 'space-between', fontFamily: SF }}>
+          <span>HL API · {fetchCount} fetches</span>
+          <span>{tsu < 60 ? `${tsu}s ago` : `${Math.floor(tsu / 60)}m ago`}</span>
         </div>
       </main>
     </div>
