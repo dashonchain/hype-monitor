@@ -1,7 +1,7 @@
 import type { ParsedCandle, Indicators, MarketData, Timeframe, DominanceData } from '../types';
 import { TIMEFRAME_CONFIG } from '../types';
 import { SMA, RSI, calcMACD, calcStoch, calcKDJ, calcCCI, calcADX, calcBB, calcVWAP, calcATR, calcOBV, calcWilliamsR, calcMFI, calcStochRSI } from './indicators';
-import { calcSR, estimateLiqZones, computeSignal } from './signal';
+import { calcSR, estimateLiqZonesFromCandles, computeSignal } from './signal';
 
 const HL_API = 'https://api.hyperliquid.xyz/info';
 const CG_URL = 'https://api.coingecko.com/api/v3/simple/price?ids=hyperliquid,bitcoin,ethereum&vs_currencies=usd&include_market_cap=true&include_24hr_change=true';
@@ -127,7 +127,7 @@ export async function fetchMarketData(tf: Timeframe): Promise<MarketData> {
 
   // S/R + Liq
   const sr = calcSR(candles);
-  const liqZones = estimateLiqZones(markPrice, oiTokens);
+  const liqZones = estimateLiqZonesFromCandles(candles, markPrice, oiTokens);
 
   // High/Low 24h
   const recentCandles = candles.slice(-candlesPerDay);
