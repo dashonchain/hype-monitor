@@ -8,17 +8,19 @@ const DERIV_REFRESH = 120_000;
 export interface DerivativesData {
   longShortRatio: {
     ratio: number;
+    ratioDelta: number;
+    longPct: number;
+    shortPct: number;
     longTotalUsd: number;
     shortTotalUsd: number;
-    imbalanceUsd: number;
+    buyVolume24h: number;
+    sellVolume24h: number;
+    delta24h: number;
     interpretation: string;
+    source: string;
   };
-  openInterest: { current: number; oiMcapRatio: number; percentile7d: number };
-  funding: { current1h: number; annualized: number; percentile7d: number };
-  liquidations: {
-    shortLevels: { price: number; valueUsd: number; distancePct: number }[];
-    longLevels: { price: number; valueUsd: number; distancePct: number }[];
-  };
+  openInterest: { current: number; oiUsd: number; dayVolumeUsd: number; oiToVolRatio: number };
+  funding: { current1h: number; annualized: number; next8h: number };
   lastUpdated: number;
 }
 
@@ -57,10 +59,9 @@ export function useMarketData(initialTf: Timeframe = '4h') {
       if (raw.error) throw new Error(raw.error);
 
       setDerivatives({
-        longShortRatio: raw.longShortRatio || { ratio: 0, longTotalUsd: 0, shortTotalUsd: 0, imbalanceUsd: 0, interpretation: 'neutral' },
-        openInterest: raw.openInterest || { current: 0, oiMcapRatio: 0, percentile7d: 0 },
-        funding: raw.funding || { current1h: 0, annualized: 0, percentile7d: 0 },
-        liquidations: raw.liquidations || { shortLevels: [], longLevels: [] },
+        longShortRatio: raw.longShortRatio || { ratio: 1, ratioDelta: 0, longPct: 50, shortPct: 50, longTotalUsd: 0, shortTotalUsd: 0, buyVolume24h: 0, sellVolume24h: 0, delta24h: 0, interpretation: 'neutral', source: 'none' },
+        openInterest: raw.openInterest || { current: 0, oiUsd: 0, dayVolumeUsd: 0, oiToVolRatio: 0 },
+        funding: raw.funding || { current1h: 0, annualized: 0, next8h: 0 },
         lastUpdated: raw.lastUpdated || Date.now(),
       });
     } catch {

@@ -230,17 +230,17 @@ const DominancePanel = memo(function DominancePanel({ data }: { data: NonNullabl
 /* ═══════════════════════════════════════════
    SMART MONEY PANEL — L/S Ratio + Liquidations
    ═══════════════════════════════════════════ */
-const SmartMoneyPanel = memo(function SmartMoneyPanel({ derivatives, price }: { derivatives: any; price: number }) {
+const SmartMoneyPanel = memo(function SmartMoneyPanel({ derivatives }: { derivatives: any }) {
   if (!derivatives) return null;
   const ls = derivatives.longShortRatio || {};
-  const liq = derivatives.liquidations || {};
   const oi = derivatives.openInterest || {};
   const fund = derivatives.funding || {};
 
-  const ratio = ls.ratio || 0;
-  const longPct = ratio > 0 ? 50 + ratio * 50 : 50 / (1 - ratio);
-  const shortPct = 100 - longPct;
-  const isLongBias = ratio > 0;
+  const ratio = ls.ratio || 1;
+  const longPct = ls.longPct ?? (ratio / (1 + ratio) * 100);
+  const shortPct = ls.shortPct ?? (100 - longPct);
+  const isLongBias = ratio > 1;
+  const isNeutral = Math.abs(ratio - 1) < 0.01;
 
   const fmtUsd = (n: number) => {
     if (!n) return '—';
@@ -249,11 +249,23 @@ const SmartMoneyPanel = memo(function SmartMoneyPanel({ derivatives, price }: { 
     return `$${(n / 1e3).toFixed(0)}K`;
   };
 
+  const interpLabel = (s: string) => {
+    switch (s) {
+      case 'longs_dominant': return '🟢 Longs dominants';
+      case 'slight_long_bias': return '🟢 Léger biais long';
+      case 'shorts_dominant': return '🔴 Shorts dominants';
+      case 'slight_short_bias': return '🔴 Léger biais short';
+      default: return '⚪ Neutre';
+    }
+  };
+
+  const accentColor = isNeutral ? '#FBBF24' : isLongBias ? '#34D399' : '#F87171';
+
   return (
     <div className="glass" style={{ borderRadius: 18, overflow: 'hidden' }}>
       <div style={{ padding: '14px 20px', borderBottom: '1px solid rgba(255,255,255,0.08)', display: 'flex', alignItems: 'center' }}>
         <h3 style={{ fontSize: 10, fontWeight: 700, letterSpacing: '.12em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.6)' }}>Smart Money</h3>
-        <Info tip="Long/Short ratio from liquidation data, OI, and funding — TrueNorth aggregated" />
+        <Info tip="L/S ratio from 24h order flow delta (buy vs sell volume) — Hyperliquid on-chain data" />
       </div>
       <div style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 12 }}>
 
@@ -261,27 +273,27 @@ const SmartMoneyPanel = memo(function SmartMoneyPanel({ derivatives, price }: { 
         <div>
           <div className="flex items-center justify-between" style={{ marginBottom: 6 }}>
             <span style={{ fontSize: 10, fontWeight: 600, color: 'rgba(255,255,255,0.6)' }}>L/S Ratio</span>
-            <span style={{ fontSize: 11, fontWeight: 700, fontFamily: MF, color: isLongBias ? '#34D399' : '#F87171' }}>
-              {Math.abs(ratio).toFixed(2)}
+            <span style={{ fontSize: 13, fontWeight: 700, fontFamily: MF, color: accentColor }}>
+              {ratio.toFixed(2)}
             </span>
           </div>
           <div style={{ display: 'flex', height: 8, borderRadius: 4, overflow: 'hidden', background: 'rgba(248,113,113,0.15)' }}>
-            <div style={{ width: `${longPct}%`, background: 'rgba(52,211,153,0.6)', transition: 'width .5s' }} />
+            <div style={{ width: `${longPct}%`, background: isLongBias ? 'rgba(52,211,153,0.6)' : 'rgba(52,211,153,0.3)', transition: 'width .5s' }} />
           </div>
           <div className="flex items-center justify-between" style={{ marginTop: 4 }}>
-            <span style={{ fontSize: 8, fontWeight: 700, color: '#34D399' }}>L {longPct.toFixed(0)}%</span>
-            <span style={{ fontSize: 8, fontWeight: 700, color: '#F87171' }}>S {shortPct.toFixed(0)}%</span>
+            <span style={{ fontSize: 9, fontWeight: 700, color: '#34D399' }}>L {longPct.toFixed(1)}%</span>
+            <span style={{ fontSize: 9, fontWeight: 700, color: '#F87171' }}>S {shortPct.toFixed(1)}%</span>
           </div>
         </div>
 
-        {/* L/S Totals */}
+        {/* L/S Totals from OI */}
         <div className="grid grid-cols-2 gap-2">
           <div style={{ borderRadius: 8, padding: 10, background: 'rgba(52,211,153,0.06)', border: '1px solid rgba(52,211,153,0.12)' }}>
-            <div style={{ fontSize: 8, fontWeight: 700, color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', marginBottom: 2 }}>Long Total</div>
+            <div style={{ fontSize: 8, fontWeight: 700, color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', marginBottom: 2 }}>Long OI</div>
             <div style={{ fontSize: 13, fontWeight: 700, fontFamily: MF, color: '#34D399' }}>{fmtUsd(ls.longTotalUsd)}</div>
           </div>
           <div style={{ borderRadius: 8, padding: 10, background: 'rgba(248,113,113,0.06)', border: '1px solid rgba(248,113,113,0.12)' }}>
-            <div style={{ fontSize: 8, fontWeight: 700, color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', marginBottom: 2 }}>Short Total</div>
+            <div style={{ fontSize: 8, fontWeight: 700, color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', marginBottom: 2 }}>Short OI</div>
             <div style={{ fontSize: 13, fontWeight: 700, fontFamily: MF, color: '#F87171' }}>{fmtUsd(ls.shortTotalUsd)}</div>
           </div>
         </div>
@@ -289,67 +301,51 @@ const SmartMoneyPanel = memo(function SmartMoneyPanel({ derivatives, price }: { 
         {/* OI + Funding */}
         <div className="grid grid-cols-2 gap-2">
           <div style={{ borderRadius: 8, padding: 10, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
-            <div style={{ fontSize: 8, fontWeight: 700, color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', marginBottom: 2 }}>OI</div>
-            <div style={{ fontSize: 13, fontWeight: 700, fontFamily: MF, color: 'rgba(255,255,255,0.9)' }}>{fmtUsd(oi.current)}</div>
-            {oi.percentile7d > 0 && (
-              <div style={{ fontSize: 8, fontWeight: 600, color: oi.percentile7d > 80 ? '#FBBF24' : 'rgba(255,255,255,0.3)', marginTop: 2 }}>
-                {oi.percentile7d.toFixed(0)}th percentile (7d)
+            <div style={{ fontSize: 8, fontWeight: 700, color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', marginBottom: 2 }}>Open Interest</div>
+            <div style={{ fontSize: 13, fontWeight: 700, fontFamily: MF, color: 'rgba(255,255,255,0.9)' }}>{fmtUsd(oi.oiUsd || (oi.current || 0) * 43)}</div>
+            {oi.dayVolumeUsd > 0 && (
+              <div style={{ fontSize: 8, fontWeight: 600, color: 'rgba(255,255,255,0.3)', marginTop: 2 }}>
+                Vol 24h: {fmtUsd(oi.dayVolumeUsd)}
               </div>
             )}
           </div>
           <div style={{ borderRadius: 8, padding: 10, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
             <div style={{ fontSize: 8, fontWeight: 700, color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', marginBottom: 2 }}>Funding</div>
-            <div style={{ fontSize: 13, fontWeight: 700, fontFamily: MF, color: (fund.current1h || 0) >= 0 ? '#34D399' : '#F87171' }}>
+            <div style={{ fontSize: 13, fontWeight: 700, fontFamily: MF, color: (fund.current1h || 0) >= 0 ? '#F87171' : '#34D399' }}>
               {(fund.current1h || 0).toFixed(4)}%
             </div>
             <div style={{ fontSize: 8, fontWeight: 600, color: 'rgba(255,255,255,0.3)', marginTop: 2 }}>
-              Ann. {(fund.annualized || 0).toFixed(1)}%
+              Ann. {(fund.annualized || 0).toFixed(1)}% · 8h: {(fund.next8h || 0).toFixed(4)}%
             </div>
           </div>
         </div>
 
-        {/* Liquidation levels */}
-        {(liq.shortLevels?.length > 0 || liq.longLevels?.length > 0) && (
-          <div>
-            <div style={{ fontSize: 8, fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.3)', marginBottom: 6 }}>Liquidation Levels</div>
-            {liq.shortLevels?.length > 0 && (
-              <div style={{ marginBottom: 4 }}>
-                <div style={{ fontSize: 8, fontWeight: 600, color: '#F87171', marginBottom: 3 }}>Short Liq Walls</div>
-                {liq.shortLevels.slice(0, 3).map((l: any, i: number) => (
-                  <div key={i} className="flex items-center justify-between" style={{ padding: '3px 0' }}>
-                    <span style={{ fontSize: 10, fontFamily: MF, color: 'rgba(255,255,255,0.7)' }}>${l.price?.toFixed(2)}</span>
-                    <div className="flex items-center gap-2">
-                      <span style={{ fontSize: 9, fontWeight: 600, color: 'rgba(255,255,255,0.4)' }}>{fmtUsd(l.valueUsd)}</span>
-                      <span style={{ fontSize: 8, color: 'rgba(255,255,255,0.25)' }}>+{l.distancePct?.toFixed(1)}%</span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-            {liq.longLevels?.length > 0 && (
+        {/* 24h Delta */}
+        {(ls.buyVolume24h > 0 || ls.sellVolume24h > 0) && (
+          <div style={{ borderRadius: 8, padding: 10, background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)' }}>
+            <div style={{ fontSize: 8, fontWeight: 700, color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', marginBottom: 4 }}>24h Order Flow</div>
+            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
               <div>
-                <div style={{ fontSize: 8, fontWeight: 600, color: '#34D399', marginBottom: 3 }}>Long Liq Walls</div>
-                {liq.longLevels.slice(0, 3).map((l: any, i: number) => (
-                  <div key={i} className="flex items-center justify-between" style={{ padding: '3px 0' }}>
-                    <span style={{ fontSize: 10, fontFamily: MF, color: 'rgba(255,255,255,0.7)' }}>${l.price?.toFixed(2)}</span>
-                    <div className="flex items-center gap-2">
-                      <span style={{ fontSize: 9, fontWeight: 600, color: 'rgba(255,255,255,0.4)' }}>{fmtUsd(l.valueUsd)}</span>
-                      <span style={{ fontSize: 8, color: 'rgba(255,255,255,0.25)' }}>-{l.distancePct?.toFixed(1)}%</span>
-                    </div>
-                  </div>
-                ))}
+                <div style={{ fontSize: 9, fontWeight: 600, color: 'rgba(255,255,255,0.4)' }}>Buy Vol</div>
+                <div style={{ fontSize: 12, fontWeight: 700, fontFamily: MF, color: '#34D399' }}>{fmtUsd(ls.buyVolume24h)}</div>
               </div>
-            )}
+              <div style={{ textAlign: 'center' }}>
+                <div style={{ fontSize: 9, fontWeight: 600, color: 'rgba(255,255,255,0.4)' }}>Delta</div>
+                <div style={{ fontSize: 12, fontWeight: 700, fontFamily: MF, color: (ls.delta24h || 0) >= 0 ? '#34D399' : '#F87171' }}>
+                  {(ls.delta24h || 0) >= 0 ? '+' : ''}{fmtUsd(ls.delta24h)}
+                </div>
+              </div>
+              <div style={{ textAlign: 'right' }}>
+                <div style={{ fontSize: 9, fontWeight: 600, color: 'rgba(255,255,255,0.4)' }}>Sell Vol</div>
+                <div style={{ fontSize: 12, fontWeight: 700, fontFamily: MF, color: '#F87171' }}>{fmtUsd(ls.sellVolume24h)}</div>
+              </div>
+            </div>
           </div>
         )}
 
         {/* Interpretation */}
-        <div style={{ fontSize: 9, fontWeight: 600, color: isLongBias ? 'rgba(52,211,153,0.7)' : 'rgba(248,113,113,0.7)', textAlign: 'center', padding: '4px 0' }}>
-          {ls.interpretation === 'heavily_favors_longs' ? '🟢 Heavily favors longs'
-            : ls.interpretation === 'heavily_favors_shorts' ? '🔴 Heavily favors shorts'
-            : ls.interpretation === 'favors_longs' ? '🟢 Favors longs'
-            : ls.interpretation === 'favors_shorts' ? '🔴 Favors shorts'
-            : '⚪ Neutral'}
+        <div style={{ fontSize: 9, fontWeight: 600, color: accentColor, textAlign: 'center', padding: '4px 0' }}>
+          {interpLabel(ls.interpretation || 'neutral')}
         </div>
       </div>
     </div>
@@ -558,7 +554,7 @@ export default function Home() {
             </div>
 
             {/* Smart Money — L/S Ratio + Liquidations */}
-            <SmartMoneyPanel derivatives={derivatives} price={data.price} />
+            <SmartMoneyPanel derivatives={derivatives} />
 
             {/* S/R */}
             {(data.srLevels.resistances.length > 0 || data.srLevels.supports.length > 0) && (
