@@ -10,9 +10,10 @@ import { TIMEFRAME_CONFIG } from '../types';
 
 const TFS: Timeframe[] = ['1h', '4h', '1d'];
 const MF = "ui-monospace, SFMono-Regular, 'SF Mono', Menlo, monospace";
+const SF = "-apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Helvetica Neue', Arial, sans-serif";
 
 /* ═══════════════════════════════════════════
-   TOOLTIP
+   TOOLTIP — Apple-style subtle
    ═══════════════════════════════════════════ */
 const tooltipState = { text: '', x: 0, y: 0, show: false };
 
@@ -46,59 +47,39 @@ function TooltipOverlay() {
 }
 
 /* ═══════════════════════════════════════════
-   SIGNAL GAUGE — composite score + expand
+   APPLE-STYLE SIGNAL GAUGE — Hero section
+   Only the most important signal, big & clear
    ═══════════════════════════════════════════ */
 const CRITERIA = [
-  { key: 'sma10', label: 'Price > SMA 10' },
-  { key: 'sma20', label: 'Price > SMA 20' },
-  { key: 'sma50', label: 'Price > SMA 50' },
-  { key: 'smaCross', label: 'SMA 10 > 20' },
-  { key: 'smaCross2', label: 'SMA 20 > 50' },
-  { key: 'rsi', label: 'RSI 14' },
-  { key: 'macd', label: 'MACD Hist' },
-  { key: 'stoch', label: 'Stochastic' },
-  { key: 'kdj', label: 'KDJ J' },
-  { key: 'cci', label: 'CCI' },
-  { key: 'bb', label: 'BB %B' },
-  { key: 'funding', label: 'Funding' },
-  { key: 'vwap', label: 'VWAP' },
-  { key: 'williamsR', label: 'Williams %R' },
-  { key: 'mfi', label: 'MFI' },
-  { key: 'stochRsi', label: 'StochRSI' },
+  { key: 'sma10', label: 'Price > SMA 10' }, { key: 'sma20', label: 'Price > SMA 20' },
+  { key: 'sma50', label: 'Price > SMA 50' }, { key: 'smaCross', label: 'SMA 10 > 20' },
+  { key: 'smaCross2', label: 'SMA 20 > 50' }, { key: 'rsi', label: 'RSI 14' },
+  { key: 'macd', label: 'MACD Hist' }, { key: 'stoch', label: 'Stochastic' },
+  { key: 'kdj', label: 'KDJ J' }, { key: 'cci', label: 'CCI' },
+  { key: 'bb', label: 'BB %B' }, { key: 'funding', label: 'Funding' },
+  { key: 'vwap', label: 'VWAP' }, { key: 'williamsR', label: 'Williams %R' },
+  { key: 'mfi', label: 'MFI' }, { key: 'stochRsi', label: 'StochRSI' },
   { key: 'obv', label: 'OBV Trend' },
 ] as const;
 
 function computeCriteriaBreakdown(ind: any, price: number, funding: number) {
   const r: { key: string; label: string; signal: 'buy' | 'sell' | 'neutral' }[] = [];
-  // SMA
   r.push({ key: 'sma10', label: 'Price > SMA 10', signal: price > ind.sma10 ? 'buy' : 'sell' });
   r.push({ key: 'sma20', label: 'Price > SMA 20', signal: price > ind.sma20 ? 'buy' : 'sell' });
   r.push({ key: 'sma50', label: 'Price > SMA 50', signal: price > ind.sma50 ? 'buy' : 'sell' });
   r.push({ key: 'smaCross', label: 'SMA 10 > 20', signal: ind.sma10 > ind.sma20 ? 'buy' : 'sell' });
   r.push({ key: 'smaCross2', label: 'SMA 20 > 50', signal: ind.sma20 > ind.sma50 ? 'buy' : 'sell' });
-  // RSI
   r.push({ key: 'rsi', label: 'RSI 14', signal: ind.rsi14 < 30 ? 'buy' : ind.rsi14 > 70 ? 'sell' : ind.rsi14 > 50 ? 'buy' : 'sell' });
-  // MACD
   r.push({ key: 'macd', label: 'MACD Hist', signal: ind.macdHist > 0 ? 'buy' : 'sell' });
-  // Stoch
   r.push({ key: 'stoch', label: 'Stochastic', signal: ind.stochK < 20 ? 'buy' : ind.stochK > 80 ? 'sell' : 'neutral' });
-  // KDJ
   r.push({ key: 'kdj', label: 'KDJ J', signal: ind.kdjJ < 20 ? 'buy' : ind.kdjJ > 80 ? 'sell' : 'neutral' });
-  // CCI
   r.push({ key: 'cci', label: 'CCI', signal: ind.cci < -100 ? 'buy' : ind.cci > 100 ? 'sell' : 'neutral' });
-  // BB
   r.push({ key: 'bb', label: 'BB %B', signal: ind.bbPercentB < 0 ? 'buy' : ind.bbPercentB > 1 ? 'sell' : 'neutral' });
-  // Funding
   r.push({ key: 'funding', label: 'Funding', signal: funding < 0 ? 'buy' : funding > 0.01 ? 'neutral' : 'buy' });
-  // VWAP
   r.push({ key: 'vwap', label: 'VWAP', signal: price > ind.vwap ? 'buy' : 'sell' });
-  // Williams %R
   r.push({ key: 'williamsR', label: 'Williams %R', signal: ind.williamsR < -80 ? 'buy' : ind.williamsR > -20 ? 'sell' : 'neutral' });
-  // MFI
   r.push({ key: 'mfi', label: 'MFI', signal: ind.mfi < 20 ? 'buy' : ind.mfi > 80 ? 'sell' : ind.mfi > 50 ? 'buy' : 'sell' });
-  // StochRSI
   r.push({ key: 'stochRsi', label: 'StochRSI', signal: ind.stochRsi < 0.2 ? 'buy' : ind.stochRsi > 0.8 ? 'sell' : 'neutral' });
-  // OBV
   r.push({ key: 'obv', label: 'OBV Trend', signal: ind.obvTrend === 'rising' ? 'buy' : ind.obvTrend === 'falling' ? 'sell' : 'neutral' });
   return r;
 }
@@ -116,56 +97,59 @@ const SignalGauge = memo(function SignalGauge({ data }: { data: NonNullable<Retu
   const breakdown = useMemo(() => computeCriteriaBreakdown(data.indicators, data.price, data.funding8h), [data]);
 
   return (
-    <div className="glass-2" style={{ borderRadius: 24, padding: expanded ? '28px 32px 24px' : '28px 32px', background: bg, borderColor: borderC, opacity: stale ? 0.5 : 1, transition: 'all .3s' }}>
-      <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6">
-        <div className="flex items-center gap-5">
-          <div className="glass-3" style={{ width: 56, height: 56, borderRadius: 16, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <TokenHYPE style={{ width: 36, height: 36 }} />
+    <div className="glass-2" style={{ borderRadius: 24, padding: expanded ? '32px 36px 28px' : '32px 36px', background: bg, borderColor: borderC, opacity: stale ? 0.5 : 1, transition: 'all .3s' }}>
+      <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-8">
+        {/* Left: Signal identity */}
+        <div className="flex items-center gap-6">
+          <div className="glass-3" style={{ width: 64, height: 64, borderRadius: 18, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <TokenHYPE style={{ width: 40, height: 40 }} />
           </div>
           <div>
-            <div style={{ fontSize: 10, letterSpacing: '.15em', fontWeight: 600, color: 'rgba(255,255,255,0.35)', textTransform: 'uppercase', marginBottom: 4 }}>
-              Composite Signal · Multi-TF · Hyperliquid
+            <div style={{ fontSize: 11, letterSpacing: '.12em', fontWeight: 500, color: 'rgba(255,255,255,0.35)', textTransform: 'uppercase', marginBottom: 6, fontFamily: SF }}>
+              Composite Signal · 17 Indicators · Hyperliquid
             </div>
-            <div style={{ fontWeight: 800, fontSize: 26, letterSpacing: '-.02em', color: c }}>{sig.display}</div>
-            <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.6)', marginTop: 2 }}>{sig.summary}</div>
+            <div style={{ fontWeight: 700, fontSize: 36, letterSpacing: '-.03em', color: c, fontFamily: SF, lineHeight: 1.05 }}>{sig.display}</div>
+            <div style={{ fontSize: 14, color: 'rgba(255,255,255,0.5)', marginTop: 4, fontFamily: SF }}>{sig.summary}</div>
           </div>
         </div>
-        <div className="flex items-center gap-5 w-full lg:w-auto">
-          <div className="flex-1 lg:w-44">
-            <div className="flex justify-between items-center mb-2">
-              <span style={{ fontSize: 9, fontWeight: 700, color: '#F87171', letterSpacing: '.1em' }}>SELL</span>
-              <span style={{ fontSize: 22, fontWeight: 900, fontFamily: MF, color: c }}>{sig.score}</span>
-              <span style={{ fontSize: 9, fontWeight: 700, color: '#34D399', letterSpacing: '.1em' }}>BUY</span>
+
+        {/* Right: Score + counts */}
+        <div className="flex items-center gap-6 w-full lg:w-auto">
+          <div className="flex-1 lg:w-48">
+            <div className="flex justify-between items-center mb-3">
+              <span style={{ fontSize: 10, fontWeight: 600, color: '#F87171', letterSpacing: '.08em', fontFamily: SF }}>SELL</span>
+              <span style={{ fontSize: 28, fontWeight: 800, fontFamily: MF, color: c, letterSpacing: '-.02em' }}>{sig.score}</span>
+              <span style={{ fontSize: 10, fontWeight: 600, color: '#34D399', letterSpacing: '.08em', fontFamily: SF }}>BUY</span>
             </div>
-            <div style={{ width: '100%', height: 6, borderRadius: 3, background: 'rgba(255,255,255,0.05)', overflow: 'hidden' }}>
+            <div style={{ width: '100%', height: 6, borderRadius: 3, background: 'rgba(255,255,255,0.06)', overflow: 'hidden' }}>
               <div style={{ height: '100%', width: `${sig.score}%`, background: c, borderRadius: 3, transition: 'width .7s ease' }} />
             </div>
           </div>
-          <div className="flex gap-4">
-            {[{ n: sig.buy, l: 'Buy', c: '#34D399' }, { n: sig.neutral, l: 'Neut', c: 'rgba(255,255,255,0.35)' }, { n: sig.sell, l: 'Sell', c: '#F87171' }].map(s => (
+          <div className="flex gap-5">
+            {[{ n: sig.buy, l: 'Buy', c: '#34D399' }, { n: sig.neutral, l: 'Neut', c: 'rgba(255,255,255,0.3)' }, { n: sig.sell, l: 'Sell', c: '#F87171' }].map(s => (
               <div key={s.l} className="text-center">
-                <div style={{ fontSize: 16, fontWeight: 800, color: s.c }}>{s.n}</div>
-                <div style={{ fontSize: 7, fontWeight: 700, color: 'rgba(255,255,255,0.2)', letterSpacing: '.12em', textTransform: 'uppercase' }}>{s.l}</div>
+                <div style={{ fontSize: 18, fontWeight: 800, color: s.c, fontFamily: MF }}>{s.n}</div>
+                <div style={{ fontSize: 8, fontWeight: 600, color: 'rgba(255,255,255,0.2)', letterSpacing: '.1em', textTransform: 'uppercase', fontFamily: SF }}>{s.l}</div>
               </div>
             ))}
           </div>
-          <button onClick={() => setExpanded(e => !e)} className="glass" style={{ padding: '6px 14px', borderRadius: 8, fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.5)', cursor: 'pointer', whiteSpace: 'nowrap' }}>
-            {expanded ? 'Collapse' : 'Expand'}
+          <button onClick={() => setExpanded(e => !e)} className="glass" style={{ padding: '8px 16px', borderRadius: 8, fontSize: 11, fontWeight: 600, color: 'rgba(255,255,255,0.45)', cursor: 'pointer', whiteSpace: 'nowrap', fontFamily: SF }}>
+            {expanded ? 'Less' : 'Details'}
           </button>
         </div>
       </div>
 
-      {/* Expanded breakdown */}
+      {/* Expanded breakdown — Apple-style grid */}
       {expanded && (
-        <div style={{ marginTop: 20, paddingTop: 16, borderTop: '1px solid rgba(255,255,255,0.06)' }}>
-          <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: '.12em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.35)', marginBottom: 10 }}>
+        <div style={{ marginTop: 24, paddingTop: 20, borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+          <div style={{ fontSize: 10, fontWeight: 600, letterSpacing: '.1em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.3)', marginBottom: 12, fontFamily: SF }}>
             Signal Breakdown · {breakdown.length} Criteria
           </div>
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-2">
             {breakdown.map(cr => (
               <div key={cr.key} className="glass" style={{ borderRadius: 8, padding: '8px 10px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <span style={{ fontSize: 10, fontWeight: 500, color: 'rgba(255,255,255,0.6)' }}>{cr.label}</span>
-                <span style={{ fontSize: 9, fontWeight: 700, padding: '2px 8px', borderRadius: 4, background: cr.signal === 'buy' ? 'rgba(52,211,153,0.15)' : cr.signal === 'sell' ? 'rgba(248,113,113,0.15)' : 'rgba(255,255,255,0.06)', color: cr.signal === 'buy' ? '#34D399' : cr.signal === 'sell' ? '#F87171' : 'rgba(255,255,255,0.35)' }}>
+                <span style={{ fontSize: 10, fontWeight: 500, color: 'rgba(255,255,255,0.5)', fontFamily: SF }}>{cr.label}</span>
+                <span style={{ fontSize: 9, fontWeight: 700, padding: '2px 8px', borderRadius: 4, background: cr.signal === 'buy' ? 'rgba(52,211,153,0.15)' : cr.signal === 'sell' ? 'rgba(248,113,113,0.15)' : 'rgba(255,255,255,0.06)', color: cr.signal === 'buy' ? '#34D399' : cr.signal === 'sell' ? '#F87171' : 'rgba(255,255,255,0.3)', fontFamily: SF }}>
                   {cr.signal === 'buy' ? '▲ BUY' : cr.signal === 'sell' ? '▼ SELL' : '— NEUT'}
                 </span>
               </div>
@@ -178,72 +162,44 @@ const SignalGauge = memo(function SignalGauge({ data }: { data: NonNullable<Retu
 });
 
 /* ═══════════════════════════════════════════
-   DOMINANCE PANEL
+   KEY METRICS — Apple-style: only the essentials
+   Big numbers, clear hierarchy, no clutter
    ═══════════════════════════════════════════ */
-const DominancePanel = memo(function DominancePanel({ data }: { data: NonNullable<ReturnType<typeof useMarketData>['data']> }) {
-  const dom = data.dominance;
-  if (!dom || dom.length < 3) return null;
-  const fmt = (n: number) => `${n >= 0 ? '+' : ''}${n.toFixed(1)}%`;
-  const fp = (n: number) => n >= 1000 ? `$${(n / 1000).toFixed(1)}k` : `$${n.toFixed(2)}`;
-  const coins = [
-    { d: dom[0], Icon: TokenHYPE, hex: '#4ADE80' },
-    { d: dom[1], Icon: TokenBTC, hex: '#F59E0B' },
-    { d: dom[2], Icon: TokenETH, hex: '#60A5FA' },
+const KeyMetrics = memo(function KeyMetrics({ data, ind }: { data: any; ind: any }) {
+  const rsiZ = ind.rsi14 > 70 ? 'Overbought' : ind.rsi14 < 30 ? 'Oversold' : ind.rsi14 > 50 ? 'Bullish' : 'Bearish';
+  const fundingBearish = data.funding8h > 0;
+
+  const metrics = [
+    { label: 'Price', value: `$${data.price.toFixed(2)}`, sub: `${data.change24h >= 0 ? '+' : ''}${data.change24h.toFixed(2)}%`, subColor: data.change24h >= 0 ? '#34D399' : '#F87171', highlight: true },
+    { label: 'RSI 14', value: ind.rsi14.toFixed(1), sub: rsiZ, subColor: ind.rsi14 > 70 ? '#F87171' : ind.rsi14 < 30 ? '#34D399' : 'rgba(255,255,255,0.4)', highlight: ind.rsi14 > 70 || ind.rsi14 < 30 },
+    { label: 'VWAP', value: `$${ind.vwap.toFixed(2)}`, sub: data.price > ind.vwap ? 'Above ↑' : 'Below ↓', subColor: data.price > ind.vwap ? '#34D399' : '#F87171', highlight: false },
+    { label: 'Funding 8h', value: `${data.funding8h >= 0 ? '+' : ''}${data.funding8h.toFixed(4)}%`, sub: `Ann. ${data.fundingAnn.toFixed(1)}%`, subColor: fundingBearish ? '#F87171' : '#34D399', highlight: Math.abs(data.funding8h) > 0.005 },
+    { label: 'ATR (14)', value: `$${ind.atr.toFixed(2)}`, sub: `Stop: $${ind.atrStop.toFixed(2)}`, subColor: '#FBBF24', highlight: false },
+    { label: 'MFI', value: ind.mfi.toFixed(1), sub: ind.mfi > 80 ? 'OB' : ind.mfi < 20 ? 'OS' : 'Mid', subColor: ind.mfi > 80 ? '#F87171' : ind.mfi < 20 ? '#34D399' : 'rgba(255,255,255,0.4)', highlight: ind.mfi > 80 || ind.mfi < 20 },
   ];
 
   return (
-    <div className="glass" style={{ borderRadius: 18, overflow: 'hidden' }}>
-      <div style={{ padding: '14px 20px', borderBottom: '1px solid rgba(255,255,255,0.08)', display: 'flex', alignItems: 'center' }}>
-        <h3 style={{ fontSize: 10, fontWeight: 700, letterSpacing: '.12em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.6)' }}>Market Dominance</h3>
-        <Info tip="HYPE performance vs BTC and ETH over 24h, 7d and 30d" />
-      </div>
-      <div style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 10 }}>
-        {coins.map(c => (
-          <div key={c.d.symbol} style={{ borderRadius: 10, padding: 12, background: `${c.hex}0f`, border: `1px solid ${c.hex}25` }}>
-            <div className="flex items-center justify-between" style={{ marginBottom: 8 }}>
-              <div className="flex items-center gap-2">
-                <c.Icon style={{ width: 22, height: 22, borderRadius: 6 }} />
-                <span style={{ fontSize: 12, fontWeight: 700, color: c.hex }}>{c.d.symbol}</span>
-              </div>
-              <span style={{ fontSize: 11, fontWeight: 700, fontFamily: MF, color: 'rgba(255,255,255,0.6)' }}>{fp(c.d.price)}</span>
-            </div>
-            <div className="grid grid-cols-3 gap-2">
-              {(['24h', '7d', '30d'] as const).map(p => {
-                const v = p === '24h' ? c.d.change24h : p === '7d' ? c.d.change7d : c.d.change30d;
-                return (
-                  <div key={p} className="text-center">
-                    <div style={{ fontSize: 8, fontWeight: 700, color: 'rgba(255,255,255,0.2)', textTransform: 'uppercase' }}>{p}</div>
-                    <div style={{ fontSize: 11, fontWeight: 700, fontFamily: MF, color: v >= 0 ? '#34D399' : '#F87171' }}>{fmt(v)}</div>
-                  </div>
-                );
-              })}
-            </div>
+    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+      {metrics.map(m => (
+        <div key={m.label} className="glass" style={{ borderRadius: 14, padding: '16px 18px', position: 'relative', overflow: 'hidden' }}>
+          {m.highlight && (
+            <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 2, background: m.subColor }} />
+          )}
+          <div style={{ fontSize: 9, fontWeight: 600, letterSpacing: '.08em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.25)', marginBottom: 8, fontFamily: SF }}>
+            {m.label}
           </div>
-        ))}
-        <div style={{ borderRadius: 10, padding: 12, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
-          <div style={{ fontSize: 8, fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.2)', marginBottom: 8 }}>HYPE Delta</div>
-          {coins.slice(1).map(c => (
-            <div key={c.d.symbol} className="flex items-center justify-between" style={{ padding: '5px 0', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
-              <span style={{ fontSize: 10, fontWeight: 600, color: c.hex }}>vs {c.d.symbol}</span>
-              <div className="flex gap-3">
-                <span style={{ fontSize: 9, fontWeight: 700, fontFamily: MF, color: (dom[0].change24h - c.d.change24h) >= 0 ? '#34D399' : '#F87171' }}>24h {fmt(dom[0].change24h - c.d.change24h)}</span>
-                <span style={{ fontSize: 9, fontWeight: 700, fontFamily: MF, color: (dom[0].change7d - c.d.change7d) >= 0 ? '#34D399' : '#F87171' }}>7d {fmt(dom[0].change7d - c.d.change7d)}</span>
-              </div>
-            </div>
-          ))}
-          <div style={{ fontSize: 8, fontWeight: 600, color: 'rgba(255,255,255,0.2)', marginTop: 8 }}>
-            {dom[0].change24h > dom[1].change24h && dom[0].change24h > dom[2].change24h ? '● Outperforming (24h)'
-              : dom[0].change24h < dom[1].change24h && dom[0].change24h < dom[2].change24h ? '● Underperforming (24h)'
-              : '● Mixed (24h)'}
+          <div style={{ fontSize: m.highlight ? 20 : 16, fontWeight: 700, fontFamily: MF, color: m.highlight ? '#fff' : 'rgba(255,255,255,0.85)', letterSpacing: '-.01em' }}>
+            {m.value}
           </div>
+          <div style={{ fontSize: 10, fontWeight: 600, color: m.subColor, marginTop: 3, fontFamily: SF }}>{m.sub}</div>
         </div>
-      </div>
+      ))}
     </div>
   );
 });
 
 /* ═══════════════════════════════════════════
-   SMART MONEY PANEL — L/S Ratio + Liquidations
+   SMART MONEY — Highlighted panel
    ═══════════════════════════════════════════ */
 const SmartMoneyPanel = memo(function SmartMoneyPanel({ derivatives }: { derivatives: any }) {
   if (!derivatives) return null;
@@ -256,6 +212,7 @@ const SmartMoneyPanel = memo(function SmartMoneyPanel({ derivatives }: { derivat
   const shortPct = ls.shortPct ?? (100 - longPct);
   const isLongBias = ratio > 1;
   const isNeutral = Math.abs(ratio - 1) < 0.01;
+  const accentColor = isNeutral ? '#FBBF24' : isLongBias ? '#34D399' : '#F87171';
 
   const fmtUsd = (n: number) => {
     if (!n) return '—';
@@ -274,92 +231,70 @@ const SmartMoneyPanel = memo(function SmartMoneyPanel({ derivatives }: { derivat
     }
   };
 
-  const accentColor = isNeutral ? '#FBBF24' : isLongBias ? '#34D399' : '#F87171';
-
   return (
     <div className="glass" style={{ borderRadius: 18, overflow: 'hidden' }}>
       <div style={{ padding: '14px 20px', borderBottom: '1px solid rgba(255,255,255,0.08)', display: 'flex', alignItems: 'center' }}>
-        <h3 style={{ fontSize: 10, fontWeight: 700, letterSpacing: '.12em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.6)' }}>Smart Money</h3>
-        <Info tip="L/S ratio from 24h order flow delta (buy vs sell volume) — Hyperliquid on-chain data" />
+        <h3 style={{ fontSize: 11, fontWeight: 600, letterSpacing: '.1em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.5)', fontFamily: SF }}>Smart Money</h3>
+        <Info tip="L/S ratio from 24h order flow delta — Hyperliquid on-chain" />
       </div>
-      <div style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 12 }}>
+      <div style={{ padding: 18, display: 'flex', flexDirection: 'column', gap: 14 }}>
 
-        {/* L/S Ratio bar */}
+        {/* L/S Ratio — HERO number */}
         <div>
-          <div className="flex items-center justify-between" style={{ marginBottom: 6 }}>
-            <span style={{ fontSize: 10, fontWeight: 600, color: 'rgba(255,255,255,0.6)' }}>L/S Ratio</span>
-            <span style={{ fontSize: 13, fontWeight: 700, fontFamily: MF, color: accentColor }}>
+          <div className="flex items-center justify-between" style={{ marginBottom: 8 }}>
+            <span style={{ fontSize: 10, fontWeight: 600, color: 'rgba(255,255,255,0.4)', fontFamily: SF }}>L/S Ratio</span>
+            <span style={{ fontSize: 22, fontWeight: 800, fontFamily: MF, color: accentColor, letterSpacing: '-.02em' }}>
               {ratio.toFixed(2)}
             </span>
           </div>
-          <div style={{ display: 'flex', height: 8, borderRadius: 4, overflow: 'hidden', background: 'rgba(248,113,113,0.15)' }}>
-            <div style={{ width: `${longPct}%`, background: isLongBias ? 'rgba(52,211,153,0.6)' : 'rgba(52,211,153,0.3)', transition: 'width .5s' }} />
+          <div style={{ display: 'flex', height: 8, borderRadius: 4, overflow: 'hidden', background: 'rgba(248,113,113,0.12)' }}>
+            <div style={{ width: `${longPct}%`, background: isLongBias ? 'rgba(52,211,153,0.5)' : 'rgba(52,211,153,0.25)', transition: 'width .5s' }} />
           </div>
-          <div className="flex items-center justify-between" style={{ marginTop: 4 }}>
-            <span style={{ fontSize: 9, fontWeight: 700, color: '#34D399' }}>L {longPct.toFixed(1)}%</span>
-            <span style={{ fontSize: 9, fontWeight: 700, color: '#F87171' }}>S {shortPct.toFixed(1)}%</span>
-          </div>
-        </div>
-
-        {/* L/S Totals from OI */}
-        <div className="grid grid-cols-2 gap-2">
-          <div style={{ borderRadius: 8, padding: 10, background: 'rgba(52,211,153,0.06)', border: '1px solid rgba(52,211,153,0.12)' }}>
-            <div style={{ fontSize: 8, fontWeight: 700, color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', marginBottom: 2 }}>Long OI</div>
-            <div style={{ fontSize: 13, fontWeight: 700, fontFamily: MF, color: '#34D399' }}>{fmtUsd(ls.longTotalUsd)}</div>
-          </div>
-          <div style={{ borderRadius: 8, padding: 10, background: 'rgba(248,113,113,0.06)', border: '1px solid rgba(248,113,113,0.12)' }}>
-            <div style={{ fontSize: 8, fontWeight: 700, color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', marginBottom: 2 }}>Short OI</div>
-            <div style={{ fontSize: 13, fontWeight: 700, fontFamily: MF, color: '#F87171' }}>{fmtUsd(ls.shortTotalUsd)}</div>
+          <div className="flex items-center justify-between" style={{ marginTop: 5 }}>
+            <span style={{ fontSize: 10, fontWeight: 700, color: '#34D399', fontFamily: SF }}>L {longPct.toFixed(1)}%</span>
+            <span style={{ fontSize: 10, fontWeight: 700, color: '#F87171', fontFamily: SF }}>S {shortPct.toFixed(1)}%</span>
           </div>
         </div>
 
-        {/* OI + Funding */}
+        {/* OI + Funding — compact */}
         <div className="grid grid-cols-2 gap-2">
-          <div style={{ borderRadius: 8, padding: 10, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
-            <div style={{ fontSize: 8, fontWeight: 700, color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', marginBottom: 2 }}>Open Interest</div>
-            <div style={{ fontSize: 13, fontWeight: 700, fontFamily: MF, color: 'rgba(255,255,255,0.9)' }}>{fmtUsd(oi.oiUsd || (oi.current || 0) * 43)}</div>
-            {oi.dayVolumeUsd > 0 && (
-              <div style={{ fontSize: 8, fontWeight: 600, color: 'rgba(255,255,255,0.3)', marginTop: 2 }}>
-                Vol 24h: {fmtUsd(oi.dayVolumeUsd)}
-              </div>
-            )}
+          <div style={{ borderRadius: 10, padding: 12, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
+            <div style={{ fontSize: 8, fontWeight: 600, color: 'rgba(255,255,255,0.25)', textTransform: 'uppercase', marginBottom: 3, fontFamily: SF }}>Open Interest</div>
+            <div style={{ fontSize: 14, fontWeight: 700, fontFamily: MF, color: 'rgba(255,255,255,0.85)' }}>{fmtUsd(oi.oiUsd)}</div>
           </div>
-          <div style={{ borderRadius: 8, padding: 10, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
-            <div style={{ fontSize: 8, fontWeight: 700, color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', marginBottom: 2 }}>Funding</div>
-            <div style={{ fontSize: 13, fontWeight: 700, fontFamily: MF, color: (fund.current1h || 0) >= 0 ? '#F87171' : '#34D399' }}>
+          <div style={{ borderRadius: 10, padding: 12, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
+            <div style={{ fontSize: 8, fontWeight: 600, color: 'rgba(255,255,255,0.25)', textTransform: 'uppercase', marginBottom: 3, fontFamily: SF }}>Funding</div>
+            <div style={{ fontSize: 14, fontWeight: 700, fontFamily: MF, color: (fund.current1h || 0) >= 0 ? '#F87171' : '#34D399' }}>
               {(fund.current1h || 0).toFixed(4)}%
             </div>
-            <div style={{ fontSize: 8, fontWeight: 600, color: 'rgba(255,255,255,0.3)', marginTop: 2 }}>
-              Ann. {(fund.annualized || 0).toFixed(1)}% · 8h: {(fund.next8h || 0).toFixed(4)}%
-            </div>
           </div>
         </div>
 
-        {/* 24h Delta */}
+        {/* 24h Order Flow — compact */}
         {(ls.buyVolume24h > 0 || ls.sellVolume24h > 0) && (
-          <div style={{ borderRadius: 8, padding: 10, background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)' }}>
-            <div style={{ fontSize: 8, fontWeight: 700, color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', marginBottom: 4 }}>24h Order Flow</div>
+          <div style={{ borderRadius: 10, padding: 12, background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)' }}>
+            <div style={{ fontSize: 8, fontWeight: 600, color: 'rgba(255,255,255,0.25)', textTransform: 'uppercase', marginBottom: 6, fontFamily: SF }}>24h Order Flow</div>
             <div style={{ display: 'flex', justifyContent: 'space-between' }}>
               <div>
-                <div style={{ fontSize: 9, fontWeight: 600, color: 'rgba(255,255,255,0.4)' }}>Buy Vol</div>
-                <div style={{ fontSize: 12, fontWeight: 700, fontFamily: MF, color: '#34D399' }}>{fmtUsd(ls.buyVolume24h)}</div>
+                <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.35)', fontFamily: SF }}>Buy</div>
+                <div style={{ fontSize: 13, fontWeight: 700, fontFamily: MF, color: '#34D399' }}>{fmtUsd(ls.buyVolume24h)}</div>
               </div>
               <div style={{ textAlign: 'center' }}>
-                <div style={{ fontSize: 9, fontWeight: 600, color: 'rgba(255,255,255,0.4)' }}>Delta</div>
-                <div style={{ fontSize: 12, fontWeight: 700, fontFamily: MF, color: (ls.delta24h || 0) >= 0 ? '#34D399' : '#F87171' }}>
+                <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.35)', fontFamily: SF }}>Delta</div>
+                <div style={{ fontSize: 13, fontWeight: 700, fontFamily: MF, color: (ls.delta24h || 0) >= 0 ? '#34D399' : '#F87171' }}>
                   {(ls.delta24h || 0) >= 0 ? '+' : ''}{fmtUsd(ls.delta24h)}
                 </div>
               </div>
               <div style={{ textAlign: 'right' }}>
-                <div style={{ fontSize: 9, fontWeight: 600, color: 'rgba(255,255,255,0.4)' }}>Sell Vol</div>
-                <div style={{ fontSize: 12, fontWeight: 700, fontFamily: MF, color: '#F87171' }}>{fmtUsd(ls.sellVolume24h)}</div>
+                <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.35)', fontFamily: SF }}>Sell</div>
+                <div style={{ fontSize: 13, fontWeight: 700, fontFamily: MF, color: '#F87171' }}>{fmtUsd(ls.sellVolume24h)}</div>
               </div>
             </div>
           </div>
         )}
 
         {/* Interpretation */}
-        <div style={{ fontSize: 9, fontWeight: 600, color: accentColor, textAlign: 'center', padding: '4px 0' }}>
+        <div style={{ fontSize: 10, fontWeight: 600, color: accentColor, textAlign: 'center', padding: '4px 0', fontFamily: SF }}>
           {interpLabel(ls.interpretation || 'neutral')}
         </div>
       </div>
@@ -368,64 +303,92 @@ const SmartMoneyPanel = memo(function SmartMoneyPanel({ derivatives }: { derivat
 });
 
 /* ═══════════════════════════════════════════
-   METRIC CARD
+   SECONDARY INDICapsedATORS — Coll by default
+   Apple-style: details available but not in your face
    ═══════════════════════════════════════════ */
-const MetricCard = memo(function MetricCard({ label, value, sub, color, tip }: { label: string; value: string; sub?: string; color?: string; tip: string }) {
+const SecondaryIndicators = memo(function SecondaryIndicators({ ind, price, tf }: { ind: any; price: number; tf: string }) {
+  const [open, setOpen] = useState(false);
+
+  const rows = [
+    { l: 'SMA 10', v: `$${ind.sma10.toFixed(2)}`, s: price > ind.sma10 ? 'Above' : 'Below', c: price > ind.sma10 ? '#34D399' : '#F87171' },
+    { l: 'SMA 20', v: `$${ind.sma20.toFixed(2)}`, s: price > ind.sma20 ? 'Above' : 'Below', c: price > ind.sma20 ? '#34D399' : '#F87171' },
+    { l: 'SMA 50', v: `$${ind.sma50.toFixed(2)}`, s: price > ind.sma50 ? 'Above' : 'Below', c: price > ind.sma50 ? '#34D399' : '#F87171' },
+    { l: 'MACD', v: ind.macd.toFixed(4), s: `Sig ${ind.macdSignal.toFixed(3)}`, c: ind.macdHist > 0 ? '#34D399' : '#F87171' },
+    { l: 'Stoch K', v: ind.stochK.toFixed(1), s: `D ${ind.stochD.toFixed(1)}`, c: ind.stochK > 80 ? '#F87171' : ind.stochK < 20 ? '#34D399' : 'rgba(255,255,255,0.5)' },
+    { l: 'KDJ J', v: ind.kdjJ.toFixed(1), s: `K ${ind.kdjK.toFixed(1)}`, c: ind.kdjJ > 80 ? '#F87171' : ind.kdjJ < 20 ? '#34D399' : 'rgba(255,255,255,0.5)' },
+    { l: 'CCI', v: ind.cci.toFixed(1), s: ind.cci > 100 ? 'OB' : ind.cci < -100 ? 'OS' : 'N', c: ind.cci > 100 ? '#F87171' : ind.cci < -100 ? '#34D399' : 'rgba(255,255,255,0.5)' },
+    { l: 'ADX', v: ind.adx.toFixed(1), s: ind.adx > 25 ? 'Trend' : 'Range', c: ind.adx > 25 ? '#FBBF24' : 'rgba(255,255,255,0.3)' },
+    { l: 'BB %B', v: ind.bbPercentB.toFixed(3), s: ind.bbPercentB > 1 ? 'Above ↑' : ind.bbPercentB < 0 ? 'Below ↓' : 'Mid', c: ind.bbPercentB > 1 ? '#F87171' : ind.bbPercentB < 0 ? '#34D399' : 'rgba(255,255,255,0.5)' },
+    { l: 'Williams %R', v: ind.williamsR.toFixed(1), s: ind.williamsR < -80 ? 'OS' : ind.williamsR > -20 ? 'OB' : 'Mid', c: ind.williamsR < -80 ? '#34D399' : ind.williamsR > -20 ? '#F87171' : 'rgba(255,255,255,0.5)' },
+    { l: 'StochRSI', v: ind.stochRsi.toFixed(3), s: ind.stochRsi > 0.8 ? 'OB' : ind.stochRsi < 0.2 ? 'OS' : 'Mid', c: ind.stochRsi > 0.8 ? '#F87171' : ind.stochRsi < 0.2 ? '#34D399' : 'rgba(255,255,255,0.5)' },
+    { l: 'OBV', v: ind.obvTrend, s: '', c: ind.obvTrend === 'rising' ? '#34D399' : ind.obvTrend === 'falling' ? '#F87171' : 'rgba(255,255,255,0.4)' },
+  ];
+
   return (
-    <div className="glass" style={{ borderRadius: 14, padding: '14px 16px' }}>
-      <div className="flex items-center" style={{ fontSize: 9, fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.2)', marginBottom: 6 }}>
-        {label}
-        <Info tip={tip} />
-      </div>
-      <div style={{ fontSize: 15, fontWeight: 700, fontFamily: MF, color: color || 'rgba(255,255,255,0.95)' }}>{value}</div>
-      {sub && <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.2)', marginTop: 2 }}>{sub}</div>}
+    <div className="glass" style={{ borderRadius: 18, overflow: 'hidden' }}>
+      <button onClick={() => setOpen(o => !o)} style={{ width: '100%', padding: '14px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'none', border: 'none', cursor: 'pointer' }}>
+        <h3 style={{ fontSize: 11, fontWeight: 600, letterSpacing: '.1em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.4)', fontFamily: SF }}>
+          All Indicators · {tf}
+        </h3>
+        <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)', fontFamily: SF }}>{open ? 'Hide' : 'Show'}</span>
+      </button>
+      {open && (
+        <div style={{ padding: '4px 20px 14px' }}>
+          {rows.map((r, i) => (
+            <div key={r.l} className="flex items-center justify-between" style={{ padding: '7px 0', borderBottom: i < rows.length - 1 ? '1px solid rgba(255,255,255,0.04)' : 'none' }}>
+              <span style={{ fontSize: 11, fontWeight: 500, color: 'rgba(255,255,255,0.45)', fontFamily: SF }}>{r.l}</span>
+              <div style={{ textAlign: 'right' }}>
+                <span style={{ fontSize: 12, fontWeight: 700, fontFamily: MF, color: r.c }}>{r.v}</span>
+                {r.s && <span style={{ fontSize: 9, marginLeft: 6, color: 'rgba(255,255,255,0.2)', fontFamily: SF }}>{r.s}</span>}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 });
 
 /* ═══════════════════════════════════════════
-   INDICATORS PANEL
+   DOMINANCE PANEL — Compact
    ═══════════════════════════════════════════ */
-const IndicatorsPanel = memo(function IndicatorsPanel({ ind, rsiZ, tf, price }: { ind: any; rsiZ: string; tf: string; price: number }) {
-  const vwapPos = price > ind.vwap ? 'Above' : 'Below';
-  const williamsZone = ind.williamsR < -80 ? 'Oversold' : ind.williamsR > -20 ? 'Overbought' : 'Mid';
-  const mfiZone = ind.mfi > 80 ? 'Overbought' : ind.mfi < 20 ? 'Oversold' : ind.mfi > 50 ? 'Bull' : 'Bear';
-  const stochRsiZone = ind.stochRsi > 0.8 ? 'OB' : ind.stochRsi < 0.2 ? 'OS' : 'Mid';
-
-  const rows = [
-    { l: 'VWAP', v: `$${ind.vwap.toFixed(2)}`, c: price > ind.vwap ? '#34D399' : '#F87171', s: vwapPos, t: 'Volume-Weighted Avg Price. Above = bullish' },
-    { l: 'ATR (14)', v: `$${ind.atr.toFixed(2)}`, c: '#FBBF24', s: `Stop: $${ind.atrStop.toFixed(2)}`, t: 'Avg True Range — volatility. Stop at 1.5x ATR' },
-    { l: 'OBV', v: ind.obvTrend, c: ind.obvTrend === 'rising' ? '#34D399' : ind.obvTrend === 'falling' ? '#F87171' : 'rgba(255,255,255,0.4)', s: '', t: 'On-Balance Volume trend' },
-    { l: 'Williams %R', v: ind.williamsR.toFixed(1), c: ind.williamsR < -80 ? '#34D399' : ind.williamsR > -20 ? '#F87171' : 'rgba(255,255,255,0.6)', s: williamsZone, t: 'Williams %R. <-80 oversold, >-20 overbought' },
-    { l: 'MFI', v: ind.mfi.toFixed(1), c: ind.mfi > 80 ? '#F87171' : ind.mfi < 20 ? '#34D399' : 'rgba(255,255,255,0.6)', s: mfiZone, t: 'Money Flow Index — volume-weighted RSI' },
-    { l: 'StochRSI', v: ind.stochRsi.toFixed(3), c: ind.stochRsi > 0.8 ? '#F87171' : ind.stochRsi < 0.2 ? '#34D399' : 'rgba(255,255,255,0.6)', s: stochRsiZone, t: 'Stochastic RSI — catches reversals early' },
-    { l: 'SMA 10', v: `$${ind.sma10.toFixed(2)}`, c: price > ind.sma10 ? '#34D399' : '#F87171', s: price > ind.sma10 ? 'Above' : 'Below', t: 'SMA 10' },
-    { l: 'SMA 20', v: `$${ind.sma20.toFixed(2)}`, c: price > ind.sma20 ? '#34D399' : '#F87171', s: price > ind.sma20 ? 'Above' : 'Below', t: 'SMA 20' },
-    { l: 'SMA 50', v: `$${ind.sma50.toFixed(2)}`, c: price > ind.sma50 ? '#34D399' : '#F87171', s: price > ind.sma50 ? 'Above' : 'Below', t: 'SMA 50' },
-    { l: 'RSI 14', v: ind.rsi14.toFixed(1), c: ind.rsi14 > 70 ? '#F87171' : ind.rsi14 < 30 ? '#34D399' : 'rgba(255,255,255,0.6)', s: rsiZ, t: 'RSI' },
-    { l: 'MACD', v: ind.macd.toFixed(4), c: ind.macdHist > 0 ? '#34D399' : '#F87171', s: `Sig: ${ind.macdSignal.toFixed(3)}`, t: 'MACD' },
-    { l: 'Stoch K', v: ind.stochK.toFixed(1), c: ind.stochK > 80 ? '#F87171' : ind.stochK < 20 ? '#34D399' : 'rgba(255,255,255,0.6)', s: `D: ${ind.stochD.toFixed(1)}`, t: 'Stoch' },
-    { l: 'KDJ J', v: ind.kdjJ.toFixed(1), c: ind.kdjJ > 80 ? '#F87171' : ind.kdjJ < 20 ? '#34D399' : 'rgba(255,255,255,0.6)', s: `K: ${ind.kdjK.toFixed(1)}`, t: 'KDJ' },
-    { l: 'CCI', v: ind.cci.toFixed(1), c: ind.cci > 100 ? '#F87171' : ind.cci < -100 ? '#34D399' : 'rgba(255,255,255,0.6)', s: ind.cci > 100 ? 'OB' : ind.cci < -100 ? 'OS' : 'N', t: 'CCI' },
-    { l: 'ADX', v: ind.adx.toFixed(1), c: ind.adx > 25 ? '#FBBF24' : 'rgba(255,255,255,0.2)', s: ind.adx > 25 ? 'Trend' : 'Range', t: 'ADX' },
-    { l: 'BB %B', v: ind.bbPercentB.toFixed(3), c: ind.bbPercentB > 1 ? '#F87171' : ind.bbPercentB < 0 ? '#34D399' : 'rgba(255,255,255,0.6)', s: '', t: 'BB' },
+const DominancePanel = memo(function DominancePanel({ data }: { data: NonNullable<ReturnType<typeof useMarketData>['data']> }) {
+  const dom = data.dominance;
+  if (!dom || dom.length < 3) return null;
+  const fmt = (n: number) => `${n >= 0 ? '+' : ''}${n.toFixed(1)}%`;
+  const fp = (n: number) => n >= 1000 ? `$${(n / 1000).toFixed(1)}k` : `$${n.toFixed(2)}`;
+  const coins = [
+    { d: dom[0], Icon: TokenHYPE, hex: '#4ADE80' },
+    { d: dom[1], Icon: TokenBTC, hex: '#F59E0B' },
+    { d: dom[2], Icon: TokenETH, hex: '#60A5FA' },
   ];
 
   return (
     <div className="glass" style={{ borderRadius: 18, overflow: 'hidden' }}>
-      <div style={{ padding: '14px 20px', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
-        <h3 style={{ fontSize: 10, fontWeight: 700, letterSpacing: '.12em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.6)' }}>Indicators · {tf}</h3>
+      <div style={{ padding: '14px 20px', borderBottom: '1px solid rgba(255,255,255,0.08)', display: 'flex', alignItems: 'center' }}>
+        <h3 style={{ fontSize: 11, fontWeight: 600, letterSpacing: '.1em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.5)', fontFamily: SF }}>vs Market</h3>
+        <Info tip="HYPE performance vs BTC and ETH" />
       </div>
-      <div style={{ padding: '8px 20px 12px' }}>
-        {rows.map((r, i) => (
-          <div key={r.l} className="flex items-center justify-between" style={{ padding: '8px 0', borderBottom: i < rows.length - 1 ? '1px solid rgba(255,255,255,0.05)' : 'none' }}>
-            <div className="flex items-center" style={{ fontSize: 11, fontWeight: 500, color: 'rgba(255,255,255,0.6)' }}>
-              {r.l}
-              <Info tip={r.t} />
+      <div style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 8 }}>
+        {coins.map(c => (
+          <div key={c.d.symbol} style={{ borderRadius: 10, padding: 12, background: `${c.hex}0a`, border: `1px solid ${c.hex}18` }}>
+            <div className="flex items-center justify-between" style={{ marginBottom: 6 }}>
+              <div className="flex items-center gap-2">
+                <c.Icon style={{ width: 20, height: 20, borderRadius: 5 }} />
+                <span style={{ fontSize: 12, fontWeight: 700, color: c.hex, fontFamily: SF }}>{c.d.symbol}</span>
+              </div>
+              <span style={{ fontSize: 11, fontWeight: 600, fontFamily: MF, color: 'rgba(255,255,255,0.5)' }}>{fp(c.d.price)}</span>
             </div>
-            <div style={{ textAlign: 'right' }}>
-              <span style={{ fontSize: 12, fontWeight: 700, fontFamily: MF, color: r.c }}>{r.v}</span>
-              {r.s && <span style={{ fontSize: 9, marginLeft: 6, color: 'rgba(255,255,255,0.2)' }}>{r.s}</span>}
+            <div className="grid grid-cols-3 gap-2">
+              {(['24h', '7d', '30d'] as const).map(p => {
+                const v = p === '24h' ? c.d.change24h : p === '7d' ? c.d.change7d : c.d.change30d;
+                return (
+                  <div key={p} className="text-center">
+                    <div style={{ fontSize: 8, fontWeight: 600, color: 'rgba(255,255,255,0.2)', textTransform: 'uppercase', fontFamily: SF }}>{p}</div>
+                    <div style={{ fontSize: 11, fontWeight: 700, fontFamily: MF, color: v >= 0 ? '#34D399' : '#F87171' }}>{fmt(v)}</div>
+                  </div>
+                );
+              })}
             </div>
           </div>
         ))}
@@ -435,7 +398,7 @@ const IndicatorsPanel = memo(function IndicatorsPanel({ ind, rsiZ, tf, price }: 
 });
 
 /* ═══════════════════════════════════════════
-   MAIN PAGE
+   MAIN PAGE — Apple-style layout
    ═══════════════════════════════════════════ */
 export default function Home() {
   const { data, derivatives, loading, error, tf, tfLoading, fetchCount, changeTimeframe, refetch } = useMarketData('4h');
@@ -450,8 +413,8 @@ export default function Home() {
     return (
       <div className="ambient-bg">
         <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 16 }}>
-          <div className="spin" style={{ width: 36, height: 36, borderRadius: '50%', border: '2px solid rgba(255,255,255,0.08)', borderTopColor: '#4ADE80' }} />
-          <p style={{ fontSize: 14, color: 'rgba(255,255,255,0.35)' }}>Loading market data…</p>
+          <div className="spin" style={{ width: 32, height: 32, borderRadius: '50%', border: '2px solid rgba(255,255,255,0.08)', borderTopColor: '#4ADE80' }} />
+          <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.3)', fontFamily: SF }}>Loading market data…</p>
         </div>
       </div>
     );
@@ -461,10 +424,10 @@ export default function Home() {
     return (
       <div className="ambient-bg">
         <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 16, padding: 24 }}>
-          <div style={{ fontSize: 32 }}>⚠️</div>
-          <div style={{ fontWeight: 600, color: '#F87171' }}>Connection Error</div>
-          <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.35)' }}>{error}</div>
-          <button onClick={() => refetch()} className="glass-2" style={{ marginTop: 8, padding: '10px 24px', borderRadius: 10, fontSize: 13, fontWeight: 600, color: '#4ADE80', cursor: 'pointer' }}>Retry</button>
+          <div style={{ fontSize: 28 }}>⚠️</div>
+          <div style={{ fontWeight: 600, color: '#F87171', fontFamily: SF }}>Connection Error</div>
+          <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.35)', fontFamily: SF }}>{error}</div>
+          <button onClick={() => refetch()} className="glass-2" style={{ marginTop: 8, padding: '10px 24px', borderRadius: 8, fontSize: 13, fontWeight: 600, color: '#4ADE80', cursor: 'pointer', fontFamily: SF }}>Retry</button>
         </div>
       </div>
     );
@@ -474,35 +437,34 @@ export default function Home() {
 
   const stale = isStale(data.lastUpdated);
   const ind = data.indicators;
-  const rsiZ = ind.rsi14 > 70 ? 'Overbought' : ind.rsi14 < 30 ? 'Oversold' : ind.rsi14 > 50 ? 'Bullish zone' : 'Bearish zone';
   const tsu = Math.floor((now - data.lastUpdated) / 1000);
 
   return (
     <div className="ambient-bg">
       <TooltipOverlay />
 
-      {/* Header */}
+      {/* Header — Apple-style translucent nav */}
       <header className="glass-3" style={{ position: 'sticky', top: 0, zIndex: 50 }}>
-        <div style={{ maxWidth: 1440, margin: '0 auto', padding: '0 24px', height: 56, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <div style={{ maxWidth: 1440, margin: '0 auto', padding: '0 24px', height: 52, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div className="flex items-center gap-3">
-            <TokenHYPE style={{ width: 30, height: 30, borderRadius: 8 }} />
+            <TokenHYPE style={{ width: 26, height: 26, borderRadius: 6 }} />
             <div>
-              <span style={{ fontSize: 14, fontWeight: 700 }}>HYPE</span>
-              <span style={{ fontSize: 14, fontWeight: 400, color: 'rgba(255,255,255,0.35)', marginLeft: 6 }}>Monitor</span>
+              <span style={{ fontSize: 13, fontWeight: 700, fontFamily: SF }}>HYPE</span>
+              <span style={{ fontSize: 13, fontWeight: 400, color: 'rgba(255,255,255,0.3)', marginLeft: 6, fontFamily: SF }}>Monitor</span>
             </div>
-            <span className="glass" style={{ fontSize: 9, fontWeight: 700, padding: '3px 10px', borderRadius: 999, color: stale ? '#F87171' : '#4ADE80', borderColor: stale ? 'rgba(248,113,113,0.2)' : 'rgba(74,222,128,0.2)' }}>
+            <span className="glass" style={{ fontSize: 9, fontWeight: 600, padding: '3px 10px', borderRadius: 999, color: stale ? '#F87171' : '#4ADE80', borderColor: stale ? 'rgba(248,113,113,0.2)' : 'rgba(74,222,128,0.2)', fontFamily: SF }}>
               {stale ? `Stale ${tsu}s` : '● Live'}
             </span>
           </div>
           <div className="flex items-center gap-4">
             <div style={{ textAlign: 'right' }}>
-              <div style={{ fontSize: 20, fontWeight: 700, fontFamily: MF, letterSpacing: '-.02em' }}>${data.price.toFixed(2)}</div>
-              <div style={{ fontSize: 11, fontWeight: 600, color: data.change24h >= 0 ? '#34D399' : '#F87171' }}>
+              <div style={{ fontSize: 18, fontWeight: 700, fontFamily: MF, letterSpacing: '-.01em' }}>${data.price.toFixed(2)}</div>
+              <div style={{ fontSize: 11, fontWeight: 600, color: data.change24h >= 0 ? '#34D399' : '#F87171', fontFamily: SF }}>
                 {data.change24h >= 0 ? '+' : ''}{data.change24h.toFixed(2)}% <span style={{ color: 'rgba(255,255,255,0.2)' }}>24h</span>
               </div>
             </div>
-            <button onClick={() => refetch()} className="glass" style={{ width: 34, height: 34, borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
-              <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="rgba(255,255,255,0.6)" strokeWidth={2.5}>
+            <button onClick={() => refetch()} className="glass" style={{ width: 32, height: 32, borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
+              <svg width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="rgba(255,255,255,0.5)" strokeWidth={2.5}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
               </svg>
             </button>
@@ -512,45 +474,29 @@ export default function Home() {
 
       <main style={{ maxWidth: 1440, margin: '0 auto', padding: '24px', display: 'flex', flexDirection: 'column', gap: 20 }}>
 
+        {/* HERO: Signal Gauge */}
         <SignalGauge data={data} />
 
-        {/* Metrics row */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-3">
-          <MetricCard label="Market Cap" value={data.marketCap > 0 ? `$${(data.marketCap / 1e9).toFixed(2)}B` : '—'} tip="Total market value of all HYPE tokens" />
-          <MetricCard label="Volume 24h" value={`$${(data.volume24h / 1e6).toFixed(1)}M`} tip="Trading volume last 24h" />
-          <MetricCard label="High 24h" value={`$${data.high24h.toFixed(2)}`} tip="Highest price last 24h" />
-          <MetricCard label="Low 24h" value={`$${data.low24h.toFixed(2)}`} tip="Lowest price last 24h" />
-          <MetricCard label="Open Interest" value={`$${(data.oiUsd / 1e6).toFixed(1)}M`} sub={`${(data.oiTokens / 1e6).toFixed(1)}M HYPE`} tip="Total open perpetual contracts" />
-          <MetricCard label="Funding 8h" value={`${data.funding8h >= 0 ? '+' : ''}${data.funding8h.toFixed(4)}%`} sub={`Ann. ${data.fundingAnn.toFixed(1)}%`} color={data.funding8h > 0 ? '#F87171' : '#34D399'} tip="Funding rate. Positive = longs pay shorts (bearish)" />
-          <MetricCard label="VWAP" value={`$${ind.vwap.toFixed(2)}`} sub={data.price > ind.vwap ? '▲ Above' : '▼ Below'} color={data.price > ind.vwap ? '#34D399' : '#F87171'} tip="Volume-Weighted Avg Price. Above = bullish" />
-          <MetricCard label="ATR (14)" value={`$${ind.atr.toFixed(2)}`} sub={`Stop: $${ind.atrStop.toFixed(2)}`} color="#FBBF24" tip="Avg True Range — volatility for stop placement" />
-        </div>
-
-        {/* Derivatives + SMA */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-          <MetricCard label="Long Liqs" value={data.liqZones[0] ? `$${(data.liqZones[0].valueUsd / 1e6).toFixed(1)}M` : '—'} sub={data.liqZones[0] ? `$${data.liqZones[0].priceLow.toFixed(2)}–$${data.liqZones[0].priceHigh.toFixed(2)}` : ''} color="#34D399" tip="Long liquidation zone" />
-          <MetricCard label="Short Liqs" value={data.liqZones[1] ? `$${(data.liqZones[1].valueUsd / 1e6).toFixed(1)}M` : '—'} sub={data.liqZones[1] ? `$${data.liqZones[1].priceLow.toFixed(2)}–$${data.liqZones[1].priceHigh.toFixed(2)}` : ''} color="#60A5FA" tip="Short liquidation zone" />
-          <MetricCard label="SMA 10" value={`$${ind.sma10.toFixed(2)}`} sub={data.price > ind.sma10 ? '▲ Above' : '▼ Below'} color="#F9A8D4" tip="SMA 10" />
-          <MetricCard label="SMA 50" value={`$${ind.sma50.toFixed(2)}`} sub={data.price > ind.sma50 ? '▲ Above' : '▼ Below'} color="#60A5FA" tip="SMA 50" />
-        </div>
+        {/* KEY METRICS — Only the essentials */}
+        <KeyMetrics data={data} ind={ind} />
 
         {/* Main grid: chart + sidebar */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
           <div className="lg:col-span-2" style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
 
-            {/* Chart — no timeframe buttons, no bullish/bearish text */}
+            {/* Chart */}
             <div className="glass-2" style={{ borderRadius: 18, overflow: 'hidden' }}>
               <TradingViewChart timeframe={tf} />
             </div>
 
-            {/* Performance */}
+            {/* Performance — compact */}
             <div className="grid grid-cols-3 gap-3">
               {(['24h', '7d', '30d'] as const).map(p => {
                 const v = p === '24h' ? data.change24h : p === '7d' ? data.change7d : data.change30d;
                 return (
-                  <div key={p} className="glass" style={{ borderRadius: 14, padding: '16px 20px' }}>
-                    <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.2)', marginBottom: 4 }}>{p}</div>
-                    <div style={{ fontSize: 18, fontWeight: 800, fontFamily: MF, color: v >= 0 ? '#34D399' : '#F87171' }}>{fmtPct(v)}</div>
+                  <div key={p} className="glass" style={{ borderRadius: 14, padding: '14px 18px' }}>
+                    <div style={{ fontSize: 9, fontWeight: 600, letterSpacing: '.08em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.2)', marginBottom: 4, fontFamily: SF }}>{p}</div>
+                    <div style={{ fontSize: 16, fontWeight: 700, fontFamily: MF, color: v >= 0 ? '#34D399' : '#F87171' }}>{fmtPct(v)}</div>
                   </div>
                 );
               })}
@@ -558,77 +504,50 @@ export default function Home() {
           </div>
 
           {/* Sidebar */}
-          <aside style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-            <IndicatorsPanel ind={ind} rsiZ={rsiZ} tf={data.timeframe.toUpperCase()} price={data.price} />
-
-            {/* RSI Gauge */}
-            <div className="glass" style={{ borderRadius: 18, padding: 20 }}>
-              <div className="flex items-center justify-between" style={{ marginBottom: 12 }}>
-                <div className="flex items-center" style={{ fontSize: 10, fontWeight: 700, letterSpacing: '.12em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.6)' }}>
-                  RSI (14)
-                  <Info tip="0-100 scale. Green = oversold, Red = overbought" />
-                </div>
-                <span style={{ fontSize: 20, fontWeight: 800, fontFamily: MF, color: ind.rsi14 > 70 ? '#F87171' : ind.rsi14 < 30 ? '#34D399' : 'rgba(255,255,255,0.6)' }}>{ind.rsi14.toFixed(1)}</span>
-              </div>
-              <div style={{ position: 'relative', height: 8, borderRadius: 4, overflow: 'hidden', background: 'linear-gradient(to right, #34D399 0%, #34D399 30%, #FBBF24 30%, #FBBF24 70%, #F87171 70%, #F87171 100%)' }}>
-                <div style={{ position: 'absolute', top: -2, height: 12, width: 4, background: '#fff', borderRadius: 2, boxShadow: '0 0 10px rgba(255,255,255,0.5)', left: `${Math.min(99, Math.max(0, ind.rsi14))}%`, transition: 'left .5s ease' }} />
-              </div>
-              <div className="flex justify-between" style={{ marginTop: 6 }}>
-                <span style={{ fontSize: 8, fontWeight: 700, color: '#34D399' }}>30 Oversold</span>
-                <span style={{ fontSize: 8, fontWeight: 700, color: 'rgba(255,255,255,0.2)' }}>50</span>
-                <span style={{ fontSize: 8, fontWeight: 700, color: '#F87171' }}>70 Overbought</span>
-              </div>
-            </div>
-
-            {/* Smart Money — L/S Ratio + Liquidations */}
+          <aside style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+            {/* Smart Money — highlighted */}
             <SmartMoneyPanel derivatives={derivatives} />
 
-            {/* S/R */}
+            {/* Secondary indicators — collapsed */}
+            <SecondaryIndicators ind={ind} price={data.price} tf={data.timeframe.toUpperCase()} />
+
+            {/* Dominance */}
+            <DominancePanel data={data} />
+
+            {/* S/R — compact */}
             {(data.srLevels.resistances.length > 0 || data.srLevels.supports.length > 0) && (
               <div className="glass" style={{ borderRadius: 18, overflow: 'hidden' }}>
                 <div style={{ padding: '14px 20px', borderBottom: '1px solid rgba(255,255,255,0.08)', display: 'flex', alignItems: 'center' }}>
-                  <h3 style={{ fontSize: 10, fontWeight: 700, letterSpacing: '.12em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.6)' }}>Support / Resistance</h3>
-                  <Info tip="Key price levels where price has previously reversed" />
+                  <h3 style={{ fontSize: 11, fontWeight: 600, letterSpacing: '.1em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.5)', fontFamily: SF }}>S / R</h3>
+                  <Info key="sr-tip" tip="Support / Resistance levels" />
                 </div>
-                <div style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 10 }}>
+                <div style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 8 }}>
                   {data.srLevels.resistances.map((r, i) => (
                     <div key={`r${i}`} className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
-                        <span style={{ width: 24, height: 24, borderRadius: 6, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 9, fontWeight: 800, color: '#F87171', background: 'rgba(248,113,113,0.08)', border: '1px solid rgba(248,113,113,0.2)' }}>R{i + 1}</span>
+                        <span style={{ width: 20, height: 20, borderRadius: 5, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 8, fontWeight: 800, color: '#F87171', background: 'rgba(248,113,113,0.08)', border: '1px solid rgba(248,113,113,0.15)', fontFamily: SF }}>R{i + 1}</span>
                         <span style={{ fontSize: 12, fontWeight: 700, fontFamily: MF, color: '#F87171' }}>${r.price.toFixed(2)}</span>
                       </div>
-                      <div className="flex items-center gap-2">
-                        <div style={{ width: 56, height: 4, borderRadius: 2, background: 'rgba(255,255,255,0.05)', overflow: 'hidden' }}>
-                          <div style={{ height: '100%', width: `${r.strength}%`, background: '#F87171', borderRadius: 2 }} />
-                        </div>
-                        <span style={{ fontSize: 9, fontWeight: 700, width: 28, textAlign: 'right', color: 'rgba(255,255,255,0.2)' }}>{r.strength}%</span>
-                      </div>
+                      <span style={{ fontSize: 9, fontWeight: 600, color: 'rgba(255,255,255,0.2)', fontFamily: SF }}>{r.strength}%</span>
                     </div>
                   ))}
                   {data.srLevels.supports.map((s, i) => (
                     <div key={`s${i}`} className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
-                        <span style={{ width: 24, height: 24, borderRadius: 6, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 9, fontWeight: 800, color: '#34D399', background: 'rgba(52,211,153,0.08)', border: '1px solid rgba(52,211,153,0.2)' }}>S{i + 1}</span>
+                        <span style={{ width: 20, height: 20, borderRadius: 5, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 8, fontWeight: 800, color: '#34D399', background: 'rgba(52,211,153,0.08)', border: '1px solid rgba(52,211,153,0.15)', fontFamily: SF }}>S{i + 1}</span>
                         <span style={{ fontSize: 12, fontWeight: 700, fontFamily: MF, color: '#34D399' }}>${s.price.toFixed(2)}</span>
                       </div>
-                      <div className="flex items-center gap-2">
-                        <div style={{ width: 56, height: 4, borderRadius: 2, background: 'rgba(255,255,255,0.05)', overflow: 'hidden' }}>
-                          <div style={{ height: '100%', width: `${s.strength}%`, background: '#34D399', borderRadius: 2 }} />
-                        </div>
-                        <span style={{ fontSize: 9, fontWeight: 700, width: 28, textAlign: 'right', color: 'rgba(255,255,255,0.2)' }}>{s.strength}%</span>
-                      </div>
+                      <span style={{ fontSize: 9, fontWeight: 600, color: 'rgba(255,255,255,0.2)', fontFamily: SF }}>{s.strength}%</span>
                     </div>
                   ))}
                 </div>
               </div>
             )}
 
-            <DominancePanel data={data} />
-
-            <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.2)', padding: '0 4px', display: 'flex', flexDirection: 'column', gap: 6 }}>
-              <div className="flex justify-between"><span>Source</span><span style={{ fontWeight: 600, color: 'rgba(255,255,255,0.35)' }}>Hyperliquid</span></div>
-              <div className="flex justify-between"><span>Fetches</span><span style={{ fontWeight: 600, color: 'rgba(255,255,255,0.35)' }}>{fetchCount}</span></div>
-              <div className="flex justify-between"><span>Updated</span><span style={{ fontWeight: 600, color: 'rgba(255,255,255,0.35)' }}>{tsu < 60 ? `${tsu}s ago` : `${Math.floor(tsu / 60)}m ago`}</span></div>
+            {/* Footer info — minimal */}
+            <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.15)', padding: '0 4px', display: 'flex', justifyContent: 'space-between', fontFamily: SF }}>
+              <span>HL API · {fetchCount} fetches</span>
+              <span>{tsu < 60 ? `${tsu}s ago` : `${Math.floor(tsu / 60)}m ago`}</span>
             </div>
           </aside>
         </div>
