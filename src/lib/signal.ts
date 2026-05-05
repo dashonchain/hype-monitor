@@ -47,6 +47,19 @@ export function computeSignal(d: MarketData): Signal {
   else if (ind.obvTrend === 'falling') sell++;
   else neutral++;
 
+  // ERROR 6 — Composite Signal: add Smart Money as weighted factor
+  if (d.smartMoney) {
+    const sm = d.smartMoney;
+    // Smart Money sentiment (weight = 3)
+    if (sm.sentiment === 'BULLISH') { buy += 3; }
+    else if (sm.sentiment === 'BEARISH') { sell += 3; }
+    // Bonus: strong net position
+    if (Math.abs(sm.netUsd) > 50_000_000) {
+      if (sm.netUsd > 0) buy += 2;
+      else sell += 2;
+    }
+  }
+
   const total = buy + sell + neutral || 1;
   const score = Math.round((buy / total) * 100);
 

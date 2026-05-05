@@ -16,11 +16,13 @@ export function Header({ price, change24h, lastUpdated, isStale, onRefresh }: He
       <div className="max-w-[1440px] mx-auto px-4 sm:px-6 h-14 flex items-center justify-between">
         {/* Logo */}
         <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[var(--accent-blue)] to-[var(--accent-cyan)] flex items-center justify-center text-white text-xs font-black">
-            H
-          </div>
+          <img
+            src="/variational-icon.svg"
+            alt="Variational"
+            className="w-8 h-8"
+          />
           <div className="hidden sm:block">
-            <span className="text-sm font-bold text-[var(--text-primary)]">HYPE</span>
+            <span className="text-sm font-bold text-[var(--text-primary)]">Variational</span>
             <span className="text-sm text-[var(--text-muted)] font-normal ml-1">Monitor</span>
           </div>
           <span className={`text-[10px] px-2 py-0.5 rounded-full font-semibold border ${

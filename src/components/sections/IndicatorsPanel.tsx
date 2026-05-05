@@ -31,7 +31,7 @@ export function IndicatorsPanel({ data }: Props) {
     { label: 'SMA 20', value: `$${ind.sma20.toFixed(2)}`, color: data.price > ind.sma20 ? 'text-[var(--up-color)]' : 'text-[var(--down-color)]', sub: data.price > ind.sma20 ? 'Above' : 'Below' },
     { label: 'SMA 50', value: `$${ind.sma50.toFixed(2)}`, color: data.price > ind.sma50 ? 'text-[var(--up-color)]' : 'text-[var(--down-color)]', sub: data.price > ind.sma50 ? 'Above' : 'Below' },
     { label: 'RSI 14', value: ind.rsi14.toFixed(1), color: rsiColor, sub: rsiZone },
-    { label: 'MACD', value: ind.macd.toFixed(4), color: ind.macdHist > 0 ? 'text-[var(--up-color)]' : 'text-[var(--down-color)]', sub: `Signal: ${ind.macdSignal.toFixed(4)}` },
+    { label: 'MACD Hist', value: ind.macdHist.toFixed(4), color: ind.macdHist > 0 ? 'text-[var(--up-color)]' : 'text-[var(--down-color)]', sub: `Line: ${ind.macd.toFixed(4)}` },
     { label: 'Stoch K', value: ind.stochK.toFixed(1), color: ind.stochK > 80 ? 'text-[var(--down-color)]' : ind.stochK < 20 ? 'text-[var(--up-color)]' : 'text-[var(--text-secondary)]', sub: `D: ${ind.stochD.toFixed(1)}` },
     { label: 'KDJ J', value: ind.kdjJ.toFixed(1), color: ind.kdjJ > 80 ? 'text-[var(--down-color)]' : ind.kdjJ < 20 ? 'text-[var(--up-color)]' : 'text-[var(--text-secondary)]', sub: `K: ${ind.kdjK.toFixed(1)}` },
     { label: 'CCI', value: ind.cci.toFixed(1), color: ind.cci > 100 ? 'text-[var(--down-color)]' : ind.cci < -100 ? 'text-[var(--up-color)]' : 'text-[var(--text-secondary)]', sub: ind.cci > 100 ? 'Overbought' : ind.cci < -100 ? 'Oversold' : 'Neutral' },

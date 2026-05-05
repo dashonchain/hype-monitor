@@ -73,6 +73,23 @@ export interface DominanceData {
   marketCap: number;
 }
 
+export interface SmartMoneyWallet {
+  wallet: string;
+  direction: 'LONG' | 'SHORT';
+  sizeUsd: number;
+  leverage: number;
+  unrealizedPnl: number;
+}
+
+export interface SmartMoneyData {
+  longPct: number;
+  shortPct: number;
+  ratio: number;  // long/short ratio
+  sentiment: 'BULLISH' | 'BEARISH' | 'NEUTRAL';
+  netUsd: number;  // positive = net long, negative = net short
+  wallets: SmartMoneyWallet[];
+}
+
 export interface MarketData {
   price: number;
   change24h: number;
@@ -93,6 +110,7 @@ export interface MarketData {
   timeframe: string;
   signal: Signal;
   dominance: DominanceData[];
+  smartMoney?: SmartMoneyData;  // ERROR 3 fix
 }
 
 export type Timeframe = '1h' | '4h' | '1d';

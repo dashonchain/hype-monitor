@@ -1,4 +1,4 @@
-import type { ParsedCandle, Indicators, MarketData, Timeframe, DominanceData } from '../types';
+import type { ParsedCandle, Indicators, MarketData, Timeframe, DominanceData, SmartMoneyData, SmartMoneyWallet } from '../types';
 import { TIMEFRAME_CONFIG } from '../types';
 import { SMA, RSI, calcMACD, calcStoch, calcKDJ, calcCCI, calcADX, calcBB, calcVWAP, calcATR, calcOBV, calcWilliamsR, calcMFI, calcStochRSI } from './indicators';
 import { calcSR, estimateLiqZonesFromCandles, computeSignal } from './signal';
@@ -53,17 +53,22 @@ export async function fetchMarketData(tf: Timeframe): Promise<MarketData> {
   const highs = candles.map(c => c.high);
   const lows = candles.map(c => c.low);
 
-  // Find HYPE context
+  // Find HYPE context — ERROR 1 & 2 fix (audit)
   let ctx: any = null;
+  let markPrice = closes[closes.length - 1] || 0;
   if (Array.isArray(meta) && meta.length === 2) {
-    const m = meta[0], cx = meta[1];
-    if (m?.universe && Array.isArray(cx)) {
-      const idx = m.universe.findIndex((a: any) => a.name === 'HYPE');
-      if (idx >= 0) ctx = cx[idx];
+    const universe = meta[0]?.universe;
+    const assetCtxs = meta[1];
+    if (universe && Array.isArray(assetCtxs)) {
+      const hypeIdx = universe.findIndex((a: any) => a.name === 'HYPE');
+      if (hypeIdx >= 0) {
+        ctx = assetCtxs[hypeIdx];
+        // Use markPx from API (more accurate than candle close)
+        markPrice = parseFloat(ctx?.markPx) || markPrice;
+      }
     }
   }
 
-  const markPrice = parseFloat(ctx?.markPx) || closes[closes.length - 1] || 0;
   const prevDayPx = parseFloat(ctx?.prevDayPx) || 0;
   const change24h = prevDayPx > 0 ? ((markPrice / prevDayPx) - 1) * 100 : 0;
 
@@ -119,15 +124,27 @@ export async function fetchMarketData(tf: Timeframe): Promise<MarketData> {
     stochRsi,
   };
 
-  // Derivatives
+  // Derivatives — ERROR 1 & 2 fix (audit)
+  // OI: tokens from API, USD = tokens × markPrice
+  // If OI appears 4x too high, check if we're reading wrong field
   const oiTokens = parseFloat(ctx?.openInterest) || 0;
+  const oiUsd = oiTokens * markPrice;
+  
+  // ERROR 2: funding is decimal, convert to percentage
+  // funding field = 8h rate as decimal (e.g., 0.00005 = 0.005%)
   const fundingRate = parseFloat(ctx?.funding) || 0;
+  const funding8hPct = fundingRate * 100; // to percentage
+  const fundingAnnPct = fundingRate * 3 * 365 * 100; // annualized (8h × 3 × 365)
+  
   const vol24h = parseFloat(ctx?.dayNtlVlm) || 0;
   const marketCap = cg?.hyperliquid?.usd_market_cap || 0;
 
   // S/R + Liq
   const sr = calcSR(candles);
   const liqZones = estimateLiqZonesFromCandles(candles, markPrice, oiTokens);
+
+  // ERROR 3 — Smart Money L/S Ratio
+  const smartMoney = await fetchSmartMoney(markPrice);
 
   // High/Low 24h
   const recentCandles = candles.slice(-candlesPerDay);
@@ -139,17 +156,82 @@ export async function fetchMarketData(tf: Timeframe): Promise<MarketData> {
     change24h, change7d, change30d,
     high24h, low24h,
     marketCap, volume24h: vol24h,
-    oiUsd: oiTokens * markPrice,
+    oiUsd: oiUsd,  // Use pre-calculated OI USD
     oiTokens,
-    funding8h: fundingRate * 100,
-    fundingAnn: fundingRate * 3 * 365 * 100,
+    funding8h: funding8hPct,  // Use corrected percentage
+    fundingAnn: fundingAnnPct,  // Use corrected annualized
     indicators,
     srLevels: sr,
     liqZones,
     lastUpdated: Date.now(),
     timeframe: tf,
     dominance: [domHype, domBtc, domEth],
+    smartMoney,  // ERROR 3 fix
   };
 
   return { ...baseData, signal: computeSignal(baseData as MarketData) };
+}
+
+// ERROR 3 — Smart Money L/S Ratio (audit fix)
+const SMART_MONEY_WALLETS = [
+  "0x082e843a431aef031264dc232693dd710aedca88",  // $61.1M long, +$7.76M PnL
+  "0x8def9f50456c6c4e37fa5d3d57f108ed23992dae",  // $38.9M short, -$2.7M PnL
+  "0x939f95036d2e7b6d7419ec072bf9d967352204d2",   // $25.6M short, -$3.0M PnL
+  "0x45d26f28196d226497130c4bac709d808fed4029",   // $20.6M short, -$7.2M PnL
+  "0x856c35038594767646266bc7fd68dc26480e910d",   // $20.4M short, -$1.8M PnL
+];
+
+export async function fetchSmartMoney(markPrice: number): Promise<SmartMoneyData> {
+  const positions = await Promise.all(
+    SMART_MONEY_WALLETS.map(wallet =>
+      hlPost({ type: 'clearinghouseState', user: wallet })
+        .catch(() => null)
+    )
+  );
+
+  let totalLong = 0;
+  let totalShort = 0;
+  const walletData: SmartMoneyWallet[] = [];
+
+  positions.forEach((state, i) => {
+    if (!state?.assetPositions) return;
+    const hypePos = state.assetPositions.find(
+      (p: any) => p.position?.coin === 'HYPE'
+    );
+    if (!hypePos) return;
+
+    const szi = parseFloat(hypePos.position.szi);
+    const entryPx = parseFloat(hypePos.position.entryPx);
+    const unrealizedPnl = parseFloat(hypePos.position.unrealizedPnl);
+    const leverage = parseFloat(hypePos.position.leverage?.value || 1);
+    const sizeUsd = Math.abs(szi) * markPrice;
+
+    if (szi > 0) totalLong += sizeUsd;
+    else totalShort += sizeUsd;
+
+    walletData.push({
+      wallet: SMART_MONEY_WALLETS[i].slice(0, 10) + "...",
+      direction: szi > 0 ? 'LONG' : 'SHORT',
+      sizeUsd,
+      leverage,
+      unrealizedPnl,
+    });
+  });
+
+  const total = totalLong + totalShort;
+  if (total === 0) {
+    return {
+      longPct: 50, shortPct: 50, ratio: 1,
+      sentiment: 'NEUTRAL', netUsd: 0, wallets: []
+    };
+  }
+
+  return {
+    longPct: (totalLong / total) * 100,
+    shortPct: (totalShort / total) * 100,
+    ratio: totalLong / totalShort,
+    sentiment: totalLong > totalShort ? 'BULLISH' : 'BEARISH',
+    netUsd: totalLong - totalShort,
+    wallets: walletData,
+  };
 }

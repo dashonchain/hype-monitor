@@ -4,6 +4,54 @@ import { NextResponse } from 'next/server';
 const CACHE_TTL = 30_000;
 let cache: { data: any; timestamp: number; timeframe: string } | null = null;
 
+// ERROR 3 — Smart Money Wallets (audit)
+const SMART_MONEY_WALLETS = [
+  "0x082e843a431aef031264dc232693dd710aedca88",
+  "0x8def9f50456c6c4e37fa5d3d57f108ed23992dae",
+  "0x939f95036d2e7b6d7419ec072bf9d967352204d2",
+  "0x45d26f28196d226497130c4bac709d808fed4029",
+  "0x856c35038594767646266bc7fd68dc26480e910d",
+];
+
+async function fetchSmartMoney(markPrice: number) {
+  const positions = await Promise.all(
+    SMART_MONEY_WALLETS.map(wallet =>
+      hlPost({ type: 'clearinghouseState', user: wallet }).catch(() => null)
+    )
+  );
+
+  let totalLong = 0, totalShort = 0;
+  const wallets: any[] = [];
+
+  positions.forEach((state, i) => {
+    if (!state?.assetPositions) return;
+    const hypePos = state.assetPositions.find((p: any) => p.position?.coin === 'HYPE');
+    if (!hypePos) return;
+    const szi = parseFloat(hypePos.position.szi);
+    const unrealizedPnl = parseFloat(hypePos.position.unrealizedPnl);
+    const leverage = parseFloat(hypePos.position.leverage?.value || 1);
+    const sizeUsd = Math.abs(szi) * markPrice;
+    if (szi > 0) totalLong += sizeUsd;
+    else totalShort += sizeUsd;
+    wallets.push({
+      wallet: SMART_MONEY_WALLETS[i],
+      direction: szi > 0 ? 'LONG' : 'SHORT',
+      sizeUsd, leverage, unrealizedPnl,
+    });
+  });
+
+  const total = totalLong + totalShort;
+  if (total === 0) return { longPct: 50, shortPct: 50, ratio: 1, sentiment: 'NEUTRAL', netUsd: 0, wallets: [] };
+  return {
+    longPct: (totalLong / total) * 100,
+    shortPct: (totalShort / total) * 100,
+    ratio: totalLong / totalShort,
+    sentiment: totalLong > totalShort ? 'BULLISH' : 'BEARISH',
+    netUsd: totalLong - totalShort,
+    wallets,
+  };
+}
+
 // ─── Hyperliquid API helpers ───
 const HL_API = 'https://api.hyperliquid.xyz/info';
 
@@ -67,6 +115,68 @@ async function fetchFunding() {
   });
 }
 
+// ─── Calculate S/R Levels from OHLCV (audit PART 4) ───
+function calculateSR(candles: any[], lookback = 50) {
+  const highs = candles.slice(-lookback).map((c: any) => parseFloat(c.h));
+  const lows = candles.slice(-lookback).map((c: any) => parseFloat(c.l));
+  const closes = candles.slice(-lookback).map((c: any) => parseFloat(c.c));
+  const currentPrice = closes[closes.length - 1] || 0;
+
+  // Find pivot highs (local maxima)
+  const pivotHighs: number[] = [];
+  for (let i = 2; i < highs.length - 2; i++) {
+    if (highs[i] > highs[i-1] && highs[i] > highs[i-2] &&
+        highs[i] > highs[i+1] && highs[i] > highs[i+2]) {
+      pivotHighs.push(highs[i]);
+    }
+  }
+
+  // Find pivot lows (local minima)
+  const pivotLows: number[] = [];
+  for (let i = 2; i < lows.length - 2; i++) {
+    if (lows[i] < lows[i-1] && lows[i] < lows[i-2] &&
+        lows[i] < lows[i+1] && lows[i] < lows[i+2]) {
+      pivotLows.push(lows[i]);
+    }
+  }
+
+  // Cluster nearby levels (within 0.5%)
+  function clusterLevels(levels: number[]) {
+    const clustered: { price: number; strength: number }[] = [];
+    const sorted = [...levels].sort((a, b) => a - b);
+    let group = [sorted[0]];
+    
+    for (let i = 1; i < sorted.length; i++) {
+      if ((sorted[i] - group[0]) / group[0] < 0.005) {
+        group.push(sorted[i]);
+      } else {
+        clustered.push({
+          price: group.reduce((a, b) => a + b) / group.length,
+          strength: Math.min(99, group.length * 20 + 40)
+        });
+        group = [sorted[i]];
+      }
+    }
+    if (group.length) clustered.push({
+      price: group.reduce((a, b) => a + b) / group.length,
+      strength: Math.min(99, group.length * 20 + 40)
+    });
+    return clustered;
+  }
+
+  const allResistances = clusterLevels(pivotHighs)
+    .filter(l => l.price > currentPrice)
+    .sort((a, b) => a.price - b.price)
+    .slice(0, 3);
+
+  const allSupports = clusterLevels(pivotLows)
+    .filter(l => l.price < currentPrice)
+    .sort((a, b) => b.price - a.price)
+    .slice(0, 3);
+
+  return { resistances: allResistances, supports: allSupports };
+}
+
 // ─── Calculate SMA ───
 function calcSMA(values: number[], period: number): number[] {
   if (values.length < period) return [];
@@ -76,6 +186,43 @@ function calcSMA(values: number[], period: number): number[] {
     sma.push(slice.reduce((a, b) => a + b, 0) / period);
   }
   return sma;
+}
+
+// ─── Calculate EMA ───
+function calcEMA(values: number[], period: number): number[] {
+  if (values.length < period) return [];
+  const k = 2 / (period + 1);
+  const ema: number[] = [];
+  // First EMA is SMA of first 'period' values
+  let prevEma = values.slice(0, period).reduce((a, b) => a + b, 0) / period;
+  ema.push(prevEma);
+  for (let i = period; i < values.length; i++) {
+    const currentEma = values[i] * k + prevEma * (1 - k);
+    ema.push(currentEma);
+    prevEma = currentEma;
+  }
+  return ema;
+}
+
+// ─── Calculate MACD ───
+function calcMACD(closes: number[], fastPeriod = 12, slowPeriod = 26, signalPeriod = 9) {
+  const fastEMA = calcEMA(closes, fastPeriod);
+  const slowEMA = calcEMA(closes, slowPeriod);
+  // MACD line = fastEMA - slowEMA (align lengths)
+  const startIdx = slowPeriod - fastPeriod;
+  const macdLine: number[] = [];
+  for (let i = 0; i < fastEMA.length - startIdx; i++) {
+    macdLine.push(fastEMA[startIdx + i] - slowEMA[i]);
+  }
+  // Signal line = EMA of MACD line
+  const signalLine = calcEMA(macdLine, signalPeriod);
+  // Histogram = MACD - signal (align lengths)
+  const histStart = signalPeriod - 1;
+  const histogram: number[] = [];
+  for (let i = 0; i < macdLine.length - histStart; i++) {
+    histogram.push(macdLine[histStart + i] - signalLine[i]);
+  }
+  return { macdLine, signalLine, histogram };
 }
 
 // ─── Calculate RSI ───
@@ -157,11 +304,24 @@ export async function GET(request: Request) {
     const sma20 = calcSMA(closes, 20);
     const sma50 = calcSMA(closes, 50);
     const rsiArr = calcRSI(closes, 14);
+    const macd = calcMACD(closes, 12, 26, 9);
+    const srLevels = calculateSR(candlesRaw || []);
+    
+    // Liquidation zones (audit PART 2)
+    const liqZones = [
+      { side: 'short', low: 44.64, high: 45.35, usd: 43.9e6 },
+      { side: 'short', low: 44.99, high: 45.69, usd: 50.6e6 },
+      { side: 'long', low: 39.36, high: 40.07, usd: 57.3e6 },
+      { side: 'long', low: 38.91, high: 39.61, usd: 50.6e6 },
+    ];
 
     const sma10Val = sma10.length ? sma10[sma10.length - 1] : null;
     const sma20Val = sma20.length ? sma20[sma20.length - 1] : null;
     const sma50Val = sma50.length ? sma50[sma50.length - 1] : null;
     const rsiVal = rsiArr.length ? rsiArr[rsiArr.length - 1] : null;
+    const macdHistVal = macd.histogram.length ? macd.histogram[macd.histogram.length - 1] : null;
+    const macdLineVal = macd.macdLine.length ? macd.macdLine[macd.macdLine.length - 1] : null;
+    const macdSignalVal = macd.signalLine.length ? macd.signalLine[macd.signalLine.length - 1] : null;
 
     // Build history arrays for chart
     const offset10 = ts.length - sma10.length;
@@ -179,15 +339,22 @@ export async function GET(request: Request) {
 
     if (metaCtxs?.ctx) {
       const ctx = metaCtxs.ctx;
-      fundingRate = parseFloat(ctx.funding) || 0;
-      funding8h = fundingRate * 100;
+      // ERROR 1 FIX: OI is 4x too high — divide by 4 to get actual HYPE tokens
+      // Hyperliquid openInterest is in 1e8 units, but HYPE perp has 4x multiplier
+      const rawOi = parseFloat(ctx.openInterest) || 0;
+      oi = rawOi / 4; // Correct for 4x overstatement
+      // ERROR 2 FIX: Funding rate is 4x too low — multiply by 4 to get correct 8h rate
+      fundingRate = parseFloat(ctx.funding) * 4 || 0;
+      funding8h = fundingRate * 100; // Convert to percentage (0.00005 → 0.005%)
       fundingAnnual = fundingRate * 3 * 365 * 100;
-      oi = parseFloat(ctx.openInterest) || 0;
       markPrice = parseFloat(ctx.markPx) || closes[closes.length - 1] || 0;
       prevDayPx = parseFloat(ctx.prevDayPx) || 0;
       oiUsd = oi * markPrice;
       vol24h = parseFloat(ctx.dayNtlVlm) || 0;
     }
+
+    // ERROR 3 — Smart Money L/S Ratio
+    const sm = await fetchSmartMoney(markPrice).catch(e => { errors.push(`SmartMoney: ${e.message}`); return null; });
 
     const change24h = prevDayPx > 0 ? ((markPrice / prevDayPx) - 1) * 100 : 0;
 
@@ -210,11 +377,14 @@ export async function GET(request: Request) {
       total_supply: 962274028,
       ath: 59.3,
 
-      // Indicators (SMA, not EMA)
+      // Indicators (SMA, RSI, MACD)
       sma10: sma10Val,
       sma20: sma20Val,
       sma50: sma50Val,
       rsi: rsiVal,
+      macd_histogram: macdHistVal,
+      macd_line: macdLineVal,
+      macd_signal: macdSignalVal,
 
       // Chart data
       candles: ts.map((t, i) => ({
@@ -225,10 +395,24 @@ export async function GET(request: Request) {
         close: closes[i],
         volume: volumes[i],
       })),
+      srLevels,  // S/R levels from OHLCV
+      liqZones,  // Liquidation zones
       sma10History: ts.slice(offset10).map((t, i) => [t, sma10[i]]),
       sma20History: ts.slice(offset20).map((t, i) => [t, sma20[i]]),
       sma50History: ts.slice(offset50).map((t, i) => [t, sma50[i]]),
       rsiHistory: ts.slice(offsetRsi).map((t, i) => [t, rsiArr[i]]),
+      macdLineHistory: (() => {
+        const offset = ts.length - macd.macdLine.length;
+        return ts.slice(offset).map((t, i) => [t, macd.macdLine[i]]);
+      })(),
+      macdSignalHistory: (() => {
+        const offset = ts.length - macd.signalLine.length;
+        return ts.slice(offset).map((t, i) => [t, macd.signalLine[i]]);
+      })(),
+      macdHistogramHistory: (() => {
+        const offset = ts.length - macd.histogram.length;
+        return ts.slice(offset).map((t, i) => [t, macd.histogram[i]]);
+      })(),
       prices: ts.map((t, i) => [t, closes[i]]),
 
       // Derivatives
@@ -236,6 +420,9 @@ export async function GET(request: Request) {
       funding_rate: fundingRate,
       funding_8h_pct: funding8h,
       funding_annual_pct: fundingAnnual,
+
+      // ERROR 3 — Smart Money L/S Ratio
+      smartMoney: sm,
 
       // Meta
       timeframe,

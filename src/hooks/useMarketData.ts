@@ -2,8 +2,9 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import type { MarketData, Timeframe } from '../types';
 import { fetchMarketData } from '../lib/api';
 
-const REFRESH_INTERVAL = 60_000;
-const DERIV_REFRESH = 120_000;
+const PRICE_REFRESH = 5_000;  // 5s for price
+const SMART_MONEY_REFRESH = 30_000;  // 30s for smart money
+const REST_REFRESH = 60_000;  // 60s for the rest
 
 export interface DerivativesData {
   longShortRatio: {
@@ -77,9 +78,22 @@ export function useMarketData(initialTf: Timeframe = '4h') {
   useEffect(() => {
     fetchData();
     fetchDerivatives();
-    const interval = setInterval(() => fetchData(undefined, true), REFRESH_INTERVAL);
-    const dInterval = setInterval(fetchDerivatives, DERIV_REFRESH);
-    return () => { clearInterval(interval); clearInterval(dInterval); abortRef.current?.abort(); };
+    const priceInterval = setInterval(() => {
+      // Price-only update (could use separate endpoint, but for now just refetch)
+      fetchData(undefined, true);
+    }, PRICE_REFRESH);
+    const smartMoneyInterval = setInterval(() => {
+      fetchData(undefined, true); // Includes smart money
+    }, SMART_MONEY_REFRESH);
+    const restInterval = setInterval(() => {
+      fetchData(); // Full refetch
+    }, REST_REFRESH);
+    return () => { 
+      clearInterval(priceInterval); 
+      clearInterval(smartMoneyInterval); 
+      clearInterval(restInterval); 
+      abortRef.current?.abort(); 
+    };
   }, [fetchData, fetchDerivatives]);
 
   return { data, derivatives, loading, error, tf, tfLoading, fetchCount, changeTimeframe, refetch: fetchData };

@@ -165,7 +165,7 @@ const ChartSection = memo(function ChartSection({ data, tf, show, onToggle }: { 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
       <div style={{ borderRadius: 12, overflow: 'hidden', border: '1px solid rgba(255,255,255,0.06)' }}>
-        <TradingViewChart timeframe={tf as Timeframe} />
+        <TradingViewChart timeframe={tf as Timeframe} srLevels={data?.srLevels} liqZones={data?.liqZones || []} />
       </div>
       {data.liqZones.length > 0 && (
         <>
@@ -205,46 +205,52 @@ const Panels = memo(function Panels({ data, derivatives }: { data: any; derivati
   const dom = data.dominance;
   const hasDom = dom && dom.length >= 3;
   const hasSR = data.srLevels.resistances.length > 0 || data.srLevels.supports.length > 0;
-  const hasSM = derivatives?.longShortRatio?.ratio;
+  const hasSM = data.smartMoney;
   const fmt = (n: number) => `${n >= 0 ? '+' : ''}${n.toFixed(1)}%`;
   const fp = (n: number) => n >= 1000 ? `$${(n / 1000).toFixed(1)}k` : `$${n.toFixed(2)}`;
+  const sm = data.smartMoney;
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
       <div style={{ borderRadius: 12, padding: '20px', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
         <div style={{ fontSize: 11, fontWeight: 500, color: 'rgba(255,255,255,0.35)', textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: 14, fontFamily: SF }}>Smart Money</div>
         {hasSM ? (() => {
-          const ls = derivatives.longShortRatio;
-          const ratio = ls.ratio || 1;
-          const lp = ls.longPct ?? (ratio / (1 + ratio) * 100);
-          const sp = ls.shortPct ?? (100 - lp);
-          const isLong = ratio > 1;
-          const accent = Math.abs(ratio - 1) < 0.01 ? '#FBBF24' : isLong ? '#34D399' : '#F87171';
-          const oi = derivatives.openInterest;
-          const fund = derivatives.funding;
+          const ratio = sm.ratio || 1;
+          const longPct = sm.longPct || 50;
+          const shortPct = sm.shortPct || 50;
+          const sentiment = sm.sentiment || 'NEUTRAL';
+          const netUsd = sm.netUsd || 0;
+          const wallets = sm.wallets || [];
+          const accent = sentiment === 'BULLISH' ? '#34D399' : sentiment === 'BEARISH' ? '#F87171' : '#FBBF24';
           return (
             <>
               <div style={{ fontSize: 32, fontWeight: 700, fontFamily: MF, color: accent, letterSpacing: '-.02em', marginBottom: 6 }}>{ratio.toFixed(2)}</div>
               <div style={{ display: 'flex', height: 5, borderRadius: 3, overflow: 'hidden', background: 'rgba(248,113,113,0.12)', marginBottom: 6 }}>
-                <div style={{ width: `${lp}%`, background: isLong ? 'rgba(52,211,153,0.6)' : 'rgba(52,211,153,0.25)' }} />
+                <div style={{ width: `${longPct}%`, background: 'rgba(52,211,153,0.6)' }} />
               </div>
               <div className="flex justify-between" style={{ marginBottom: 14 }}>
-                <span style={{ fontSize: 12, fontWeight: 600, color: '#34D399', fontFamily: SF }}>L {lp.toFixed(1)}%</span>
-                <span style={{ fontSize: 12, fontWeight: 600, color: '#F87171', fontFamily: SF }}>S {sp.toFixed(1)}%</span>
+                <span style={{ fontSize: 12, fontWeight: 600, color: '#34D399', fontFamily: SF }}>L {longPct.toFixed(1)}%</span>
+                <span style={{ fontSize: 12, fontWeight: 600, color: '#F87171', fontFamily: SF }}>S {shortPct.toFixed(1)}%</span>
               </div>
-              <div className="grid grid-cols-2 gap-3" style={{ marginBottom: 10 }}>
-                <div style={{ borderRadius: 8, padding: '8px 12px', background: 'rgba(255,255,255,0.03)' }}>
-                  <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.3)', fontFamily: SF, marginBottom: 2 }}>OI</div>
-                  <div style={{ fontSize: 14, fontWeight: 600, fontFamily: MF, color: 'rgba(255,255,255,0.85)' }}>${(oi.oiUsd / 1e6).toFixed(1)}M</div>
+              <div style={{ fontSize: 11, color: accent, fontFamily: SF, marginBottom: 10 }}>
+                {sentiment} — Net: {netUsd >= 0 ? '+' : ''}${(Math.abs(netUsd) / 1e6).toFixed(1)}M
+              </div>
+              <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)', fontFamily: SF, marginBottom: 6 }}>Top Whales:</div>
+              {wallets.slice(0, 5).map((w: any, i: number) => (
+                <div key={i} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, fontFamily: MF, marginBottom: 4 }}>
+                  <a 
+                    href={`https://www.coinglass.com/en/hyperliquid/${w.wallet}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{ color: w.direction === 'LONG' ? '#34D399' : '#F87171', textDecoration: 'none' }}
+                  >
+                    {w.wallet.slice(0, 8)}...{w.wallet.slice(-6)} {w.direction} ${(w.sizeUsd / 1e6).toFixed(1)}M {w.leverage}x
+                  </a>
+                  <span style={{ color: w.unrealizedPnl >= 0 ? '#34D399' : '#F87171' }}>
+                    {w.unrealizedPnl >= 0 ? '+' : ''}${(w.unrealizedPnl / 1e6).toFixed(1)}M
+                  </span>
                 </div>
-                <div style={{ borderRadius: 8, padding: '8px 12px', background: 'rgba(255,255,255,0.03)' }}>
-                  <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.3)', fontFamily: SF, marginBottom: 2 }}>Funding</div>
-                  <div style={{ fontSize: 14, fontWeight: 600, fontFamily: MF, color: (fund.current1h || 0) >= 0 ? '#F87171' : '#34D399' }}>{(fund.current1h || 0).toFixed(4)}%</div>
-                </div>
-              </div>
-              <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)', fontFamily: SF }}>
-                Delta: <span style={{ color: (ls.delta24h || 0) >= 0 ? '#34D399' : '#F87171', fontWeight: 600 }}>{(ls.delta24h || 0) >= 0 ? '+' : ''}${(Math.abs(ls.delta24h || 0) / 1e6).toFixed(1)}M</span>
-              </div>
+              ))}
             </>
           );
         })() : <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.3)', fontFamily: SF, padding: '24px 0' }}>Loading…</div>}
