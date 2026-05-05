@@ -1,11 +1,9 @@
-'use client';
-
 import { useState, useEffect, useCallback, useRef } from 'react';
 import type { MarketData, Timeframe } from '../types';
 import { fetchMarketData } from '../lib/api';
 
-const REFRESH_INTERVAL = 60_000; // 60s
-const DERIV_REFRESH = 120_000; // 120s for derivatives
+const REFRESH_INTERVAL = 60_000;
+const DERIV_REFRESH = 120_000;
 
 export interface DerivativesData {
   longShortRatio: {
@@ -15,22 +13,11 @@ export interface DerivativesData {
     imbalanceUsd: number;
     interpretation: string;
   };
+  openInterest: { current: number; oiMcapRatio: number; percentile7d: number };
+  funding: { current1h: number; annualized: number; percentile7d: number };
   liquidations: {
     shortLevels: { price: number; valueUsd: number; distancePct: number }[];
     longLevels: { price: number; valueUsd: number; distancePct: number }[];
-  };
-  openInterest: {
-    current: number;
-    oiMcapRatio: number;
-    percentile7d: number;
-    change1h: number;
-    change4h: number;
-    change1d: number;
-  };
-  funding: {
-    current1h: number;
-    annualized: number;
-    percentile7d: number;
   };
   lastUpdated: number;
 }
@@ -65,10 +52,17 @@ export function useMarketData(initialTf: Timeframe = '4h') {
   const fetchDerivatives = useCallback(async () => {
     try {
       const res = await fetch('/api/derivatives');
-      if (res.ok) {
-        const d = await res.json();
-        if (!d.error) setDerivatives(d);
-      }
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const raw = await res.json();
+      if (raw.error) throw new Error(raw.error);
+
+      setDerivatives({
+        longShortRatio: raw.longShortRatio || { ratio: 0, longTotalUsd: 0, shortTotalUsd: 0, imbalanceUsd: 0, interpretation: 'neutral' },
+        openInterest: raw.openInterest || { current: 0, oiMcapRatio: 0, percentile7d: 0 },
+        funding: raw.funding || { current1h: 0, annualized: 0, percentile7d: 0 },
+        liquidations: raw.liquidations || { shortLevels: [], longLevels: [] },
+        lastUpdated: raw.lastUpdated || Date.now(),
+      });
     } catch {
       // silent fail
     }
@@ -83,12 +77,8 @@ export function useMarketData(initialTf: Timeframe = '4h') {
     fetchData();
     fetchDerivatives();
     const interval = setInterval(() => fetchData(undefined, true), REFRESH_INTERVAL);
-    const derivInterval = setInterval(fetchDerivatives, DERIV_REFRESH);
-    return () => {
-      clearInterval(interval);
-      clearInterval(derivInterval);
-      abortRef.current?.abort();
-    };
+    const dInterval = setInterval(fetchDerivatives, DERIV_REFRESH);
+    return () => { clearInterval(interval); clearInterval(dInterval); abortRef.current?.abort(); };
   }, [fetchData, fetchDerivatives]);
 
   return { data, derivatives, loading, error, tf, tfLoading, fetchCount, changeTimeframe, refetch: fetchData };

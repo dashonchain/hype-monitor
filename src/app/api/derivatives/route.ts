@@ -1,89 +1,71 @@
-// @ts-nocheck
 import { NextResponse } from 'next/server';
-import { exec } from 'child_process';
-import { promisify } from 'util';
 
-const execAsync = promisify(exec);
-const TN_PATH = '/root/.hermes/node/bin/tn';
-const CACHE_TTL = 60_000; // 60s
-
+const CACHE_TTL = 90_000; // 90s — TrueNorth rate limits
 let cache: { data: any; timestamp: number } | null = null;
 
 export async function GET() {
-  // Check cache
   if (cache && Date.now() - cache.timestamp < CACHE_TTL) {
     return NextResponse.json({ ...cache.data, cached: true });
   }
 
   try {
-    // Call TrueNorth CLI for derivatives data
-    const { stdout, stderr } = await execAsync(`${TN_PATH} deriv hyperliquid --json`, {
-      timeout: 15000,
-    });
+    // Call TrueNorth API from server-side (no CORS)
+    const url = new URL('https://api.adventai.io/api/agent-tools');
+    url.searchParams.set('tool', 'derivatives_analysis');
+    url.searchParams.set('args', JSON.stringify({ token_address: 'hyperliquid' }));
 
-    const raw = JSON.parse(stdout);
-    const result = raw?.result?.derivative_data?.HYPE;
+    const ctrl = new AbortController();
+    const t = setTimeout(() => ctrl.abort(), 12000);
+    const res = await fetch(url.toString(), { method: 'GET', signal: ctrl.signal });
+    clearTimeout(t);
 
-    if (!result) {
-      throw new Error('No HYPE derivatives data in TrueNorth response');
+    if (!res.ok) throw new Error(`TrueNorth HTTP ${res.status}`);
+    const raw = await res.json();
+
+    if (raw?.data?.tools || !raw?.result?.derivative_data?.HYPE) {
+      throw new Error('Invalid TrueNorth response');
     }
 
-    const liq = result['Binance/Bybit/OKX aggreated liquidation map'] || {};
-    const imbalance = liq.imbalance || {};
-    const oi = result['Aggregated open interest'] || {};
-    const funding = result['1h Aggregated OI weighted funding rate'] || {};
+    const r = raw.result.derivative_data.HYPE;
+    const liq = r['Binance/Bybit/OKX aggreated liquidation map'] || {};
+    const imb = liq.imbalance || {};
+    const oi = r['Aggregated open interest'] || {};
+    const fund = r['1h Aggregated OI weighted funding rate'] || {};
 
-    const response = {
-      // Long/Short ratio from liquidation imbalance
+    const data = {
       longShortRatio: {
-        ratio: imbalance.imbalance_ratio || 0, // negative = short bias, positive = long bias
-        longTotalUsd: imbalance.long_total_usd || 0,
-        shortTotalUsd: imbalance.short_total_usd || 0,
-        imbalanceUsd: imbalance.imbalance_usd || 0,
-        interpretation: imbalance.interpretation || 'neutral',
+        ratio: imb.imbalance_ratio || 0,
+        longTotalUsd: imb.long_total_usd || 0,
+        shortTotalUsd: imb.short_total_usd || 0,
+        imbalanceUsd: imb.imbalance_usd || 0,
+        interpretation: imb.interpretation || 'neutral',
       },
-      // Liquidation levels
-      liquidations: {
-        shortLevels: (liq.max_short_liquidation_point || []).slice(0, 5).map((l: any) => ({
-          price: l.price,
-          valueUsd: l.liq_usd,
-          distancePct: l.distance_pct,
-        })),
-        longLevels: (liq.max_long_liquidation_point || []).slice(0, 5).map((l: any) => ({
-          price: l.price,
-          valueUsd: l.liq_usd,
-          distancePct: l.distance_pct,
-        })),
-      },
-      // Open interest
       openInterest: {
         current: oi.current_open_interest || 0,
         oiMcapRatio: oi.oi_mcap_ratio_analysis?.oi_mcap_ratio_pct || 0,
         percentile7d: oi.percentile_analysis?.current_oi_percentile_7d || 0,
-        change1h: oi.rolling_changes?.oi_change_1h_abs || 0,
-        change4h: oi.rolling_changes?.oi_change_4h_abs || 0,
-        change1d: oi.rolling_changes?.oi_change_1d_abs || 0,
       },
-      // Funding
       funding: {
-        current1h: funding.current_funding_rate_in_percentage || 0,
-        annualized: funding.annualized_funding_cost_est_in_percentage || 0,
-        percentile7d: funding.current_funding_percentile_7d || 0,
+        current1h: fund.current_funding_rate_in_percentage || 0,
+        annualized: fund.annualized_funding_cost_est_in_percentage || 0,
+        percentile7d: fund.current_funding_percentile_7d || 0,
+      },
+      liquidations: {
+        shortLevels: (liq.max_short_liquidation_point || []).slice(0, 5).map((l: any) => ({
+          price: l.price, valueUsd: l.liq_usd, distancePct: l.distance_pct,
+        })),
+        longLevels: (liq.max_long_liquidation_point || []).slice(0, 5).map((l: any) => ({
+          price: l.price, valueUsd: l.liq_usd, distancePct: l.distance_pct,
+        })),
       },
       lastUpdated: Date.now(),
     };
 
-    cache = { data: response, timestamp: Date.now() };
-    return NextResponse.json(response);
+    cache = { data, timestamp: Date.now() };
+    return NextResponse.json(data);
   } catch (error: any) {
-    console.error('TrueNorth API error:', error.message);
-    // Return stale cache if available
-    if (cache) {
-      return NextResponse.json({ ...cache.data, stale: true });
-    }
-    return NextResponse.json(
-      { error: 'Failed to fetch TrueNorth data', details: error.message },
-      { status: 500 }
-    );
+    console.error('Derivatives API error:', error.message);
+    if (cache) return NextResponse.json({ ...cache.data, stale: true });
+    return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
