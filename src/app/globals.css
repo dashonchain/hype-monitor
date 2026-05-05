@@ -72,8 +72,6 @@
 
 html {
   color-scheme: dark;
-  overflow-y: auto;
-  overflow-x: hidden;
 }
 
 body {
@@ -83,11 +81,14 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   min-height: 100vh;
-  overflow-x: hidden;
 }
 
 /* ─── Ambient background layer ─── */
 .ambient-bg {
+  position: relative;
+}
+.ambient-bg::before {
+  content: '';
   position: fixed;
   inset: 0;
   z-index: -1;
