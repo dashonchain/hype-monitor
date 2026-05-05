@@ -166,11 +166,11 @@ const KeyMetrics = memo(function KeyMetrics({ data, ind }: { data: any; ind: any
   return (
     <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
       {metrics.map(m => (
-        <div key={m.label} className="glass" style={{ borderRadius: 12, padding: '14px 16px', position: 'relative', overflow: 'hidden' }}>
+        <div key={m.label} className="glass" style={{ borderRadius: 12, padding: '16px 18px', position: 'relative', overflow: 'hidden' }}>
           {m.alert && <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 2, background: m.subColor }} />}
-          <div style={{ fontSize: 8, fontWeight: 600, letterSpacing: '.08em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.2)', marginBottom: 6, fontFamily: SF }}>{m.label}</div>
-          <div style={{ fontSize: 18, fontWeight: 700, fontFamily: MF, color: '#fff', letterSpacing: '-.01em' }}>{m.value}</div>
-          <div style={{ fontSize: 9, fontWeight: 600, color: m.subColor, marginTop: 2, fontFamily: SF }}>{m.sub}</div>
+          <div style={{ fontSize: 9, fontWeight: 600, letterSpacing: '.06em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.3)', marginBottom: 8, fontFamily: SF }}>{m.label}</div>
+          <div style={{ fontSize: m.alert ? 22 : 18, fontWeight: 700, fontFamily: MF, color: m.alert ? '#fff' : 'rgba(255,255,255,0.9)', letterSpacing: '-.01em' }}>{m.value}</div>
+          <div style={{ fontSize: 10, fontWeight: 600, color: m.subColor, marginTop: 3, fontFamily: SF }}>{m.sub}</div>
         </div>
       ))}
     </div>
@@ -241,83 +241,83 @@ const ChartSection = memo(function ChartSection({ data, tf, showLevels, onToggle
 /* ═══════════════════════════════════════════
    BELOW-CHART PANELS — 3 columns
    ═══════════════════════════════════════════ */
-const BelowChartPanels = memo(function BelowChartPanels({ data, ind }: { data: any; ind: any }) {
+const BelowChartPanels = memo(function BelowChartPanels({ data, ind, derivatives }: { data: any; ind: any; derivatives: any }) {
   const dom = data.dominance;
   const hasDom = dom && dom.length >= 3;
   const hasSR = data.srLevels.resistances.length > 0 || data.srLevels.supports.length > 0;
-  const hasSmartMoney = data.derivatives?.longShortRatio?.ratio;
+  const hasSmartMoney = derivatives?.longShortRatio?.ratio;
   const fmt = (n: number) => `${n >= 0 ? '+' : ''}${n.toFixed(1)}%`;
   const fp = (n: number) => n >= 1000 ? `$${(n / 1000).toFixed(1)}k` : `$${n.toFixed(2)}`;
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
       {/* Smart Money */}
-      <div className="glass" style={{ borderRadius: 14, padding: '16px' }}>
-        <div style={{ fontSize: 9, fontWeight: 600, letterSpacing: '.08em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.2)', marginBottom: 12, fontFamily: SF }}>Smart Money</div>
+      <div className="glass" style={{ borderRadius: 14, padding: '18px' }}>
+        <div style={{ fontSize: 10, fontWeight: 600, letterSpacing: '.08em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.3)', marginBottom: 14, fontFamily: SF }}>Smart Money</div>
         {hasSmartMoney ? (() => {
-          const ls = data.derivatives.longShortRatio;
+          const ls = derivatives.longShortRatio;
           const ratio = ls.ratio || 1;
           const longPct = ls.longPct ?? (ratio / (1 + ratio) * 100);
           const shortPct = ls.shortPct ?? (100 - longPct);
           const isLong = ratio > 1;
           const accent = Math.abs(ratio - 1) < 0.01 ? '#FBBF24' : isLong ? '#34D399' : '#F87171';
-          const oi = data.derivatives.openInterest;
-          const fund = data.derivatives.funding;
+          const oi = derivatives.openInterest;
+          const fund = derivatives.funding;
           return (
             <>
-              <div style={{ fontSize: 24, fontWeight: 800, fontFamily: MF, color: accent, letterSpacing: '-.02em', marginBottom: 4 }}>{ratio.toFixed(2)}</div>
-              <div style={{ display: 'flex', height: 4, borderRadius: 2, overflow: 'hidden', background: 'rgba(248,113,113,0.1)', marginBottom: 4 }}>
-                <div style={{ width: `${longPct}%`, background: isLong ? 'rgba(52,211,153,0.5)' : 'rgba(52,211,153,0.2)' }} />
+              <div style={{ fontSize: 28, fontWeight: 800, fontFamily: MF, color: accent, letterSpacing: '-.02em', marginBottom: 6 }}>{ratio.toFixed(2)}</div>
+              <div style={{ display: 'flex', height: 5, borderRadius: 3, overflow: 'hidden', background: 'rgba(248,113,113,0.1)', marginBottom: 6 }}>
+                <div style={{ width: `${longPct}%`, background: isLong ? 'rgba(52,211,153,0.6)' : 'rgba(52,211,153,0.25)' }} />
               </div>
-              <div className="flex justify-between" style={{ marginBottom: 10 }}>
-                <span style={{ fontSize: 9, fontWeight: 700, color: '#34D399', fontFamily: SF }}>L {longPct.toFixed(1)}%</span>
-                <span style={{ fontSize: 9, fontWeight: 700, color: '#F87171', fontFamily: SF }}>S {shortPct.toFixed(1)}%</span>
+              <div className="flex justify-between" style={{ marginBottom: 12 }}>
+                <span style={{ fontSize: 11, fontWeight: 700, color: '#34D399', fontFamily: SF }}>L {longPct.toFixed(1)}%</span>
+                <span style={{ fontSize: 11, fontWeight: 700, color: '#F87171', fontFamily: SF }}>S {shortPct.toFixed(1)}%</span>
               </div>
-              <div className="grid grid-cols-2 gap-2">
-                <div style={{ borderRadius: 8, padding: 8, background: 'rgba(255,255,255,0.03)' }}>
-                  <div style={{ fontSize: 7, fontWeight: 600, color: 'rgba(255,255,255,0.2)', textTransform: 'uppercase', fontFamily: SF }}>OI</div>
-                  <div style={{ fontSize: 11, fontWeight: 700, fontFamily: MF, color: 'rgba(255,255,255,0.8)' }}>${(oi.oiUsd / 1e6).toFixed(1)}M</div>
+              <div className="grid grid-cols-2 gap-3">
+                <div style={{ borderRadius: 8, padding: '8px 10px', background: 'rgba(255,255,255,0.03)' }}>
+                  <div style={{ fontSize: 9, fontWeight: 600, color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', fontFamily: SF, marginBottom: 2 }}>OI</div>
+                  <div style={{ fontSize: 13, fontWeight: 700, fontFamily: MF, color: 'rgba(255,255,255,0.85)' }}>${(oi.oiUsd / 1e6).toFixed(1)}M</div>
                 </div>
-                <div style={{ borderRadius: 8, padding: 8, background: 'rgba(255,255,255,0.03)' }}>
-                  <div style={{ fontSize: 7, fontWeight: 600, color: 'rgba(255,255,255,0.2)', textTransform: 'uppercase', fontFamily: SF }}>Funding</div>
-                  <div style={{ fontSize: 11, fontWeight: 700, fontFamily: MF, color: (fund.current1h || 0) >= 0 ? '#F87171' : '#34D399' }}>{(fund.current1h || 0).toFixed(4)}%</div>
+                <div style={{ borderRadius: 8, padding: '8px 10px', background: 'rgba(255,255,255,0.03)' }}>
+                  <div style={{ fontSize: 9, fontWeight: 600, color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', fontFamily: SF, marginBottom: 2 }}>Funding</div>
+                  <div style={{ fontSize: 13, fontWeight: 700, fontFamily: MF, color: (fund.current1h || 0) >= 0 ? '#F87171' : '#34D399' }}>{(fund.current1h || 0).toFixed(4)}%</div>
                 </div>
               </div>
-              <div style={{ fontSize: 8, fontWeight: 600, color: 'rgba(255,255,255,0.2)', marginTop: 6, fontFamily: SF }}>
+              <div style={{ fontSize: 10, fontWeight: 600, color: 'rgba(255,255,255,0.3)', marginTop: 8, fontFamily: SF }}>
                 Delta: <span style={{ color: (ls.delta24h || 0) >= 0 ? '#34D399' : '#F87171' }}>{(ls.delta24h || 0) >= 0 ? '+' : ''}${(Math.abs(ls.delta24h || 0) / 1e6).toFixed(1)}M</span>
               </div>
             </>
           );
         })() : (
-          <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.2)', fontFamily: SF }}>Loading…</div>
+          <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.25)', fontFamily: SF, padding: '20px 0' }}>Loading…</div>
         )}
       </div>
 
       {/* vs Market */}
-      <div className="glass" style={{ borderRadius: 14, padding: '16px' }}>
-        <div style={{ fontSize: 9, fontWeight: 600, letterSpacing: '.08em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.2)', marginBottom: 12, fontFamily: SF }}>vs Market</div>
+      <div className="glass" style={{ borderRadius: 14, padding: '18px' }}>
+        <div style={{ fontSize: 10, fontWeight: 600, letterSpacing: '.08em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.3)', marginBottom: 14, fontFamily: SF }}>vs Market</div>
         {hasDom ? (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
             {[
               { d: dom[0], Icon: TokenHYPE, hex: '#4ADE80' },
               { d: dom[1], Icon: TokenBTC, hex: '#F59E0B' },
               { d: dom[2], Icon: TokenETH, hex: '#60A5FA' },
             ].map(c => (
-              <div key={c.d.symbol} style={{ borderRadius: 8, padding: 8, background: `${c.hex}08`, border: `1px solid ${c.hex}15` }}>
+              <div key={c.d.symbol} style={{ borderRadius: 8, padding: '8px 10px', background: `${c.hex}08`, border: `1px solid ${c.hex}15` }}>
                 <div className="flex items-center justify-between" style={{ marginBottom: 4 }}>
                   <div className="flex items-center gap-1.5">
-                    <c.Icon style={{ width: 14, height: 14, borderRadius: 3 }} />
-                    <span style={{ fontSize: 10, fontWeight: 700, color: c.hex, fontFamily: SF }}>{c.d.symbol}</span>
+                    <c.Icon style={{ width: 16, height: 16, borderRadius: 3 }} />
+                    <span style={{ fontSize: 12, fontWeight: 700, color: c.hex, fontFamily: SF }}>{c.d.symbol}</span>
                   </div>
-                  <span style={{ fontSize: 9, fontWeight: 600, fontFamily: MF, color: 'rgba(255,255,255,0.4)' }}>{fp(c.d.price)}</span>
+                  <span style={{ fontSize: 10, fontWeight: 600, fontFamily: MF, color: 'rgba(255,255,255,0.5)' }}>{fp(c.d.price)}</span>
                 </div>
-                <div className="flex gap-3">
+                <div className="flex gap-4">
                   {(['24h', '7d', '30d'] as const).map(p => {
                     const v = p === '24h' ? c.d.change24h : p === '7d' ? c.d.change7d : c.d.change30d;
                     return (
                       <div key={p} style={{ textAlign: 'center' }}>
-                        <div style={{ fontSize: 7, fontWeight: 600, color: 'rgba(255,255,255,0.12)', fontFamily: SF }}>{p}</div>
-                        <div style={{ fontSize: 9, fontWeight: 700, fontFamily: MF, color: v >= 0 ? '#34D399' : '#F87171' }}>{fmt(v)}</div>
+                        <div style={{ fontSize: 8, fontWeight: 600, color: 'rgba(255,255,255,0.15)', fontFamily: SF }}>{p}</div>
+                        <div style={{ fontSize: 11, fontWeight: 700, fontFamily: MF, color: v >= 0 ? '#34D399' : '#F87171' }}>{fmt(v)}</div>
                       </div>
                     );
                   })}
@@ -326,46 +326,46 @@ const BelowChartPanels = memo(function BelowChartPanels({ data, ind }: { data: a
             ))}
           </div>
         ) : (
-          <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.2)', fontFamily: SF }}>Loading…</div>
+          <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.25)', fontFamily: SF, padding: '20px 0' }}>Loading…</div>
         )}
       </div>
 
       {/* S/R */}
-      <div className="glass" style={{ borderRadius: 14, padding: '16px' }}>
-        <div style={{ fontSize: 9, fontWeight: 600, letterSpacing: '.08em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.2)', marginBottom: 12, fontFamily: SF }}>S / R</div>
+      <div className="glass" style={{ borderRadius: 14, padding: '18px' }}>
+        <div style={{ fontSize: 10, fontWeight: 600, letterSpacing: '.08em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.3)', marginBottom: 14, fontFamily: SF }}>Support / Resistance</div>
         {hasSR ? (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
             {data.srLevels.resistances.map((r: any, i: number) => (
               <div key={`r${i}`} className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <span style={{ width: 16, height: 16, borderRadius: 3, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 7, fontWeight: 800, color: '#F87171', background: 'rgba(248,113,113,0.08)', border: '1px solid rgba(248,113,113,0.12)', fontFamily: SF }}>R{i + 1}</span>
-                  <span style={{ fontSize: 10, fontWeight: 700, fontFamily: MF, color: '#F87171' }}>${r.price.toFixed(2)}</span>
+                  <span style={{ width: 18, height: 18, borderRadius: 4, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 8, fontWeight: 800, color: '#F87171', background: 'rgba(248,113,113,0.08)', border: '1px solid rgba(248,113,113,0.12)', fontFamily: SF }}>R{i + 1}</span>
+                  <span style={{ fontSize: 12, fontWeight: 700, fontFamily: MF, color: '#F87171' }}>${r.price.toFixed(2)}</span>
                 </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                  <div style={{ width: 32, height: 3, borderRadius: 2, background: 'rgba(255,255,255,0.05)', overflow: 'hidden' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <div style={{ width: 40, height: 4, borderRadius: 2, background: 'rgba(255,255,255,0.05)', overflow: 'hidden' }}>
                     <div style={{ height: '100%', width: `${r.strength}%`, background: '#F87171', borderRadius: 2 }} />
                   </div>
-                  <span style={{ fontSize: 8, fontWeight: 600, color: 'rgba(255,255,255,0.15)', fontFamily: SF, width: 20, textAlign: 'right' }}>{r.strength}%</span>
+                  <span style={{ fontSize: 9, fontWeight: 600, color: 'rgba(255,255,255,0.25)', fontFamily: SF, width: 24, textAlign: 'right' }}>{r.strength}%</span>
                 </div>
               </div>
             ))}
             {data.srLevels.supports.map((s: any, i: number) => (
               <div key={`s${i}`} className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <span style={{ width: 16, height: 16, borderRadius: 3, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 7, fontWeight: 800, color: '#34D399', background: 'rgba(52,211,153,0.08)', border: '1px solid rgba(52,211,153,0.12)', fontFamily: SF }}>S{i + 1}</span>
-                  <span style={{ fontSize: 10, fontWeight: 700, fontFamily: MF, color: '#34D399' }}>${s.price.toFixed(2)}</span>
+                  <span style={{ width: 18, height: 18, borderRadius: 4, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 8, fontWeight: 800, color: '#34D399', background: 'rgba(52,211,153,0.08)', border: '1px solid rgba(52,211,153,0.12)', fontFamily: SF }}>S{i + 1}</span>
+                  <span style={{ fontSize: 12, fontWeight: 700, fontFamily: MF, color: '#34D399' }}>${s.price.toFixed(2)}</span>
                 </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                  <div style={{ width: 32, height: 3, borderRadius: 2, background: 'rgba(255,255,255,0.05)', overflow: 'hidden' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <div style={{ width: 40, height: 4, borderRadius: 2, background: 'rgba(255,255,255,0.05)', overflow: 'hidden' }}>
                     <div style={{ height: '100%', width: `${s.strength}%`, background: '#34D399', borderRadius: 2 }} />
                   </div>
-                  <span style={{ fontSize: 8, fontWeight: 600, color: 'rgba(255,255,255,0.15)', fontFamily: SF, width: 20, textAlign: 'right' }}>{s.strength}%</span>
+                  <span style={{ fontSize: 9, fontWeight: 600, color: 'rgba(255,255,255,0.25)', fontFamily: SF, width: 24, textAlign: 'right' }}>{s.strength}%</span>
                 </div>
               </div>
             ))}
           </div>
         ) : (
-          <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.2)', fontFamily: SF }}>No levels found</div>
+          <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.25)', fontFamily: SF, padding: '20px 0' }}>No levels found</div>
         )}
       </div>
     </div>
@@ -500,7 +500,7 @@ export default function Home() {
         <ChartSection data={data} tf={tf} showLevels={showLiqLevels} onToggleLevels={() => setShowLiqLevels(v => !v)} />
 
         {/* 4. Below-chart panels: Smart Money + vs Market + S/R */}
-        <BelowChartPanels data={data} ind={ind} />
+        <BelowChartPanels data={data} ind={ind} derivatives={derivatives} />
 
         {/* 5. Performance */}
         <div className="grid grid-cols-3 gap-3">
