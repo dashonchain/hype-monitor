@@ -65,8 +65,8 @@ export async function GET() {
     const shortPct = 100 - longPct;
 
     // Determine bias
-    const isShortBias = funding > 0.001;
-    const isLongBias = funding < -0.001;
+    const isShortBias = funding > 0.0001;
+    const isLongBias = funding < -0.0001;
     const interpretation = isShortBias ? 'favors_shorts' : isLongBias ? 'favors_longs' : 'neutral';
     const ratioValue = isShortBias ? -Math.abs(lsRatio - 1) : isLongBias ? Math.abs(1 - lsRatio) : 0;
 
