@@ -42,6 +42,16 @@
   --shadow-2: 0 4px 16px rgba(0,0,0,0.5), 0 2px 4px rgba(0,0,0,0.2);
   --shadow-3: 0 8px 32px rgba(0,0,0,0.6), 0 4px 8px rgba(0,0,0,0.3);
 
+  /* ─── Legacy aliases (for existing components) ─── */
+  --bg-primary: var(--bg-deep);
+  --bg-secondary: #0F1A14;
+  --bg-tertiary: #142219;
+  --bg-surface: #1A2B20;
+  --border-primary: rgba(255,255,255,0.08);
+  --border-secondary: rgba(255,255,255,0.12);
+  --text-secondary: var(--text-2);
+  --text-muted: var(--text-3);
+
   /* ─── Radii ─── */
   --r-sm: 10px;
   --r-md: 14px;
