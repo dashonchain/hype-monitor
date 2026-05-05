@@ -228,6 +228,135 @@ const DominancePanel = memo(function DominancePanel({ data }: { data: NonNullabl
 });
 
 /* ═══════════════════════════════════════════
+   SMART MONEY PANEL — L/S Ratio + Liquidations
+   ═══════════════════════════════════════════ */
+const SmartMoneyPanel = memo(function SmartMoneyPanel({ derivatives, price }: { derivatives: any; price: number }) {
+  if (!derivatives) return null;
+  const ls = derivatives.longShortRatio || {};
+  const liq = derivatives.liquidations || {};
+  const oi = derivatives.openInterest || {};
+  const fund = derivatives.funding || {};
+
+  const ratio = ls.ratio || 0;
+  const longPct = ratio > 0 ? 50 + ratio * 50 : 50 / (1 - ratio);
+  const shortPct = 100 - longPct;
+  const isLongBias = ratio > 0;
+
+  const fmtUsd = (n: number) => {
+    if (!n) return '—';
+    if (n >= 1e9) return `$${(n / 1e9).toFixed(2)}B`;
+    if (n >= 1e6) return `$${(n / 1e6).toFixed(1)}M`;
+    return `$${(n / 1e3).toFixed(0)}K`;
+  };
+
+  return (
+    <div className="glass" style={{ borderRadius: 18, overflow: 'hidden' }}>
+      <div style={{ padding: '14px 20px', borderBottom: '1px solid rgba(255,255,255,0.08)', display: 'flex', alignItems: 'center' }}>
+        <h3 style={{ fontSize: 10, fontWeight: 700, letterSpacing: '.12em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.6)' }}>Smart Money</h3>
+        <Info tip="Long/Short ratio from liquidation data, OI, and funding — TrueNorth aggregated" />
+      </div>
+      <div style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 12 }}>
+
+        {/* L/S Ratio bar */}
+        <div>
+          <div className="flex items-center justify-between" style={{ marginBottom: 6 }}>
+            <span style={{ fontSize: 10, fontWeight: 600, color: 'rgba(255,255,255,0.6)' }}>L/S Ratio</span>
+            <span style={{ fontSize: 11, fontWeight: 700, fontFamily: MF, color: isLongBias ? '#34D399' : '#F87171' }}>
+              {Math.abs(ratio).toFixed(2)}
+            </span>
+          </div>
+          <div style={{ display: 'flex', height: 8, borderRadius: 4, overflow: 'hidden', background: 'rgba(248,113,113,0.15)' }}>
+            <div style={{ width: `${longPct}%`, background: 'rgba(52,211,153,0.6)', transition: 'width .5s' }} />
+          </div>
+          <div className="flex items-center justify-between" style={{ marginTop: 4 }}>
+            <span style={{ fontSize: 8, fontWeight: 700, color: '#34D399' }}>L {longPct.toFixed(0)}%</span>
+            <span style={{ fontSize: 8, fontWeight: 700, color: '#F87171' }}>S {shortPct.toFixed(0)}%</span>
+          </div>
+        </div>
+
+        {/* L/S Totals */}
+        <div className="grid grid-cols-2 gap-2">
+          <div style={{ borderRadius: 8, padding: 10, background: 'rgba(52,211,153,0.06)', border: '1px solid rgba(52,211,153,0.12)' }}>
+            <div style={{ fontSize: 8, fontWeight: 700, color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', marginBottom: 2 }}>Long Total</div>
+            <div style={{ fontSize: 13, fontWeight: 700, fontFamily: MF, color: '#34D399' }}>{fmtUsd(ls.longTotalUsd)}</div>
+          </div>
+          <div style={{ borderRadius: 8, padding: 10, background: 'rgba(248,113,113,0.06)', border: '1px solid rgba(248,113,113,0.12)' }}>
+            <div style={{ fontSize: 8, fontWeight: 700, color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', marginBottom: 2 }}>Short Total</div>
+            <div style={{ fontSize: 13, fontWeight: 700, fontFamily: MF, color: '#F87171' }}>{fmtUsd(ls.shortTotalUsd)}</div>
+          </div>
+        </div>
+
+        {/* OI + Funding */}
+        <div className="grid grid-cols-2 gap-2">
+          <div style={{ borderRadius: 8, padding: 10, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
+            <div style={{ fontSize: 8, fontWeight: 700, color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', marginBottom: 2 }}>OI</div>
+            <div style={{ fontSize: 13, fontWeight: 700, fontFamily: MF, color: 'rgba(255,255,255,0.9)' }}>{fmtUsd(oi.current)}</div>
+            {oi.percentile7d > 0 && (
+              <div style={{ fontSize: 8, fontWeight: 600, color: oi.percentile7d > 80 ? '#FBBF24' : 'rgba(255,255,255,0.3)', marginTop: 2 }}>
+                {oi.percentile7d.toFixed(0)}th percentile (7d)
+              </div>
+            )}
+          </div>
+          <div style={{ borderRadius: 8, padding: 10, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
+            <div style={{ fontSize: 8, fontWeight: 700, color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', marginBottom: 2 }}>Funding</div>
+            <div style={{ fontSize: 13, fontWeight: 700, fontFamily: MF, color: (fund.current1h || 0) >= 0 ? '#34D399' : '#F87171' }}>
+              {(fund.current1h || 0).toFixed(4)}%
+            </div>
+            <div style={{ fontSize: 8, fontWeight: 600, color: 'rgba(255,255,255,0.3)', marginTop: 2 }}>
+              Ann. {(fund.annualized || 0).toFixed(1)}%
+            </div>
+          </div>
+        </div>
+
+        {/* Liquidation levels */}
+        {(liq.shortLevels?.length > 0 || liq.longLevels?.length > 0) && (
+          <div>
+            <div style={{ fontSize: 8, fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.3)', marginBottom: 6 }}>Liquidation Levels</div>
+            {liq.shortLevels?.length > 0 && (
+              <div style={{ marginBottom: 4 }}>
+                <div style={{ fontSize: 8, fontWeight: 600, color: '#F87171', marginBottom: 3 }}>Short Liq Walls</div>
+                {liq.shortLevels.slice(0, 3).map((l: any, i: number) => (
+                  <div key={i} className="flex items-center justify-between" style={{ padding: '3px 0' }}>
+                    <span style={{ fontSize: 10, fontFamily: MF, color: 'rgba(255,255,255,0.7)' }}>${l.price?.toFixed(2)}</span>
+                    <div className="flex items-center gap-2">
+                      <span style={{ fontSize: 9, fontWeight: 600, color: 'rgba(255,255,255,0.4)' }}>{fmtUsd(l.valueUsd)}</span>
+                      <span style={{ fontSize: 8, color: 'rgba(255,255,255,0.25)' }}>+{l.distancePct?.toFixed(1)}%</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+            {liq.longLevels?.length > 0 && (
+              <div>
+                <div style={{ fontSize: 8, fontWeight: 600, color: '#34D399', marginBottom: 3 }}>Long Liq Walls</div>
+                {liq.longLevels.slice(0, 3).map((l: any, i: number) => (
+                  <div key={i} className="flex items-center justify-between" style={{ padding: '3px 0' }}>
+                    <span style={{ fontSize: 10, fontFamily: MF, color: 'rgba(255,255,255,0.7)' }}>${l.price?.toFixed(2)}</span>
+                    <div className="flex items-center gap-2">
+                      <span style={{ fontSize: 9, fontWeight: 600, color: 'rgba(255,255,255,0.4)' }}>{fmtUsd(l.valueUsd)}</span>
+                      <span style={{ fontSize: 8, color: 'rgba(255,255,255,0.25)' }}>-{l.distancePct?.toFixed(1)}%</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Interpretation */}
+        <div style={{ fontSize: 9, fontWeight: 600, color: isLongBias ? 'rgba(52,211,153,0.7)' : 'rgba(248,113,113,0.7)', textAlign: 'center', padding: '4px 0' }}>
+          {ls.interpretation === 'heavily_favors_longs' ? '🟢 Heavily favors longs'
+            : ls.interpretation === 'heavily_favors_shorts' ? '🔴 Heavily favors shorts'
+            : ls.interpretation === 'favors_longs' ? '🟢 Favors longs'
+            : ls.interpretation === 'favors_shorts' ? '🔴 Favors shorts'
+            : '⚪ Neutral'}
+        </div>
+      </div>
+    </div>
+  );
+});
+
+/* ═══════════════════════════════════════════
    METRIC CARD
    ═══════════════════════════════════════════ */
 const MetricCard = memo(function MetricCard({ label, value, sub, color, tip }: { label: string; value: string; sub?: string; color?: string; tip: string }) {
@@ -287,7 +416,7 @@ const IndicatorsPanel = memo(function IndicatorsPanel({ ind, rsiZ, tf, price }: 
    MAIN PAGE
    ═══════════════════════════════════════════ */
 export default function Home() {
-  const { data, loading, error, tf, tfLoading, fetchCount, changeTimeframe, refetch } = useMarketData('4h');
+  const { data, derivatives, loading, error, tf, tfLoading, fetchCount, changeTimeframe, refetch } = useMarketData('4h');
   const [now, setNow] = useState(Date.now());
 
   useEffect(() => {
@@ -427,6 +556,9 @@ export default function Home() {
                 <span style={{ fontSize: 8, fontWeight: 700, color: '#F87171' }}>70 Overbought</span>
               </div>
             </div>
+
+            {/* Smart Money — L/S Ratio + Liquidations */}
+            <SmartMoneyPanel derivatives={derivatives} price={data.price} />
 
             {/* S/R */}
             {(data.srLevels.resistances.length > 0 || data.srLevels.supports.length > 0) && (
