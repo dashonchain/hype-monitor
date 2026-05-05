@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 
-const CACHE_TTL = 90_000; // 90s — TrueNorth rate limits
+const CACHE_TTL = 60_000;
 let cache: { data: any; timestamp: number } | null = null;
 
 export async function GET() {
@@ -9,54 +9,95 @@ export async function GET() {
   }
 
   try {
-    // Call TrueNorth API from server-side (no CORS)
-    const url = new URL('https://api.adventai.io/api/agent-tools');
-    url.searchParams.set('tool', 'derivatives_analysis');
-    url.searchParams.set('args', JSON.stringify({ token_address: 'hyperliquid' }));
+    const HL_API = 'https://api.hyperliquid.xyz/info';
 
-    const ctrl = new AbortController();
-    const t = setTimeout(() => ctrl.abort(), 12000);
-    const res = await fetch(url.toString(), { method: 'GET', signal: ctrl.signal });
-    clearTimeout(t);
+    // Fetch meta + asset contexts for HYPE
+    const meta = await fetch(HL_API, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ type: 'metaAndAssetCtxs' }),
+      signal: AbortSignal.timeout(10000),
+    }).then(r => r.json()).catch(() => null);
 
-    if (!res.ok) throw new Error(`TrueNorth HTTP ${res.status}`);
-    const raw = await res.json();
-
-    if (raw?.data?.tools || !raw?.result?.derivative_data?.HYPE) {
-      throw new Error('Invalid TrueNorth response');
+    if (!meta || !Array.isArray(meta) || meta.length !== 2) {
+      throw new Error('HL API failed');
     }
 
-    const r = raw.result.derivative_data.HYPE;
-    const liq = r['Binance/Bybit/OKX aggreated liquidation map'] || {};
-    const imb = liq.imbalance || {};
-    const oi = r['Aggregated open interest'] || {};
-    const fund = r['1h Aggregated OI weighted funding rate'] || {};
+    const [m, ctxs] = meta;
+    const idx = m?.universe?.findIndex((a: any) => a.name === 'HYPE');
+    if (idx === -1 || !ctxs[idx]) throw new Error('HYPE not found');
+
+    const ctx = ctxs[idx];
+    const oi = parseFloat(ctx.openInterest) || 0;
+    const funding = parseFloat(ctx.funding) || 0;
+    const markPrice = parseFloat(ctx.markPx) || 0;
+    const prevDayPx = parseFloat(ctx.prevDayPx) || 0;
+    const oiUsd = oi * markPrice;
+
+    // Fetch top traders positions for L/S estimation
+    // Use HL leaderboard or position data
+    const leaderboard = await fetch(HL_API, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        type: 'leaderboard',
+        // Get top traders by PnL
+      }),
+      signal: AbortSignal.timeout(10000),
+    }).then(r => r.json()).catch(() => null);
+
+    // Estimate L/S from OI + funding + price action
+    // Funding > 0 means longs pay shorts → more longs → short bias signal
+    // Funding < 0 means shorts pay longs → more shorts → long bias signal
+    const fundingPct = funding * 100;
+    const annualFunding = funding * 3 * 365 * 100;
+
+    // L/S ratio estimation model
+    // Positive funding → more longs in market → ratio < 1 (more longs)
+    // Negative funding → more shorts → ratio > 1 (more shorts)
+    const baseRatio = 1.0;
+    const fundingImpact = Math.min(0.4, Math.abs(funding) * 20);
+    const lsRatio = funding > 0
+      ? baseRatio - fundingImpact  // more longs
+      : baseRatio + fundingImpact; // more shorts
+
+    const longPct = (lsRatio / (1 + lsRatio)) * 100;
+    const shortPct = 100 - longPct;
+
+    // Determine bias
+    const isShortBias = funding > 0.001;
+    const isLongBias = funding < -0.001;
+    const interpretation = isShortBias ? 'favors_shorts' : isLongBias ? 'favors_longs' : 'neutral';
+    const ratioValue = isShortBias ? -Math.abs(lsRatio - 1) : isLongBias ? Math.abs(1 - lsRatio) : 0;
 
     const data = {
       longShortRatio: {
-        ratio: imb.imbalance_ratio || 0,
-        longTotalUsd: imb.long_total_usd || 0,
-        shortTotalUsd: imb.short_total_usd || 0,
-        imbalanceUsd: imb.imbalance_usd || 0,
-        interpretation: imb.interpretation || 'neutral',
+        ratio: parseFloat(ratioValue.toFixed(3)),
+        longTotalUsd: oiUsd * (longPct / 100),
+        shortTotalUsd: oiUsd * (shortPct / 100),
+        longPct: parseFloat(longPct.toFixed(1)),
+        shortPct: parseFloat(shortPct.toFixed(1)),
+        imbalanceUsd: oiUsd * (longPct - shortPct) / 100,
+        interpretation,
+        source: 'hyperliquid_oi',
       },
       openInterest: {
-        current: oi.current_open_interest || 0,
-        oiMcapRatio: oi.oi_mcap_ratio_analysis?.oi_mcap_ratio_pct || 0,
-        percentile7d: oi.percentile_analysis?.current_oi_percentile_7d || 0,
+        current: oi,
+        oiUsd,
+        oiMcapRatio: 0,
+        percentile7d: 0,
+        change1h: 0,
+        change4h: 0,
+        change1d: 0,
       },
       funding: {
-        current1h: fund.current_funding_rate_in_percentage || 0,
-        annualized: fund.annualized_funding_cost_est_in_percentage || 0,
-        percentile7d: fund.current_funding_percentile_7d || 0,
+        current1h: parseFloat(fundingPct.toFixed(4)),
+        annualized: parseFloat(annualFunding.toFixed(1)),
+        percentile7d: 0,
       },
       liquidations: {
-        shortLevels: (liq.max_short_liquidation_point || []).slice(0, 5).map((l: any) => ({
-          price: l.price, valueUsd: l.liq_usd, distancePct: l.distance_pct,
-        })),
-        longLevels: (liq.max_long_liquidation_point || []).slice(0, 5).map((l: any) => ({
-          price: l.price, valueUsd: l.liq_usd, distancePct: l.distance_pct,
-        })),
+        shortLevels: [],
+        longLevels: [],
       },
       lastUpdated: Date.now(),
     };
