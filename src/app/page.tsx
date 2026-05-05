@@ -326,7 +326,7 @@ const TRADE_PLATFORMS = [
     name: 'Variational Omni',
     desc: 'Zero-fee perps DEX. Deep liquidity, self-custody.',
     url: 'https://omni.variational.io/?ref=OMNIDASH',
-    logo: 'https://cdn.prod.website-files.com/68f27573802912c41ef98c1b/68f27573802912c41ef98c9e_variationaltext%20svg.svg',
+    logo: '/variational-logo.svg',
     color: '#4ADE80',
     stats: [
       { l: 'Fees', v: '0%' },
