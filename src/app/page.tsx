@@ -10,9 +10,7 @@ import type { Timeframe } from '../types';
 const MF = "ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, monospace";
 const SF = "-apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', Roboto, sans-serif";
 
-/* ═══════════════════════════════════════════
-   TOOLTIP — global overlay
-   ═══════════════════════════════════════════ */
+/* ─── TOOLTIP ─── */
 const tt = { text: '', x: 0, y: 0, show: false };
 function Info({ tip }: { tip: string }) {
   return (
@@ -27,16 +25,14 @@ function Info({ tip }: { tip: string }) {
 function TooltipOverlay() {
   const [p, setP] = useState({ x: 0, y: 0, show: false, text: '' });
   useEffect(() => {
-    const h = () => { p.show !== tt.show || p.text !== tt.text ? setP({ x: tt.x, y: tt.y, show: tt.show, text: tt.text }) : null; };
+    const h = () => { if (p.show !== tt.show || p.text !== tt.text) setP({ x: tt.x, y: tt.y, show: tt.show, text: tt.text }); };
     window.addEventListener('mousemove', h); return () => window.removeEventListener('mousemove', h);
   }, [p.show, p.text]);
   if (!p.show) return null;
   return (<div className="tooltip-bubble" style={{ position: 'fixed', left: p.x, top: p.y - 12, transform: 'translate(-50%,-100%)', zIndex: 9999 }}>{p.text}</div>);
 }
 
-/* ═══════════════════════════════════════════
-   SIGNAL — Hero. Big numbers, clear hierarchy.
-   ═══════════════════════════════════════════ */
+/* ─── SIGNAL ─── */
 const CRITERIA = [
   { key: 'sma10', label: 'SMA 10' }, { key: 'sma20', label: 'SMA 20' },
   { key: 'sma50', label: 'SMA 50' }, { key: 'smaCross', label: 'SMA 10>20' },
@@ -49,7 +45,7 @@ const CRITERIA = [
   { key: 'obv', label: 'OBV' },
 ] as const;
 
-function breakdown(ind: any, price: number, funding: number) {
+function brkdown(ind: any, price: number, funding: number) {
   const r: { key: string; label: string; s: 'buy' | 'sell' | 'neutral' }[] = [];
   r.push({ key: 'sma10', label: 'SMA 10', s: price > ind.sma10 ? 'buy' : 'sell' });
   r.push({ key: 'sma20', label: 'SMA 20', s: price > ind.sma20 ? 'buy' : 'sell' });
@@ -80,12 +76,11 @@ const SignalGauge = memo(function SignalGauge({ data }: { data: any }) {
   const bgc = bull ? 'rgba(52,211,153,0.08)' : bear ? 'rgba(248,113,113,0.08)' : 'rgba(255,255,255,0.03)';
   const bdrc = bull ? 'rgba(52,211,153,0.2)' : bear ? 'rgba(248,113,113,0.2)' : 'rgba(255,255,255,0.08)';
   const stale = (Date.now() - data.lastUpdated) > 120_000;
-  const brk = useMemo(() => breakdown(data.indicators, data.price, data.funding8h), [data]);
+  const brk = useMemo(() => brkdown(data.indicators, data.price, data.funding8h), [data]);
 
   return (
     <div style={{ borderRadius: 16, padding: exp ? '28px 32px 24px' : '28px 32px', background: bgc, border: `1px solid ${bdrc}`, opacity: stale ? 0.5 : 1, transition: 'all .3s' }}>
       <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6">
-        {/* Left */}
         <div className="flex items-center gap-5">
           <div style={{ width: 52, height: 52, borderRadius: 14, background: 'rgba(255,255,255,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
             <TokenHYPE style={{ width: 32, height: 32 }} />
@@ -96,7 +91,6 @@ const SignalGauge = memo(function SignalGauge({ data }: { data: any }) {
             <div style={{ fontSize: 14, color: 'rgba(255,255,255,0.5)', marginTop: 3, fontFamily: SF }}>{sig.summary}</div>
           </div>
         </div>
-        {/* Right */}
         <div className="flex items-center gap-5 w-full lg:w-auto">
           <div className="flex-1 lg:w-40">
             <div className="flex justify-between items-center mb-2">
@@ -140,9 +134,7 @@ const SignalGauge = memo(function SignalGauge({ data }: { data: any }) {
   );
 });
 
-/* ═══════════════════════════════════════════
-   KEY METRICS — Only what matters. Big text.
-   ═══════════════════════════════════════════ */
+/* ─── KEY METRICS ─── */
 const KeyMetrics = memo(function KeyMetrics({ data, ind }: { data: any; ind: any }) {
   const m = [
     { l: 'RSI 14', v: ind.rsi14.toFixed(1), s: ind.rsi14 > 70 ? 'Overbought' : ind.rsi14 < 30 ? 'Oversold' : ind.rsi14 > 50 ? 'Bullish' : 'Bearish', c: ind.rsi14 > 70 ? '#F87171' : ind.rsi14 < 30 ? '#34D399' : '#9CA3AF', a: ind.rsi14 > 70 || ind.rsi14 < 30 },
@@ -150,7 +142,7 @@ const KeyMetrics = memo(function KeyMetrics({ data, ind }: { data: any; ind: any
     { l: 'Funding 8h', v: `${data.funding8h >= 0 ? '+' : ''}${data.funding8h.toFixed(4)}%`, s: `Ann. ${data.fundingAnn.toFixed(1)}%`, c: data.funding8h > 0.001 ? '#F87171' : data.funding8h < -0.001 ? '#34D399' : '#9CA3AF', a: Math.abs(data.funding8h) > 0.005 },
     { l: 'ATR (14)', v: `$${ind.atr.toFixed(2)}`, s: `Stop: $${ind.atrStop.toFixed(2)}`, c: '#FBBF24', a: false },
     { l: 'MFI', v: ind.mfi.toFixed(1), s: ind.mfi > 80 ? 'Overbought' : ind.mfi < 20 ? 'Oversold' : 'Neutral', c: ind.mfi > 80 ? '#F87171' : ind.mfi < 20 ? '#34D399' : '#9CA3AF', a: ind.mfi > 80 || ind.mfi < 20 },
-    { l: 'L/S Ratio', v: (data.derivatives?.longShortRatio?.ratio || 0).toFixed(2), s: lsLabel(data), c: lsColor(data), a: false },
+    { l: 'L/S Ratio', v: (data.derivatives?.longShortRatio?.ratio || 0).toFixed(2), s: lsL(data), c: lsC(data), a: false },
   ];
   return (
     <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
@@ -165,12 +157,10 @@ const KeyMetrics = memo(function KeyMetrics({ data, ind }: { data: any; ind: any
     </div>
   );
 });
-function lsLabel(d: any) { const r = d.derivatives?.longShortRatio?.ratio || 1; return r > 1.05 ? 'Longs dominant' : r < 0.95 ? 'Shorts dominant' : 'Balanced'; }
-function lsColor(d: any) { const r = d.derivatives?.longShortRatio?.ratio || 1; return r > 1.05 ? '#34D399' : r < 0.95 ? '#F87171' : '#9CA3AF'; }
+function lsL(d: any) { const r = d.derivatives?.longShortRatio?.ratio || 1; return r > 1.05 ? 'Longs dominant' : r < 0.95 ? 'Shorts dominant' : 'Balanced'; }
+function lsC(d: any) { const r = d.derivatives?.longShortRatio?.ratio || 1; return r > 1.05 ? '#34D399' : r < 0.95 ? '#F87171' : '#9CA3AF'; }
 
-/* ═══════════════════════════════════════════
-   CHART + LIQUIDATION LEVELS
-   ═══════════════════════════════════════════ */
+/* ─── CHART + LIQUIDATION ─── */
 const ChartSection = memo(function ChartSection({ data, tf, show, onToggle }: { data: any; tf: string; show: boolean; onToggle: () => void }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
@@ -179,35 +169,29 @@ const ChartSection = memo(function ChartSection({ data, tf, show, onToggle }: { 
       </div>
       {data.liqZones.length > 0 && (
         <>
-          <button onClick={onToggle} style={{ alignSelf: 'flex-start', padding: '5px 12px', borderRadius: 6, border: show ? '1px solid rgba(74,222,128,0.25)' : '1px solid rgba(255,255,255,0.08)', background: show ? 'rgba(74,222,128,0.06)' : 'rgba(255,255,255,0.02)', fontSize: 11, fontWeight: 500, color: show ? '#4ADE80' : 'rgba(255,255,255,0.4)', cursor: 'pointer', fontFamily: SF }}>
+          <button onClick={onToggle} style={{ alignSelf: 'flex-start', padding: '6px 14px', borderRadius: 6, border: show ? '1px solid rgba(74,222,128,0.25)' : '1px solid rgba(255,255,255,0.08)', background: show ? 'rgba(74,222,128,0.06)' : 'rgba(255,255,255,0.02)', fontSize: 12, fontWeight: 500, color: show ? '#4ADE80' : 'rgba(255,255,255,0.4)', cursor: 'pointer', fontFamily: SF }}>
             {show ? 'Hide Levels' : 'Show Levels'}
           </button>
           {show && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-              {data.liqZones.filter((z: any) => z.side === 'long').map((z: any, i: number) => {
-                const dist = ((data.price - z.priceHigh) / data.price * 100);
-                return (
-                  <div key={`ll${i}`} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '8px 14px', borderRadius: 8, background: 'rgba(52,211,153,0.05)', border: '1px solid rgba(52,211,153,0.1)' }}>
-                    <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#34D399', flexShrink: 0 }} />
-                    <span style={{ fontSize: 12, fontWeight: 600, color: '#34D399', fontFamily: SF, width: 70 }}>Long Liq</span>
-                    <span style={{ fontSize: 13, fontWeight: 600, fontFamily: MF, color: '#34D399' }}>${z.priceLow.toFixed(2)} – ${z.priceHigh.toFixed(2)}</span>
-                    <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)', fontFamily: SF, flex: 1, textAlign: 'right' }}>-{dist.toFixed(1)}%</span>
-                    <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.25)', fontFamily: SF }}>${(z.valueUsd / 1e6).toFixed(1)}M</span>
-                  </div>
-                );
-              })}
-              {data.liqZones.filter((z: any) => z.side === 'short').map((z: any, i: number) => {
-                const dist = ((z.priceLow - data.price) / data.price * 100);
-                return (
-                  <div key={`sl${i}`} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '8px 14px', borderRadius: 8, background: 'rgba(248,113,113,0.05)', border: '1px solid rgba(248,113,113,0.1)' }}>
-                    <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#F87171', flexShrink: 0 }} />
-                    <span style={{ fontSize: 12, fontWeight: 600, color: '#F87171', fontFamily: SF, width: 70 }}>Short Liq</span>
-                    <span style={{ fontSize: 13, fontWeight: 600, fontFamily: MF, color: '#F87171' }}>${z.priceLow.toFixed(2)} – ${z.priceHigh.toFixed(2)}</span>
-                    <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)', fontFamily: SF, flex: 1, textAlign: 'right' }}>+{dist.toFixed(1)}%</span>
-                    <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.25)', fontFamily: SF }}>${(z.valueUsd / 1e6).toFixed(1)}M</span>
-                  </div>
-                );
-              })}
+              {data.liqZones.filter((z: any) => z.side === 'long').map((z: any, i: number) => (
+                <div key={`ll${i}`} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 16px', borderRadius: 8, background: 'rgba(52,211,153,0.05)', border: '1px solid rgba(52,211,153,0.1)' }}>
+                  <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#34D399' }} />
+                  <span style={{ fontSize: 13, fontWeight: 600, color: '#34D399', fontFamily: SF, width: 70 }}>Long Liq</span>
+                  <span style={{ fontSize: 14, fontWeight: 600, fontFamily: MF, color: '#34D399' }}>${z.priceLow.toFixed(2)}–${z.priceHigh.toFixed(2)}</span>
+                  <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.3)', fontFamily: SF, flex: 1, textAlign: 'right' }}>-{((data.price - z.priceHigh) / data.price * 100).toFixed(1)}%</span>
+                  <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.25)', fontFamily: SF }}>${(z.valueUsd / 1e6).toFixed(1)}M</span>
+                </div>
+              ))}
+              {data.liqZones.filter((z: any) => z.side === 'short').map((z: any, i: number) => (
+                <div key={`sl${i}`} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 16px', borderRadius: 8, background: 'rgba(248,113,113,0.05)', border: '1px solid rgba(248,113,113,0.1)' }}>
+                  <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#F87171' }} />
+                  <span style={{ fontSize: 13, fontWeight: 600, color: '#F87171', fontFamily: SF, width: 70 }}>Short Liq</span>
+                  <span style={{ fontSize: 14, fontWeight: 600, fontFamily: MF, color: '#F87171' }}>${z.priceLow.toFixed(2)}–${z.priceHigh.toFixed(2)}</span>
+                  <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.3)', fontFamily: SF, flex: 1, textAlign: 'right' }}>+{((z.priceLow - data.price) / data.price * 100).toFixed(1)}%</span>
+                  <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.25)', fontFamily: SF }}>${(z.valueUsd / 1e6).toFixed(1)}M</span>
+                </div>
+              ))}
             </div>
           )}
         </>
@@ -216,9 +200,7 @@ const ChartSection = memo(function ChartSection({ data, tf, show, onToggle }: { 
   );
 });
 
-/* ═══════════════════════════════════════════
-   BELOW-CHART PANELS — 3 columns, big text
-   ═══════════════════════════════════════════ */
+/* ─── PANELS ─── */
 const Panels = memo(function Panels({ data, derivatives }: { data: any; derivatives: any }) {
   const dom = data.dominance;
   const hasDom = dom && dom.length >= 3;
@@ -340,9 +322,77 @@ const Panels = memo(function Panels({ data, derivatives }: { data: any; derivati
   );
 });
 
-/* ═══════════════════════════════════════════
-   SECONDARY INDICATORS — Collapsed
-   ═══════════════════════════════════════════ */
+/* ─── TRADE PANEL ─── */
+const TRADE_PLATFORMS = [
+  {
+    id: 'variational',
+    name: 'Variational Omni',
+    desc: 'Zero-fee perps DEX. 95+ markets, deep liquidity.',
+    url: 'https://omni.variational.io/?ref=OMNIDASH',
+    logo: 'https://cdn.prod.website-files.com/68f27573802912c41ef98c1b/68f27573802912c41ef98c9e_variationaltext%20svg.svg',
+    color: '#4ADE80',
+    stats: [
+      { l: 'Fees', v: '0%' },
+      { l: 'Leverage', v: '11x' },
+      { l: 'Markets', v: '95+' },
+      { l: 'Volume', v: '$42B+' },
+    ],
+    perks: ['Zero fees', 'No KYC', 'Self-custody', 'Deep liquidity'],
+  },
+];
+
+const TradePanel = memo(function TradePanel({ signal }: { signal: string }) {
+  const bull = signal === 'strong_buy' || signal === 'buy';
+  const bear = signal === 'strong_sell' || signal === 'sell';
+  const sc = bull ? '#34D399' : bear ? '#F87171' : '#9CA3AF';
+  const cta = bull ? 'Go Long →' : bear ? 'Go Short →' : 'Trade →';
+
+  return (
+    <div style={{ borderRadius: 12, padding: '20px', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
+      <div className="flex items-center justify-between" style={{ marginBottom: 14 }}>
+        <div>
+          <div style={{ fontSize: 15, fontWeight: 600, fontFamily: SF, color: '#fff' }}>Trade HYPE</div>
+          <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.35)', fontFamily: SF, marginTop: 2 }}>
+            Signal: <span style={{ color: sc, fontWeight: 600 }}>{signal.replace('_', ' ')}</span>
+          </div>
+        </div>
+        <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.2)', fontFamily: SF }}>Referral</div>
+      </div>
+      {TRADE_PLATFORMS.map(p => (
+        <a key={p.id} href={p.url} target="_blank" rel="noopener noreferrer"
+          style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '14px', borderRadius: 8, background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)', textDecoration: 'none', color: 'inherit', marginBottom: 8 }}
+          onMouseEnter={e => { e.currentTarget.style.borderColor = p.color + '30'; }}
+          onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.06)'; }}>
+          <div style={{ width: 44, height: 44, borderRadius: 10, background: 'rgba(255,255,255,0.04)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+            <img src={p.logo} alt={p.name} style={{ width: 28, height: 'auto' }} />
+          </div>
+          <div style={{ flex: 1 }}>
+            <div style={{ fontSize: 13, fontWeight: 600, fontFamily: SF, color: '#fff', marginBottom: 2 }}>{p.name}</div>
+            <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.35)', fontFamily: SF, marginBottom: 6 }}>{p.desc}</div>
+            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+              {p.perks.map(k => (
+                <span key={k} style={{ fontSize: 9, fontWeight: 500, padding: '2px 7px', borderRadius: 4, background: p.color + '12', color: p.color, fontFamily: SF }}>{k}</span>
+              ))}
+            </div>
+          </div>
+          <div style={{ display: 'flex', gap: 10, flexShrink: 0 }}>
+            {p.stats.map(s => (
+              <div key={s.l} style={{ textAlign: 'center' }}>
+                <div style={{ fontSize: 13, fontWeight: 700, fontFamily: MF, color: '#fff' }}>{s.v}</div>
+                <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.25)', fontFamily: SF }}>{s.l}</div>
+              </div>
+            ))}
+          </div>
+          <div style={{ padding: '7px 14px', borderRadius: 6, background: sc + '15', color: sc, fontSize: 11, fontWeight: 600, fontFamily: SF, flexShrink: 0 }}>
+            {cta}
+          </div>
+        </a>
+      ))}
+    </div>
+  );
+});
+
+/* ─── ALL INDICATORS ─── */
 const AllIndicators = memo(function AllIndicators({ ind, price, tf }: { ind: any; price: number; tf: string }) {
   const [open, setOpen] = useState(false);
   const rows = [
@@ -382,14 +432,11 @@ const AllIndicators = memo(function AllIndicators({ ind, price, tf }: { ind: any
   );
 });
 
-/* ═══════════════════════════════════════════
-   MAIN PAGE
-   ═══════════════════════════════════════════ */
+/* ─── MAIN ─── */
 export default function Home() {
   const { data, derivatives, loading, error, tf, fetchCount, refetch } = useMarketData('4h');
   const [now, setNow] = useState(Date.now());
   const [showLiq, setShowLiq] = useState(false);
-
   useEffect(() => { const i = setInterval(() => setNow(Date.now()), 1000); return () => clearInterval(i); }, []);
 
   if (loading) return (
@@ -400,7 +447,6 @@ export default function Home() {
       </div>
     </div>
   );
-
   if (error && !data) return (
     <div className="ambient-bg">
       <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 16, padding: 24 }}>
@@ -411,7 +457,6 @@ export default function Home() {
       </div>
     </div>
   );
-
   if (!data) return null;
 
   const stale = isStale(data.lastUpdated);
@@ -421,8 +466,6 @@ export default function Home() {
   return (
     <div className="ambient-bg">
       <TooltipOverlay />
-
-      {/* Header */}
       <header style={{ position: 'sticky', top: 0, zIndex: 50, background: 'rgba(8,12,10,0.85)', backdropFilter: 'blur(20px)', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
         <div style={{ maxWidth: 1200, margin: '0 auto', padding: '0 20px', height: 48, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div className="flex items-center gap-2.5">
@@ -454,8 +497,7 @@ export default function Home() {
         <KeyMetrics data={data} ind={ind} />
         <ChartSection data={data} tf={tf} show={showLiq} onToggle={() => setShowLiq(v => !v)} />
         <Panels data={data} derivatives={derivatives} />
-
-        {/* Performance */}
+        <TradePanel signal={data.signal.display} />
         <div className="grid grid-cols-3 gap-3">
           {(['24h', '7d', '30d'] as const).map(p => {
             const v = p === '24h' ? data.change24h : p === '7d' ? data.change7d : data.change30d;
@@ -467,9 +509,7 @@ export default function Home() {
             );
           })}
         </div>
-
         <AllIndicators ind={ind} price={data.price} tf={data.timeframe.toUpperCase()} />
-
         <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.12)', display: 'flex', justifyContent: 'space-between', fontFamily: SF }}>
           <span>HL API · {fetchCount} fetches</span>
           <span>{tsu < 60 ? `${tsu}s ago` : `${Math.floor(tsu / 60)}m ago`}</span>
