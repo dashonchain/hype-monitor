@@ -26,6 +26,16 @@ export interface Indicators {
   bbMiddle: number;
   bbLower: number;
   bbPercentB: number;
+  // New pro indicators
+  vwap: number;
+  vwapUpper: number;
+  vwapLower: number;
+  atr: number;
+  atrStop: number;
+  obvTrend: string;
+  williamsR: number;
+  mfi: number;
+  stochRsi: number;
 }
 
 export interface SRLevel {

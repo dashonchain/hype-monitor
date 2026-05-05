@@ -46,6 +46,31 @@ export function computeSignal(d: MarketData): Signal {
   if (d.funding8h < 0) buy++;
   else if (d.funding8h > 0.01) neutral++;
 
+  // VWAP — price above VWAP = bullish (institutional accumulation)
+  if (p > ind.vwap) buy++;
+  else sell++;
+
+  // Williams %R — <-80 oversold (buy), >-20 overbought (sell)
+  if (ind.williamsR < -80) buy++;
+  else if (ind.williamsR > -20) sell++;
+  else neutral++;
+
+  // MFI — volume-weighted RSI. <20 oversold, >80 overbought
+  if (ind.mfi < 20) buy += 2;
+  else if (ind.mfi > 80) sell += 2;
+  else if (ind.mfi > 50) buy++;
+  else sell++;
+
+  // StochRSI — <0.2 oversold, >0.8 overbought (catches reversals early)
+  if (ind.stochRsi < 0.2) buy++;
+  else if (ind.stochRsi > 0.8) sell++;
+  else neutral++;
+
+  // OBV trend confirmation
+  if (ind.obvTrend === 'rising') buy++;
+  else if (ind.obvTrend === 'falling') sell++;
+  else neutral++;
+
   const total = buy + sell + neutral || 1;
   const score = Math.round((buy / total) * 100);
 

@@ -49,42 +49,57 @@ function TooltipOverlay() {
    SIGNAL GAUGE — composite score + expand
    ═══════════════════════════════════════════ */
 const CRITERIA = [
-  { key: 'sma10', label: 'Price > SMA 10', desc: 'Price above 10-period SMA' },
-  { key: 'sma20', label: 'Price > SMA 20', desc: 'Price above 20-period SMA' },
-  { key: 'sma50', label: 'Price > SMA 50', desc: 'Price above 50-period SMA' },
-  { key: 'smaCross', label: 'SMA 10 > SMA 20', desc: 'Short-term SMA above medium-term' },
-  { key: 'smaCross2', label: 'SMA 20 > SMA 50', desc: 'Medium-term SMA above long-term' },
-  { key: 'rsi', label: 'RSI Signal', desc: 'RSI momentum (oversold/overbought)' },
-  { key: 'macd', label: 'MACD Hist', desc: 'MACD histogram direction' },
-  { key: 'stoch', label: 'Stochastic', desc: 'Stochastic oscillator zone' },
-  { key: 'kdj', label: 'KDJ J', desc: 'KDJ momentum zone' },
-  { key: 'cci', label: 'CCI', desc: 'Commodity Channel Index zone' },
-  { key: 'bb', label: 'BB %B', desc: 'Bollinger Bands position' },
-  { key: 'funding', label: 'Funding', desc: 'Funding rate direction' },
+  { key: 'sma10', label: 'Price > SMA 10' },
+  { key: 'sma20', label: 'Price > SMA 20' },
+  { key: 'sma50', label: 'Price > SMA 50' },
+  { key: 'smaCross', label: 'SMA 10 > 20' },
+  { key: 'smaCross2', label: 'SMA 20 > 50' },
+  { key: 'rsi', label: 'RSI 14' },
+  { key: 'macd', label: 'MACD Hist' },
+  { key: 'stoch', label: 'Stochastic' },
+  { key: 'kdj', label: 'KDJ J' },
+  { key: 'cci', label: 'CCI' },
+  { key: 'bb', label: 'BB %B' },
+  { key: 'funding', label: 'Funding' },
+  { key: 'vwap', label: 'VWAP' },
+  { key: 'williamsR', label: 'Williams %R' },
+  { key: 'mfi', label: 'MFI' },
+  { key: 'stochRsi', label: 'StochRSI' },
+  { key: 'obv', label: 'OBV Trend' },
 ] as const;
 
 function computeCriteriaBreakdown(ind: any, price: number, funding: number) {
-  const r: { key: string; label: string; desc: string; signal: 'buy' | 'sell' | 'neutral' }[] = [];
+  const r: { key: string; label: string; signal: 'buy' | 'sell' | 'neutral' }[] = [];
   // SMA
-  r.push({ key: 'sma10', label: 'Price > SMA 10', desc: '', signal: price > ind.sma10 ? 'buy' : 'sell' });
-  r.push({ key: 'sma20', label: 'Price > SMA 20', desc: '', signal: price > ind.sma20 ? 'buy' : 'sell' });
-  r.push({ key: 'sma50', label: 'Price > SMA 50', desc: '', signal: price > ind.sma50 ? 'buy' : 'sell' });
-  r.push({ key: 'smaCross', label: 'SMA 10 > 20', desc: '', signal: ind.sma10 > ind.sma20 ? 'buy' : 'sell' });
-  r.push({ key: 'smaCross2', label: 'SMA 20 > 50', desc: '', signal: ind.sma20 > ind.sma50 ? 'buy' : 'sell' });
+  r.push({ key: 'sma10', label: 'Price > SMA 10', signal: price > ind.sma10 ? 'buy' : 'sell' });
+  r.push({ key: 'sma20', label: 'Price > SMA 20', signal: price > ind.sma20 ? 'buy' : 'sell' });
+  r.push({ key: 'sma50', label: 'Price > SMA 50', signal: price > ind.sma50 ? 'buy' : 'sell' });
+  r.push({ key: 'smaCross', label: 'SMA 10 > 20', signal: ind.sma10 > ind.sma20 ? 'buy' : 'sell' });
+  r.push({ key: 'smaCross2', label: 'SMA 20 > 50', signal: ind.sma20 > ind.sma50 ? 'buy' : 'sell' });
   // RSI
-  r.push({ key: 'rsi', label: 'RSI', desc: '', signal: ind.rsi14 < 30 ? 'buy' : ind.rsi14 > 70 ? 'sell' : ind.rsi14 > 50 ? 'buy' : 'sell' });
+  r.push({ key: 'rsi', label: 'RSI 14', signal: ind.rsi14 < 30 ? 'buy' : ind.rsi14 > 70 ? 'sell' : ind.rsi14 > 50 ? 'buy' : 'sell' });
   // MACD
-  r.push({ key: 'macd', label: 'MACD Hist', desc: '', signal: ind.macdHist > 0 ? 'buy' : 'sell' });
+  r.push({ key: 'macd', label: 'MACD Hist', signal: ind.macdHist > 0 ? 'buy' : 'sell' });
   // Stoch
-  r.push({ key: 'stoch', label: 'Stochastic', desc: '', signal: ind.stochK < 20 ? 'buy' : ind.stochK > 80 ? 'sell' : 'neutral' });
+  r.push({ key: 'stoch', label: 'Stochastic', signal: ind.stochK < 20 ? 'buy' : ind.stochK > 80 ? 'sell' : 'neutral' });
   // KDJ
-  r.push({ key: 'kdj', label: 'KDJ J', desc: '', signal: ind.kdjJ < 20 ? 'buy' : ind.kdjJ > 80 ? 'sell' : 'neutral' });
+  r.push({ key: 'kdj', label: 'KDJ J', signal: ind.kdjJ < 20 ? 'buy' : ind.kdjJ > 80 ? 'sell' : 'neutral' });
   // CCI
-  r.push({ key: 'cci', label: 'CCI', desc: '', signal: ind.cci < -100 ? 'buy' : ind.cci > 100 ? 'sell' : 'neutral' });
+  r.push({ key: 'cci', label: 'CCI', signal: ind.cci < -100 ? 'buy' : ind.cci > 100 ? 'sell' : 'neutral' });
   // BB
-  r.push({ key: 'bb', label: 'BB %B', desc: '', signal: ind.bbPercentB < 0 ? 'buy' : ind.bbPercentB > 1 ? 'sell' : 'neutral' });
+  r.push({ key: 'bb', label: 'BB %B', signal: ind.bbPercentB < 0 ? 'buy' : ind.bbPercentB > 1 ? 'sell' : 'neutral' });
   // Funding
-  r.push({ key: 'funding', label: 'Funding', desc: '', signal: funding < 0 ? 'buy' : funding > 0.01 ? 'neutral' : 'buy' });
+  r.push({ key: 'funding', label: 'Funding', signal: funding < 0 ? 'buy' : funding > 0.01 ? 'neutral' : 'buy' });
+  // VWAP
+  r.push({ key: 'vwap', label: 'VWAP', signal: price > ind.vwap ? 'buy' : 'sell' });
+  // Williams %R
+  r.push({ key: 'williamsR', label: 'Williams %R', signal: ind.williamsR < -80 ? 'buy' : ind.williamsR > -20 ? 'sell' : 'neutral' });
+  // MFI
+  r.push({ key: 'mfi', label: 'MFI', signal: ind.mfi < 20 ? 'buy' : ind.mfi > 80 ? 'sell' : ind.mfi > 50 ? 'buy' : 'sell' });
+  // StochRSI
+  r.push({ key: 'stochRsi', label: 'StochRSI', signal: ind.stochRsi < 0.2 ? 'buy' : ind.stochRsi > 0.8 ? 'sell' : 'neutral' });
+  // OBV
+  r.push({ key: 'obv', label: 'OBV Trend', signal: ind.obvTrend === 'rising' ? 'buy' : ind.obvTrend === 'falling' ? 'sell' : 'neutral' });
   return r;
 }
 
@@ -372,7 +387,18 @@ const MetricCard = memo(function MetricCard({ label, value, sub, color, tip }: {
    INDICATORS PANEL
    ═══════════════════════════════════════════ */
 const IndicatorsPanel = memo(function IndicatorsPanel({ ind, rsiZ, tf, price }: { ind: any; rsiZ: string; tf: string; price: number }) {
+  const vwapPos = price > ind.vwap ? 'Above' : 'Below';
+  const williamsZone = ind.williamsR < -80 ? 'Oversold' : ind.williamsR > -20 ? 'Overbought' : 'Mid';
+  const mfiZone = ind.mfi > 80 ? 'Overbought' : ind.mfi < 20 ? 'Oversold' : ind.mfi > 50 ? 'Bull' : 'Bear';
+  const stochRsiZone = ind.stochRsi > 0.8 ? 'OB' : ind.stochRsi < 0.2 ? 'OS' : 'Mid';
+
   const rows = [
+    { l: 'VWAP', v: `$${ind.vwap.toFixed(2)}`, c: price > ind.vwap ? '#34D399' : '#F87171', s: vwapPos, t: 'Volume-Weighted Avg Price. Above = bullish' },
+    { l: 'ATR (14)', v: `$${ind.atr.toFixed(2)}`, c: '#FBBF24', s: `Stop: $${ind.atrStop.toFixed(2)}`, t: 'Avg True Range — volatility. Stop at 1.5x ATR' },
+    { l: 'OBV', v: ind.obvTrend, c: ind.obvTrend === 'rising' ? '#34D399' : ind.obvTrend === 'falling' ? '#F87171' : 'rgba(255,255,255,0.4)', s: '', t: 'On-Balance Volume trend' },
+    { l: 'Williams %R', v: ind.williamsR.toFixed(1), c: ind.williamsR < -80 ? '#34D399' : ind.williamsR > -20 ? '#F87171' : 'rgba(255,255,255,0.6)', s: williamsZone, t: 'Williams %R. <-80 oversold, >-20 overbought' },
+    { l: 'MFI', v: ind.mfi.toFixed(1), c: ind.mfi > 80 ? '#F87171' : ind.mfi < 20 ? '#34D399' : 'rgba(255,255,255,0.6)', s: mfiZone, t: 'Money Flow Index — volume-weighted RSI' },
+    { l: 'StochRSI', v: ind.stochRsi.toFixed(3), c: ind.stochRsi > 0.8 ? '#F87171' : ind.stochRsi < 0.2 ? '#34D399' : 'rgba(255,255,255,0.6)', s: stochRsiZone, t: 'Stochastic RSI — catches reversals early' },
     { l: 'SMA 10', v: `$${ind.sma10.toFixed(2)}`, c: price > ind.sma10 ? '#34D399' : '#F87171', s: price > ind.sma10 ? 'Above' : 'Below', t: 'SMA 10' },
     { l: 'SMA 20', v: `$${ind.sma20.toFixed(2)}`, c: price > ind.sma20 ? '#34D399' : '#F87171', s: price > ind.sma20 ? 'Above' : 'Below', t: 'SMA 20' },
     { l: 'SMA 50', v: `$${ind.sma50.toFixed(2)}`, c: price > ind.sma50 ? '#34D399' : '#F87171', s: price > ind.sma50 ? 'Above' : 'Below', t: 'SMA 50' },
@@ -489,14 +515,15 @@ export default function Home() {
         <SignalGauge data={data} />
 
         {/* Metrics row */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-3">
+        <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-3">
           <MetricCard label="Market Cap" value={data.marketCap > 0 ? `$${(data.marketCap / 1e9).toFixed(2)}B` : '—'} tip="Total market value of all HYPE tokens" />
           <MetricCard label="Volume 24h" value={`$${(data.volume24h / 1e6).toFixed(1)}M`} tip="Trading volume last 24h" />
           <MetricCard label="High 24h" value={`$${data.high24h.toFixed(2)}`} tip="Highest price last 24h" />
           <MetricCard label="Low 24h" value={`$${data.low24h.toFixed(2)}`} tip="Lowest price last 24h" />
           <MetricCard label="Open Interest" value={`$${(data.oiUsd / 1e6).toFixed(1)}M`} sub={`${(data.oiTokens / 1e6).toFixed(1)}M HYPE`} tip="Total open perpetual contracts" />
-          <MetricCard label="Funding 8h" value={`${data.funding8h >= 0 ? '+' : ''}${data.funding8h.toFixed(4)}%`} sub={`Ann. ${data.fundingAnn.toFixed(1)}%`} color={data.funding8h > 0 ? '#34D399' : '#F87171'} tip="Funding rate paid every 8h" />
-          <MetricCard label="RSI 14" value={ind.rsi14.toFixed(1)} sub={rsiZ} color={ind.rsi14 > 70 ? '#F87171' : ind.rsi14 < 30 ? '#34D399' : 'rgba(255,255,255,0.6)'} tip="RSI (14). >70 overbought, <30 oversold" />
+          <MetricCard label="Funding 8h" value={`${data.funding8h >= 0 ? '+' : ''}${data.funding8h.toFixed(4)}%`} sub={`Ann. ${data.fundingAnn.toFixed(1)}%`} color={data.funding8h > 0 ? '#F87171' : '#34D399'} tip="Funding rate. Positive = longs pay shorts (bearish)" />
+          <MetricCard label="VWAP" value={`$${ind.vwap.toFixed(2)}`} sub={data.price > ind.vwap ? '▲ Above' : '▼ Below'} color={data.price > ind.vwap ? '#34D399' : '#F87171'} tip="Volume-Weighted Avg Price. Above = bullish" />
+          <MetricCard label="ATR (14)" value={`$${ind.atr.toFixed(2)}`} sub={`Stop: $${ind.atrStop.toFixed(2)}`} color="#FBBF24" tip="Avg True Range — volatility for stop placement" />
         </div>
 
         {/* Derivatives + SMA */}

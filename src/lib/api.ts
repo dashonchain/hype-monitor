@@ -1,6 +1,6 @@
 import type { ParsedCandle, Indicators, MarketData, Timeframe, DominanceData } from '../types';
 import { TIMEFRAME_CONFIG } from '../types';
-import { SMA, RSI, calcMACD, calcStoch, calcKDJ, calcCCI, calcADX, calcBB } from './indicators';
+import { SMA, RSI, calcMACD, calcStoch, calcKDJ, calcCCI, calcADX, calcBB, calcVWAP, calcATR, calcOBV, calcWilliamsR, calcMFI, calcStochRSI } from './indicators';
 import { calcSR, estimateLiqZones, computeSignal } from './signal';
 
 const HL_API = 'https://api.hyperliquid.xyz/info';
@@ -73,12 +73,20 @@ export async function fetchMarketData(tf: Timeframe): Promise<MarketData> {
   const price30dAgo = closes.length > 30 * candlesPerDay ? closes[closes.length - 30 * candlesPerDay] : closes[0];
   const change30d = price30dAgo > 0 ? ((markPrice / price30dAgo) - 1) * 100 : 0;
 
+  const volumes = candles.map(c => c.volume);
+
   // Indicators
   const sma10 = SMA(closes, 10), sma20 = SMA(closes, 20), sma50 = SMA(closes, 50);
   const macdResult = calcMACD(closes);
   const stoch = calcStoch(highs, lows, closes);
   const kdj = calcKDJ(highs, lows, closes);
   const bb = calcBB(closes);
+  const vwapResult = calcVWAP(highs, lows, closes, volumes);
+  const atr = calcATR(highs, lows, closes);
+  const obvResult = calcOBV(closes, volumes);
+  const williamsR = calcWilliamsR(highs, lows, closes);
+  const mfi = calcMFI(highs, lows, closes, volumes);
+  const stochRsi = calcStochRSI(closes);
 
   const indicators: Indicators = {
     sma10: sma10.length ? sma10[sma10.length - 1] : 0,
@@ -99,6 +107,16 @@ export async function fetchMarketData(tf: Timeframe): Promise<MarketData> {
     bbMiddle: bb.middle,
     bbLower: bb.lower,
     bbPercentB: bb.percentB,
+    // Pro indicators
+    vwap: vwapResult.vwap,
+    vwapUpper: vwapResult.upper,
+    vwapLower: vwapResult.lower,
+    atr,
+    atrStop: markPrice - 1.5 * atr, // Suggested stop-loss (1.5x ATR below price)
+    obvTrend: obvResult.trend,
+    williamsR,
+    mfi,
+    stochRsi,
   };
 
   // Derivatives
