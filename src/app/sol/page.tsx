@@ -395,11 +395,14 @@ export default function Home() {
       </div>
     </div>
   );
-  if (!data) return null;
+  if (!data?.price) return null;
 
   const stale = isStale(data.lastUpdated);
   const ind = data.indicators;
   const tsu = Math.floor((now - data.lastUpdated) / 1000);
+  const ch24 = data.change24h ?? 0;
+  const ch7 = data.change7d ?? 0;
+  const ch30 = data.change30d ?? 0;
 
   return (
     <div className="ambient-bg">
@@ -418,8 +421,8 @@ export default function Home() {
           <div className="flex items-center gap-3">
             <div style={{ textAlign: 'right' }}>
               <div style={{ fontSize: 16, fontWeight: 700, fontFamily: MF }}>${data.price.toFixed(2)}</div>
-              <div style={{ fontSize: 11, fontWeight: 500, color: data.change24h >= 0 ? '#34D399' : '#F87171', fontFamily: SF }}>
-                {data.change24h >= 0 ? '+' : ''}{data.change24h.toFixed(2)}% <span style={{ color: 'rgba(255,255,255,0.2)' }}>24h</span>
+              <div style={{ fontSize: 11, fontWeight: 500, color: ch24 >= 0 ? '#34D399' : '#F87171', fontFamily: SF }}>
+                {ch24 >= 0 ? '+' : ''}{ch24.toFixed(2)}% <span style={{ color: 'rgba(255,255,255,0.2)' }}>24h</span>
               </div>
             </div>
             <button onClick={() => refetch()} style={{ width: 28, height: 28, borderRadius: 6, border: '1px solid rgba(255,255,255,0.08)', background: 'rgba(255,255,255,0.03)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
@@ -437,15 +440,12 @@ export default function Home() {
         <ChartSection data={data} tf={tf} show={showLiq} onToggle={() => setShowLiq(v => !v)} />
         <Panels data={data} derivatives={derivatives} />
         <div className="grid grid-cols-3 gap-3">
-          {(['24h', '7d', '30d'] as const).map(p => {
-            const v = p === '24h' ? data.change24h : p === '7d' ? data.change7d : data.change30d;
-            return (
-              <div key={p} style={{ borderRadius: 10, padding: '14px 18px', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
-                <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.25)', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 4, fontFamily: SF }}>{p}</div>
-                <div style={{ fontSize: 16, fontWeight: 700, fontFamily: MF, color: v >= 0 ? '#34D399' : '#F87171' }}>{fmtPct(v)}</div>
-              </div>
-            );
-          })}
+          {([['24h', ch24], ['7d', ch7], ['30d', ch30]] as const).map(([p, v]) => (
+            <div key={p} style={{ borderRadius: 10, padding: '14px 18px', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
+              <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.25)', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 4, fontFamily: SF }}>{p}</div>
+              <div style={{ fontSize: 16, fontWeight: 700, fontFamily: MF, color: v >= 0 ? '#34D399' : '#F87171' }}>{fmtPct(v)}</div>
+            </div>
+          ))}
         </div>
         <AllIndicators ind={ind} price={data.price} tf={data.timeframe.toUpperCase()} />
         <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.12)', display: 'flex', justifyContent: 'space-between', fontFamily: SF }}>
