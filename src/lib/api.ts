@@ -8,6 +8,42 @@ const CG_URL = 'https://api.coingecko.com/api/v3/simple/price?ids=hyperliquid,bi
 const CG_CHART_URL = (id: string, days: number) =>
   `https://api.coingecko.com/api/v3/coins/${id}/market_chart?vs_currency=usd&days=${days}`;
 
+// Leaderboard configuration (auto-refreshes every 5 minutes)
+const LEADERBOARD_TTL = 5 * 60 * 1000; // 5 minutes
+const LEADERBOARD_URL = 'https://stats-data.hyperliquid.xyz/Mainnet/leaderboard';
+const TOP_WALLET_COUNT = 50; // Fetch top 50-100 wallets (adjust as needed)
+let leaderboardCache: { addresses: string[]; timestamp: number } | null = null;
+
+async function fetchLeaderboardWallets(): Promise<string[]> {
+  // Return cached addresses if still valid
+  if (leaderboardCache && Date.now() - leaderboardCache.timestamp < LEADERBOARD_TTL) {
+    return leaderboardCache.addresses;
+  }
+
+  try {
+    const response = await fetch(LEADERBOARD_URL);
+    if (!response.ok) throw new Error(`Leaderboard HTTP ${response.status}`);
+    const data = await response.json();
+    
+    // Extract ethAddress, sort by accountValue descending, take top N
+    const wallets = data
+      .map((entry: any) => ({
+        ethAddress: entry.ethAddress,
+        accountValue: parseFloat(entry.accountValue)
+      }))
+      .filter((w: any) => w.ethAddress && !isNaN(w.accountValue))
+      .sort((a: any, b: any) => b.accountValue - a.accountValue)
+      .slice(0, TOP_WALLET_COUNT)
+      .map((w: any) => w.ethAddress);
+
+    leaderboardCache = { addresses: wallets, timestamp: Date.now() };
+    return wallets;
+  } catch (e) {
+    console.error('Failed to fetch leaderboard, falling back to hardcoded wallets:', e);
+    return SMART_MONEY_WALLETS; // Fallback to hardcoded list
+  }
+}
+
 async function hlPost(body: any) {
   const r = await fetch(HL_API, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
   if (!r.ok) throw new Error(`HL ${r.status}`);
@@ -182,22 +218,42 @@ const SMART_MONEY_WALLETS = [
 ];
 
 export async function fetchSmartMoney(markPrice: number): Promise<SmartMoneyData> {
-  const positions = await Promise.all(
-    SMART_MONEY_WALLETS.map(wallet =>
-      hlPost({ type: 'clearinghouseState', user: wallet })
-        .catch(() => null)
-    )
-  );
+  // Fetch dynamic wallet list from leaderboard (cached for 5min)
+  let wallets: string[];
+  try {
+    wallets = await fetchLeaderboardWallets();
+  } catch (e) {
+    wallets = SMART_MONEY_WALLETS;
+    console.error('Using hardcoded wallets due to error:', e);
+  }
+
+  const batchSize = 10;
+  const batchDelayMs = 200;
+  const allSettledResults: PromiseSettledResult<any>[] = [];
+
+  // Fetch positions in batches of 10 with 200ms delay between batches
+  for (let i = 0; i < wallets.length; i += batchSize) {
+    const batch = wallets.slice(i, i + batchSize);
+    if (i > 0) {
+      await new Promise(resolve => setTimeout(resolve, batchDelayMs));
+    }
+    const batchResults = await Promise.allSettled(
+      batch.map(wallet => 
+        hlPost({ type: 'clearinghouseState', user: wallet })
+          .catch(() => null)
+      )
+    );
+    allSettledResults.push(...batchResults);
+  }
 
   let totalLong = 0;
   let totalShort = 0;
   const walletData: SmartMoneyWallet[] = [];
 
-  positions.forEach((state, i) => {
-    if (!state?.assetPositions) return;
-    const hypePos = state.assetPositions.find(
-      (p: any) => p.position?.coin === 'HYPE'
-    );
+  allSettledResults.forEach((result, idx) => {
+    if (result.status !== 'fulfilled' || !result.value?.assetPositions) return;
+    const state = result.value;
+    const hypePos = state.assetPositions.find((p: any) => p.position?.coin === 'HYPE');
     if (!hypePos) return;
 
     const szi = parseFloat(hypePos.position.szi);
@@ -210,7 +266,7 @@ export async function fetchSmartMoney(markPrice: number): Promise<SmartMoneyData
     else totalShort += sizeUsd;
 
     walletData.push({
-      wallet: SMART_MONEY_WALLETS[i].slice(0, 10) + "...",
+      wallet: wallets[idx].slice(0, 10) + "...",
       direction: szi > 0 ? 'LONG' : 'SHORT',
       sizeUsd,
       leverage,
@@ -229,7 +285,7 @@ export async function fetchSmartMoney(markPrice: number): Promise<SmartMoneyData
   return {
     longPct: (totalLong / total) * 100,
     shortPct: (totalShort / total) * 100,
-    ratio: totalLong / totalShort,
+    ratio: totalShort > 0 ? totalLong / totalShort : totalLong,
     sentiment: totalLong > totalShort ? 'BULLISH' : 'BEARISH',
     netUsd: totalLong - totalShort,
     wallets: walletData,

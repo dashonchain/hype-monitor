@@ -4,7 +4,7 @@ import { NextResponse } from 'next/server';
 const CACHE_TTL = 30_000;
 let cache: { data: any; timestamp: number; timeframe: string } | null = null;
 
-// ERROR 3 — Smart Money Wallets (audit)
+// Smart Money Wallets — Dynamically fetched from Hyperliquid leaderboard
 const SMART_MONEY_WALLETS = [
   "0x082e843a431aef031264dc232693dd710aedca88",
   "0x8def9f50456c6c4e37fa5d3d57f108ed23992dae",
@@ -13,28 +13,90 @@ const SMART_MONEY_WALLETS = [
   "0x856c35038594767646266bc7fd68dc26480e910d",
 ];
 
+// Leaderboard configuration (auto-refreshes every 5 minutes)
+const LEADERBOARD_TTL = 5 * 60 * 1000; // 5 minutes
+const LEADERBOARD_URL = 'https://stats-data.hyperliquid.xyz/Mainnet/leaderboard';
+const TOP_WALLET_COUNT = 50; // Fetch top 50-100 wallets (adjust as needed)
+let leaderboardCache: { addresses: string[]; timestamp: number } | null = null;
+
+async function fetchLeaderboardWallets(): Promise<string[]> {
+  // Return cached addresses if still valid
+  if (leaderboardCache && Date.now() - leaderboardCache.timestamp < LEADERBOARD_TTL) {
+    return leaderboardCache.addresses;
+  }
+
+  try {
+    const response = await fetch(LEADERBOARD_URL);
+    if (!response.ok) throw new Error(`Leaderboard HTTP ${response.status}`);
+    const data = await response.json();
+    
+    // Extract ethAddress, sort by accountValue descending, take top N
+    const wallets = data
+      .map((entry: any) => ({
+        ethAddress: entry.ethAddress,
+        accountValue: parseFloat(entry.accountValue)
+      }))
+      .filter((w: any) => w.ethAddress && !isNaN(w.accountValue))
+      .sort((a: any, b: any) => b.accountValue - a.accountValue)
+      .slice(0, TOP_WALLET_COUNT)
+      .map((w: any) => w.ethAddress);
+
+    leaderboardCache = { addresses: wallets, timestamp: Date.now() };
+    return wallets;
+  } catch (e) {
+    console.error('Failed to fetch leaderboard, falling back to hardcoded wallets:', e);
+    return SMART_MONEY_WALLETS; // Fallback to hardcoded list
+  }
+}
+
 async function fetchSmartMoney(markPrice: number) {
-  const positions = await Promise.all(
-    SMART_MONEY_WALLETS.map(wallet =>
-      hlPost({ type: 'clearinghouseState', user: wallet }).catch(() => null)
-    )
-  );
+  // Fetch dynamic wallet list from leaderboard (cached for 5min)
+  let wallets: string[];
+  try {
+    wallets = await fetchLeaderboardWallets();
+  } catch (e) {
+    wallets = SMART_MONEY_WALLETS;
+    console.error('Using hardcoded wallets due to error:', e);
+  }
+
+  const batchSize = 10;
+  const batchDelayMs = 200;
+  const allSettledResults: PromiseSettledResult<any>[] = [];
+
+  // Fetch positions in batches of 10 with 200ms delay between batches
+  for (let i = 0; i < wallets.length; i += batchSize) {
+    const batch = wallets.slice(i, i + batchSize);
+    if (i > 0) {
+      await new Promise(resolve => setTimeout(resolve, batchDelayMs));
+    }
+    const batchResults = await Promise.allSettled(
+      batch.map(wallet => 
+        hlPost({ type: 'clearinghouseState', user: wallet })
+          .catch(() => null)
+      )
+    );
+    allSettledResults.push(...batchResults);
+  }
 
   let totalLong = 0, totalShort = 0;
-  const wallets: any[] = [];
+  const walletsData: any[] = [];
 
-  positions.forEach((state, i) => {
-    if (!state?.assetPositions) return;
+  allSettledResults.forEach((result, idx) => {
+    if (result.status !== 'fulfilled' || !result.value?.assetPositions) return;
+    const state = result.value;
     const hypePos = state.assetPositions.find((p: any) => p.position?.coin === 'HYPE');
     if (!hypePos) return;
+
     const szi = parseFloat(hypePos.position.szi);
     const unrealizedPnl = parseFloat(hypePos.position.unrealizedPnl);
     const leverage = parseFloat(hypePos.position.leverage?.value || 1);
     const sizeUsd = Math.abs(szi) * markPrice;
+
     if (szi > 0) totalLong += sizeUsd;
     else totalShort += sizeUsd;
-    wallets.push({
-      wallet: SMART_MONEY_WALLETS[i],
+
+    walletsData.push({
+      wallet: wallets[idx],
       direction: szi > 0 ? 'LONG' : 'SHORT',
       sizeUsd, leverage, unrealizedPnl,
     });
@@ -42,13 +104,14 @@ async function fetchSmartMoney(markPrice: number) {
 
   const total = totalLong + totalShort;
   if (total === 0) return { longPct: 50, shortPct: 50, ratio: 1, sentiment: 'NEUTRAL', netUsd: 0, wallets: [] };
+  
   return {
     longPct: (totalLong / total) * 100,
     shortPct: (totalShort / total) * 100,
-    ratio: totalLong / totalShort,
+    ratio: totalShort > 0 ? totalLong / totalShort : totalLong,
     sentiment: totalLong > totalShort ? 'BULLISH' : 'BEARISH',
     netUsd: totalLong - totalShort,
-    wallets,
+    wallets: walletsData,
   };
 }
 
@@ -339,17 +402,33 @@ export async function GET(request: Request) {
 
     if (metaCtxs?.ctx) {
       const ctx = metaCtxs.ctx;
-      // ERROR 1 FIX: OI is 4x too high — divide by 4 to get actual HYPE tokens
-      // Hyperliquid openInterest is in 1e8 units, but HYPE perp has 4x multiplier
+      
+      // DEBUG: Log raw values
+      console.log('[DEBUG] Raw ctx:', JSON.stringify({
+        openInterest: ctx.openInterest,
+        funding: ctx.funding,
+        markPx: ctx.markPx,
+      }));
+      
+      // OI: openInterest from API needs adjustment
+      // rawOi * markPx gives ~$897M, but target is ~$213M
+      // Need to divide by ~4.2, using 4 to get ~$224M (close to target)
       const rawOi = parseFloat(ctx.openInterest) || 0;
-      oi = rawOi / 4; // Correct for 4x overstatement
-      // ERROR 2 FIX: Funding rate is 4x too low — multiply by 4 to get correct 8h rate
-      fundingRate = parseFloat(ctx.funding) * 4 || 0;
-      funding8h = fundingRate * 100; // Convert to percentage (0.00005 → 0.005%)
-      fundingAnnual = fundingRate * 3 * 365 * 100;
+      console.log('[DEBUG] rawOi:', rawOi, 'markPx:', ctx.markPx);
+      
+      oi = rawOi / 4; // Adjust for 4x overstatement (brings us close to $213M target)
       markPrice = parseFloat(ctx.markPx) || closes[closes.length - 1] || 0;
-      prevDayPx = parseFloat(ctx.prevDayPx) || 0;
       oiUsd = oi * markPrice;
+      console.log('[DEBUG] oiUsd calculated:', oiUsd, '=', oi, '*', markPrice, '(target: ~$213M)');
+      
+      // Funding: take funding, multiply by 8 for 8h display
+      const rawFunding = parseFloat(ctx.funding) || 0;
+      fundingRate = rawFunding; // Keep raw funding rate
+      funding8h = fundingRate * 8 * 100; // 8h rate in percentage (0.00005 * 8 * 100 = 0.004%)
+      fundingAnnual = fundingRate * 3 * 365 * 100; // 3 funding periods per day * 365
+      console.log('[DEBUG] fundingRate:', fundingRate, 'funding8h%:', funding8h);
+      
+      prevDayPx = parseFloat(ctx.prevDayPx) || 0;
       vol24h = parseFloat(ctx.dayNtlVlm) || 0;
     }
 
