@@ -30,91 +30,103 @@ export default function TradingViewChart({ timeframe, srLevels, liqZones, smartM
   const drawChartOverlays = (widget: any) => {
     try {
       const chart = widget.activeChart ? widget.activeChart() : widget.chart();
-      if (!chart) return;
+      if (!chart) { console.log('[CHART] No chart object'); return; }
 
-      const visibleRange = chart.getVisibleRange();
-      if (!visibleRange || !visibleRange.from || !visibleRange.to) return;
+      // Get visible time range
+      let from, to;
+      try {
+        const range = chart.getVisibleRange();
+        from = range?.from;
+        to = range?.to;
+      } catch(e) {
+        // Fallback: use current time range
+        const now = Math.floor(Date.now() / 1000);
+        from = now - 30 * 86400; // 30 days back
+        to = now + 86400; // 1 day forward
+      }
+      if (!from || !to) { console.log('[CHART] No time range'); return; }
 
-      // Draw S/R levels as horizontal lines with labels using overrides
+      console.log('[CHART] Drawing overlays, srLevels:', srLevels?.resistances?.length, 'resistances,', srLevels?.supports?.length, 'supports');
+      
+      // Clear existing shapes first
+      try { chart.removeAllShapes(); } catch(e) {}
+
+      // Draw S/R levels as horizontal lines
       if (srLevels) {
-        // Resistances (red)
         srLevels.resistances?.forEach((r: SRLevel, i: number) => {
-          chart.createMultipointShape(
-            [
-              { price: r.price, time: visibleRange.from },
-              { price: r.price, time: visibleRange.to },
-            ],
-            {
-              shape: 'horizontal_line',
-              lock: true,
-              overrides: {
-                linecolor: '#FF6B6B',
-                linewidth: 2,
-                linestyle: 2, // Dashed
-                showLabel: true,
-                text: `R${i + 1} (${r.price.toFixed(2)})`,
-                textcolor: '#FF6B6B',
-                fontsize: 12,
-              },
-            }
-          );
+          try {
+            chart.createMultipointShape(
+              [{ price: r.price, time: from }, { price: r.price, time: to }],
+              {
+                shape: 'horizontal_line',
+                lock: true,
+                disableSelection: true,
+                overrides: {
+                  linecolor: 'rgba(239, 68, 68, 0.85)',
+                  linewidth: 2,
+                  linestyle: 2,
+                  showLabel: true,
+                  text: `R${i + 1} — ${r.strength}%`,
+                  textcolor: '#ef4444',
+                  fontsize: 11,
+                },
+              }
+            );
+          } catch(e) { console.warn('[CHART] Failed to draw resistance', i, e); }
         });
 
-        // Supports (green)
         srLevels.supports?.forEach((s: SRLevel, i: number) => {
-          chart.createMultipointShape(
-            [
-              { price: s.price, time: visibleRange.from },
-              { price: s.price, time: visibleRange.to },
-            ],
-            {
-              shape: 'horizontal_line',
-              lock: true,
-              overrides: {
-                linecolor: '#51CF66',
-                linewidth: 2,
-                linestyle: 2, // Dashed
-                showLabel: true,
-                text: `S${i + 1} (${s.price.toFixed(2)})`,
-                textcolor: '#51CF66',
-                fontsize: 12,
-              },
-            }
-          );
+          try {
+            chart.createMultipointShape(
+              [{ price: s.price, time: from }, { price: s.price, time: to }],
+              {
+                shape: 'horizontal_line',
+                lock: true,
+                disableSelection: true,
+                overrides: {
+                  linecolor: 'rgba(34, 197, 94, 0.85)',
+                  linewidth: 2,
+                  linestyle: 2,
+                  showLabel: true,
+                  text: `S${i + 1} — ${s.strength}%`,
+                  textcolor: '#22c55e',
+                  fontsize: 11,
+                },
+              }
+            );
+          } catch(e) { console.warn('[CHART] Failed to draw support', i, e); }
         });
       }
 
       // Draw liquidation zones as rectangles
       if (liqZones) {
         liqZones.forEach((z: LiqZone) => {
-          const isLong = z.side === 'long';
-          const fillColor = isLong ? 'rgba(81, 207, 102, 0.15)' : 'rgba(255, 107, 107, 0.15)';
-          const borderColor = isLong ? '#51CF66' : '#FF6B6B';
-          const label = isLong ? 'Long Liq' : 'Short Liq';
-
-          chart.createMultipointShape(
-            [
-              { price: z.priceHigh, time: visibleRange.from },
-              { price: z.priceLow, time: visibleRange.to },
-            ],
-            {
-              shape: 'rectangle',
-              lock: true,
-              overrides: {
-                color: fillColor,
-                borderColor: borderColor,
-                borderWidth: 1,
-                showLabel: true,
-                text: `${label} (${z.priceLow.toFixed(2)}-${z.priceHigh.toFixed(2)})`,
-                textcolor: borderColor,
-                fontsize: 10,
-              },
-            }
-          );
+          try {
+            const isLong = z.side === 'long';
+            chart.createMultipointShape(
+              [{ time: from, price: z.priceHigh }, { time: to, price: z.priceLow }],
+              {
+                shape: 'rectangle',
+                lock: true,
+                disableSelection: true,
+                overrides: {
+                  backgroundColor: isLong ? 'rgba(34, 197, 94, 0.08)' : 'rgba(239, 68, 68, 0.08)',
+                  borderColor: isLong ? 'rgba(34, 197, 94, 0.35)' : 'rgba(239, 68, 68, 0.35)',
+                  borderWidth: 1,
+                  showLabel: true,
+                  text: `${isLong ? 'Long' : 'Short'} Liq $${(z.valueUsd / 1e6).toFixed(1)}M`,
+                  textcolor: isLong ? '#22c55e' : '#ef4444',
+                  fontsize: 10,
+                },
+              }
+            );
+          } catch(e) { console.warn('[CHART] Failed to draw liq zone', e); }
         });
       }
+      
+      console.log('[CHART] Overlays drawn ✅');
     } catch (e) {
-      console.warn('Failed to draw overlays, chart may not be ready:', e);
+      console.warn('[CHART] drawChartOverlays failed:', e);
     }
   };
 
@@ -168,10 +180,17 @@ export default function TradingViewChart({ timeframe, srLevels, liqZones, smartM
           height: String(height),
           onChartReady: () => {
             widgetRef.current = widget;
-            setTimeout(() => drawChartOverlays(widget), 300);
+            drawChartOverlays(widget);
             setLoading(false);
           },
         });
+        
+        // Fallback: if onChartReady doesn't fire within 5s, hide loading anyway
+        setTimeout(() => {
+          setLoading(false);
+          widgetRef.current = widget;
+          try { drawChartOverlays(widget); } catch(e) {}
+        }, 5000);
       } catch (err) {
         console.error('Error initializing TradingView widget:', err);
         setHasChartError(true);

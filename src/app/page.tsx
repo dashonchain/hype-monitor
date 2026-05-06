@@ -229,19 +229,19 @@ const Panels = memo(function Panels({ data, derivatives }: { data: any; derivati
           const signalLabel = signal === 'LONGS_DOMINANT' ? 'Longs dominant ▲' : signal === 'SHORTS_DOMINANT' ? 'Shorts dominant ▼' : 'Balanced ◆';
           return (
             <>
-              <div style={{ fontSize: 32, fontWeight: 700, fontFamily: MF, color: accent, letterSpacing: '-.02em', marginBottom: 6 }}>{ratio.toFixed(2)}</div>
-              <div style={{ display: 'flex', height: 5, borderRadius: 3, overflow: 'hidden', background: 'rgba(248,113,113,0.12)', marginBottom: 6 }}>
-                <div style={{ width: `${longPct}%`, background: 'rgba(52,211,153,0.6)' }} />
+              <div style={{ fontSize: 11, fontWeight: 500, color: accent, marginBottom: 6, fontFamily: SF }}>{signalLabel}</div>
+              <div style={{ display: 'flex', height: 6, borderRadius: 3, overflow: 'hidden', background: 'rgba(248,113,113,0.15)', marginBottom: 6 }}>
+                <div style={{ width: `${longPct}%`, background: 'rgba(52,211,153,0.7)', transition: 'width 0.5s' }} />
               </div>
-              <div className="flex justify-between" style={{ marginBottom: 14 }}>
-                <span style={{ fontSize: 12, fontWeight: 600, color: '#34D399', fontFamily: SF }}>L {longPct.toFixed(1)}%</span>
-                <span style={{ fontSize: 12, fontWeight: 600, color: '#F87171', fontFamily: SF }}>S {shortPct.toFixed(1)}%</span>
+              <div className="flex justify-between" style={{ marginBottom: 10 }}>
+                <span style={{ fontSize: 13, fontWeight: 700, color: '#34D399', fontFamily: MF }}>L {longPct.toFixed(1)}%</span>
+                <span style={{ fontSize: 13, fontWeight: 700, color: '#F87171', fontFamily: MF }}>S {shortPct.toFixed(1)}%</span>
               </div>
-              <div style={{ fontSize: 11, color: accent, fontFamily: SF, marginBottom: 10 }}>
-                {signalLabel} — Net: {netUsd >= 0 ? '+' : ''}${(Math.abs(netUsd) / 1e6).toFixed(1)}M
+              <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', fontFamily: SF, marginBottom: 4 }}>
+                Net: {netUsd >= 0 ? '+' : ''}${(Math.abs(netUsd) / 1e6).toFixed(1)}M · {sm.longCount + sm.shortCount} wallets tracked
               </div>
               <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.25)', fontFamily: SF, marginBottom: 8 }}>
-                Long: ${(sm.longUsd / 1e6).toFixed(1)}M ({sm.longCount} wallets) · Short: ${(sm.shortUsd / 1e6).toFixed(1)}M ({sm.shortCount} wallets)
+                Long: ${(sm.longUsd / 1e6).toFixed(1)}M ({sm.longCount}) · Short: ${(sm.shortUsd / 1e6).toFixed(1)}M ({sm.shortCount})
               </div>
               <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)', fontFamily: SF, marginBottom: 6 }}>Top Positions:</div>
               {wallets.slice(0, 5).map((w: any, i: number) => (
