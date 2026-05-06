@@ -161,16 +161,16 @@ export async function fetchMarketData(tf: Timeframe): Promise<MarketData> {
   };
 
   // Derivatives — ERROR 1 & 2 fix (audit)
-  // OI: tokens from API, USD = tokens × markPrice
-  // If OI appears 4x too high, check if we're reading wrong field
+  // OI: Hyperliquid returns two-sided gross OI (longs + shorts both counted)
+  // Conventional display = one side only → divide by 2
   const oiTokens = parseFloat(ctx?.openInterest) || 0;
-  const oiUsd = oiTokens * markPrice;
+  const oiUsd = (oiTokens / 2) * markPrice; // One-sided conventional ~$451M
   
-  // ERROR 2: funding is decimal, convert to percentage
-  // funding field = 8h rate as decimal (e.g., 0.00005 = 0.005%)
+  // Funding: raw rate is per hour, convert to 8h percentage
   const fundingRate = parseFloat(ctx?.funding) || 0;
-  const funding8hPct = fundingRate * 100; // to percentage
-  const fundingAnnPct = fundingRate * 3 * 365 * 100; // annualized (8h × 3 × 365)
+  const funding8hPct = fundingRate * 8 * 100; // 8h rate in percentage
+  const fundingAnnPct = funding8hPct * 3 * 365; // annualized
+  const fundingDirection = funding8hPct >= 0 ? 'Longs pay shorts' : 'Shorts pay longs';
   
   const vol24h = parseFloat(ctx?.dayNtlVlm) || 0;
   const marketCap = cg?.hyperliquid?.usd_market_cap || 0;
@@ -196,6 +196,7 @@ export async function fetchMarketData(tf: Timeframe): Promise<MarketData> {
     oiTokens,
     funding8h: funding8hPct,  // Use corrected percentage
     fundingAnn: fundingAnnPct,  // Use corrected annualized
+    fundingDirection,
     indicators,
     srLevels: sr,
     liqZones,
@@ -278,7 +279,7 @@ export async function fetchSmartMoney(markPrice: number): Promise<SmartMoneyData
   if (total === 0) {
     return {
       longPct: 50, shortPct: 50, ratio: 1,
-      sentiment: 'NEUTRAL', netUsd: 0, wallets: []
+      sentiment: 'NEUTRAL', netUsd: 0, longUsd: 0, shortUsd: 0, longCount: 0, shortCount: 0, wallets: []
     };
   }
 
@@ -290,6 +291,10 @@ export async function fetchSmartMoney(markPrice: number): Promise<SmartMoneyData
             totalShort > totalLong * 1.5 ? 'SHORTS_DOMINANT' : 'BALANCED',
     sentiment: totalLong > totalShort ? 'BULLISH' : 'BEARISH',
     netUsd: totalLong - totalShort,
+    longUsd: totalLong,
+    shortUsd: totalShort,
+    longCount: walletData.filter(w => w.direction === 'LONG').length,
+    shortCount: walletData.filter(w => w.direction === 'SHORT').length,
     wallets: walletData,
   };
 }

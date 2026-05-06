@@ -84,10 +84,14 @@ export interface SmartMoneyWallet {
 export interface SmartMoneyData {
   longPct: number;
   shortPct: number;
-  ratio: number;  // long/short ratio
+  ratio: number;
   signal?: 'LONGS_DOMINANT' | 'SHORTS_DOMINANT' | 'BALANCED';
   sentiment: 'BULLISH' | 'BEARISH' | 'NEUTRAL';
-  netUsd: number;  // positive = net long, negative = net short
+  netUsd: number;
+  longUsd: number;
+  shortUsd: number;
+  longCount: number;
+  shortCount: number;
   wallets: SmartMoneyWallet[];
 }
 
@@ -104,6 +108,7 @@ export interface MarketData {
   oiTokens: number;
   funding8h: number;
   fundingAnn: number;
+  fundingDirection: string;
   indicators: Indicators;
   srLevels: { supports: SRLevel[]; resistances: SRLevel[] };
   liqZones: LiqZone[];

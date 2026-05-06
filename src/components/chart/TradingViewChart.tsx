@@ -28,10 +28,10 @@ export default function TradingViewChart({ timeframe, srLevels, liqZones, smartM
 
   // Draw S/R horizontal lines and liquidation zone rectangles
   const drawChartOverlays = (widget: any) => {
-    const chart = widget.chart();
-    if (!chart) return;
-
     try {
+      const chart = widget.activeChart ? widget.activeChart() : widget.chart();
+      if (!chart) return;
+
       const visibleRange = chart.getVisibleRange();
       if (!visibleRange || !visibleRange.from || !visibleRange.to) return;
 
@@ -168,7 +168,7 @@ export default function TradingViewChart({ timeframe, srLevels, liqZones, smartM
           height: String(height),
           onChartReady: () => {
             widgetRef.current = widget;
-            drawChartOverlays(widget);
+            setTimeout(() => drawChartOverlays(widget), 300);
             setLoading(false);
           },
         });

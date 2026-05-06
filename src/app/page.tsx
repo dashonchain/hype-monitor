@@ -139,7 +139,7 @@ const KeyMetrics = memo(function KeyMetrics({ data, ind }: { data: any; ind: any
   const m = [
     { l: 'RSI 14', v: ind.rsi14.toFixed(1), s: ind.rsi14 > 70 ? 'Overbought' : ind.rsi14 < 30 ? 'Oversold' : ind.rsi14 > 50 ? 'Bullish' : 'Bearish', c: ind.rsi14 > 70 ? '#F87171' : ind.rsi14 < 30 ? '#34D399' : '#9CA3AF', a: ind.rsi14 > 70 || ind.rsi14 < 30 },
     { l: 'VWAP', v: `$${ind.vwap.toFixed(2)}`, s: data.price > ind.vwap ? 'Price above' : 'Price below', c: data.price > ind.vwap ? '#34D399' : '#F87171', a: false },
-    { l: 'Funding 8h', v: `${data.funding8h >= 0 ? '+' : ''}${data.funding8h.toFixed(4)}%`, s: `Ann. ${data.fundingAnn.toFixed(1)}%`, c: data.funding8h > 0.001 ? '#F87171' : data.funding8h < -0.001 ? '#34D399' : '#9CA3AF', a: Math.abs(data.funding8h) > 0.005 },
+    { l: 'Funding 8h', v: `${data.funding8h >= 0 ? '+' : ''}${data.funding8h.toFixed(2)}%`, s: data.fundingDirection, c: data.funding8h > 0.001 ? '#F87171' : data.funding8h < -0.001 ? '#34D399' : '#9CA3AF', a: Math.abs(data.funding8h) > 0.005 },
     { l: 'ATR (14)', v: `$${ind.atr.toFixed(2)}`, s: `Stop: $${ind.atrStop.toFixed(2)}`, c: '#FBBF24', a: false },
     { l: 'MFI', v: ind.mfi.toFixed(1), s: ind.mfi > 80 ? 'Overbought' : ind.mfi < 20 ? 'Oversold' : 'Neutral', c: ind.mfi > 80 ? '#F87171' : ind.mfi < 20 ? '#34D399' : '#9CA3AF', a: ind.mfi > 80 || ind.mfi < 20 },
     { l: 'L/S Ratio', v: data.smartMoney?.ratio ? (data.smartMoney?.longPct?.toFixed(1) + '% L / ' + data.smartMoney?.shortPct?.toFixed(1) + '% S') : '—', s: data.smartMoney ? (data.smartMoney.longPct > data.smartMoney.shortPct ? (data.smartMoney.longPct > 65 ? 'Crowded Longs ⚠️' : 'Longs dominant') : data.smartMoney.shortPct > 65 ? 'Squeeze setup 🔥' : 'Shorts dominant') : '—', c: data.smartMoney ? (data.smartMoney.longPct > data.smartMoney.shortPct ? '#34D399' : '#F87171') : '#9CA3AF', a: false },
@@ -241,17 +241,15 @@ const Panels = memo(function Panels({ data, derivatives }: { data: any; derivati
               <div style={{ fontSize: 11, color: accent, fontFamily: SF, marginBottom: 10 }}>
                 {signalLabel} — Net: {netUsd >= 0 ? '+' : ''}${(Math.abs(netUsd) / 1e6).toFixed(1)}M
               </div>
-              <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)', fontFamily: SF, marginBottom: 6 }}>Top Whales:</div>
+              <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.25)', fontFamily: SF, marginBottom: 8 }}>
+                Long: ${(sm.longUsd / 1e6).toFixed(1)}M ({sm.longCount} wallets) · Short: ${(sm.shortUsd / 1e6).toFixed(1)}M ({sm.shortCount} wallets)
+              </div>
+              <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)', fontFamily: SF, marginBottom: 6 }}>Top Positions:</div>
               {wallets.slice(0, 5).map((w: any, i: number) => (
                 <div key={i} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, fontFamily: MF, marginBottom: 4 }}>
-                  <a 
-                    href={`https://www.coinglass.com/en/hyperliquid/${w.wallet}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    style={{ color: w.direction === 'LONG' ? '#34D399' : '#F87171', textDecoration: 'none' }}
-                  >
-                    {w.wallet.slice(0, 8)}...{w.wallet.slice(-6)} {w.direction} ${(w.sizeUsd / 1e6).toFixed(1)}M {w.leverage}x
-                  </a>
+                  <span style={{ color: w.direction === 'LONG' ? '#34D399' : '#F87171' }}>
+                    {w.direction} ${(w.sizeUsd / 1e6).toFixed(1)}M {w.leverage}x
+                  </span>
                   <span style={{ color: w.unrealizedPnl >= 0 ? '#34D399' : '#F87171' }}>
                     {w.unrealizedPnl >= 0 ? '+' : ''}${(w.unrealizedPnl / 1e6).toFixed(1)}M
                   </span>
