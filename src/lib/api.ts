@@ -25,10 +25,13 @@ async function fetchLeaderboardWallets(): Promise<string[]> {
     if (!response.ok) throw new Error(`Leaderboard HTTP ${response.status}`);
     const data = await response.json();
     
+    // Handle response shape: { leaderboardRows: [...] }
+    const rows = Array.isArray(data) ? data : (data.leaderboardRows || data.result || data.rows || []);
+    
     // Extract ethAddress, sort by accountValue descending, take top N
-    const wallets = data
+    const wallets = rows
       .map((entry: any) => ({
-        ethAddress: entry.ethAddress,
+        ethAddress: entry.ethAddress || entry.address,
         accountValue: parseFloat(entry.accountValue)
       }))
       .filter((w: any) => w.ethAddress && !isNaN(w.accountValue))
