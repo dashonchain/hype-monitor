@@ -1,11 +1,11 @@
 'use client';
 
 import { useState, useEffect, useMemo, memo, useRef } from 'react';
-import { TokenHYPE, TokenBTC, TokenETH } from '@web3icons/react';
-import { useMarketData } from '../hooks/useMarketData';
-import TradingViewChart from '../components/chart/TradingViewChart';
-import { fmtPct, isStale } from '../lib/format';
-import type { Timeframe } from '../types';
+import { TokenSOL, TokenBTC, TokenETH } from '@web3icons/react';
+import { useSolMarketData } from '../../hooks/useSolMarketData';
+import SolTradingViewChart from '../../components/chart/SolTradingViewChart';
+import { fmtPct, isStale } from '../../lib/format';
+import type { Timeframe } from '../../types';
 
 const MF = "ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, monospace";
 const SF = "-apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', Roboto, sans-serif";
@@ -83,7 +83,7 @@ const SignalGauge = memo(function SignalGauge({ data }: { data: any }) {
       <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6">
         <div className="flex items-center gap-5">
           <div style={{ width: 52, height: 52, borderRadius: 14, background: 'rgba(255,255,255,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-            <TokenHYPE style={{ width: 32, height: 32 }} />
+            <TokenSOL style={{ width: 32, height: 32 }} />
           </div>
           <div>
             <div style={{ fontSize: 11, fontWeight: 500, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: '.1em', marginBottom: 4, fontFamily: SF }}>Composite Signal · 17 indicators</div>
@@ -164,7 +164,7 @@ const ChartSection = memo(function ChartSection({ data, tf, show, onToggle }: { 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
       <div style={{ borderRadius: 12, overflow: 'hidden', border: '1px solid rgba(255,255,255,0.06)' }}>
-        <TradingViewChart
+        <SolTradingViewChart
           timeframe={tf as Timeframe}
           srLevels={data.srLevels}
           liqZones={data.liqZones}
@@ -263,7 +263,7 @@ const Panels = memo(function Panels({ data, derivatives }: { data: any; derivati
         <div style={{ fontSize: 11, fontWeight: 500, color: 'rgba(255,255,255,0.35)', textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: 14, fontFamily: SF }}>vs Market</div>
         {hasDom ? (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-            {[{ d: dom[0], I: TokenHYPE, h: '#4ADE80' }, { d: dom[1], I: TokenBTC, h: '#F59E0B' }, { d: dom[2], I: TokenETH, h: '#60A5FA' }].map(c => (
+            {[{ d: dom[0], I: TokenSOL, h: '#4ADE80' }, { d: dom[1], I: TokenBTC, h: '#F59E0B' }, { d: dom[2], I: TokenETH, h: '#60A5FA' }].map(c => (
               <div key={c.d.symbol} style={{ borderRadius: 8, padding: '10px 12px', background: `${c.h}08`, border: `1px solid ${c.h}18` }}>
                 <div className="flex items-center justify-between" style={{ marginBottom: 4 }}>
                   <div className="flex items-center gap-2">
@@ -372,7 +372,7 @@ const AllIndicators = memo(function AllIndicators({ ind, price, tf }: { ind: any
 
 /* ─── MAIN ─── */
 export default function Home() {
-  const { data, derivatives, loading, error, tf, fetchCount, refetch } = useMarketData('4h');
+  const { data, derivatives, loading, error, tf, fetchCount, refetch } = useSolMarketData('4h');
   const [now, setNow] = useState(Date.now());
   const [showLiq, setShowLiq] = useState(false);
   useEffect(() => { const i = setInterval(() => setNow(Date.now()), 1000); return () => clearInterval(i); }, []);
@@ -407,10 +407,10 @@ export default function Home() {
       <header style={{ position: 'sticky', top: 0, zIndex: 50, background: 'rgba(8,12,10,0.85)', backdropFilter: 'blur(20px)', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
         <div style={{ maxWidth: 1200, margin: '0 auto', padding: '0 20px', height: 48, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div className="flex items-center gap-3">
-            <TokenHYPE style={{ width: 22, height: 22, borderRadius: 5 }} />
-            <span style={{ fontSize: 13, fontWeight: 600, fontFamily: SF }}>HYPE</span>
+            <TokenSOL style={{ width: 22, height: 22, borderRadius: 5 }} />
+            <span style={{ fontSize: 13, fontWeight: 600, fontFamily: SF }}>SOL</span>
             <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.3)', fontFamily: SF }}>Monitor</span>
-            <a href="/sol" style={{ fontSize: 11, fontWeight: 500, padding: '3px 10px', borderRadius: 6, color: 'rgba(255,255,255,0.5)', border: '1px solid rgba(255,255,255,0.1)', textDecoration: 'none', fontFamily: SF, marginLeft: 4 }}>SOL →</a>
+            <a href="/" style={{ fontSize: 11, fontWeight: 500, padding: '2px 8px', borderRadius: 999, color: '#FBBF24', border: '1px solid rgba(251,191,36,0.25)', fontFamily: SF, textDecoration: 'none', marginLeft: 4 }}>HYPE →</a>
             <span style={{ fontSize: 9, fontWeight: 500, padding: '2px 8px', borderRadius: 999, color: stale ? '#F87171' : '#4ADE80', border: `1px solid ${stale ? 'rgba(248,113,113,0.2)' : 'rgba(74,222,128,0.2)'}`, fontFamily: SF }}>
               {stale ? `Stale ${tsu}s` : '● Live'}
             </span>
