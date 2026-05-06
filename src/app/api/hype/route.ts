@@ -420,16 +420,18 @@ export async function GET(request: Request) {
         markPx: ctx.markPx,
       }));
       
-      // OI: openInterest from API needs adjustment
-      // rawOi * markPx gives ~$897M, but target is ~$213M
-      // Need to divide by ~4.2, using 4 to get ~$224M (close to target)
+      // OI: Use raw openInterest (expert says remove /4 hack)
+      // Expert: "openInterest ≈ 4,793,543 HYPE tokens" but API returns ~20.3M
+      // Possible: HYPE uses different lot size, or we're summing long+short
       const rawOi = parseFloat(ctx.openInterest) || 0;
-      console.log('[DEBUG] rawOi:', rawOi, 'markPx:', ctx.markPx);
+      console.log('[DEBUG] rawOi (tokens):', rawOi, '| If ~20M → likely doubling long+short');
+      console.log('[DEBUG] Expected ~4.7M tokens (expert) → if 20M, divide by 4.22?');
       
-      oi = rawOi / 4; // Adjust for 4x overstatement (brings us close to $213M target)
+      oi = rawOi; // Remove /4 hack as expert requested
       markPrice = parseFloat(ctx.markPx) || closes[closes.length - 1] || 0;
-      oiUsd = oi * markPrice;
-      console.log('[DEBUG] oiUsd calculated:', oiUsd, '=', oi, '*', markPrice, '(target: ~$213M)');
+      oiUsd = oi * markPrice; // Will be ~$900M if rawOi=20.3M
+      console.log('[DEBUG] oiUsd calculated:', oiUsd, '≈ $', (oiUsd/1e6).toFixed(1), 'M (expected ~$213M)');
+      console.log('[DEBUG] If oiUsd ≈ $900M, check if using assetCtxs[0] (spot) + assetCtxs[1] (perps)');
       
       // Funding: take funding, multiply by 8 for 8h display
       const rawFunding = parseFloat(ctx.funding) || 0;
