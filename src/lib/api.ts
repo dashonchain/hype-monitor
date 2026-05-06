@@ -286,6 +286,8 @@ export async function fetchSmartMoney(markPrice: number): Promise<SmartMoneyData
     longPct: (totalLong / total) * 100,
     shortPct: (totalShort / total) * 100,
     ratio: totalShort > 0 ? totalLong / totalShort : totalLong,
+    signal: totalLong > totalShort * 1.5 ? 'LONGS_DOMINANT' :
+            totalShort > totalLong * 1.5 ? 'SHORTS_DOMINANT' : 'BALANCED',
     sentiment: totalLong > totalShort ? 'BULLISH' : 'BEARISH',
     netUsd: totalLong - totalShort,
     wallets: walletData,

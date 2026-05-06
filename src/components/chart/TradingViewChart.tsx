@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import type { Timeframe } from '../../types';
+import type { Timeframe, SRLevel, LiqZone } from '../../types';
 import { TIMEFRAME_CONFIG } from '../../types';
 
 // Add type declaration for TradingView
@@ -11,67 +11,114 @@ declare global {
   }
 }
 
-interface HypeData {
-  srLevels?: {
-    R1?: number;
-    S1?: number;
-    S2?: number;
-    S3?: number;
-  };
-  liqZones?: {
-    long?: { min: number; max: number };
-    short?: { min: number; max: number };
-  };
-  smartMoneyRatio?: number;
-}
-
 interface Props {
   timeframe: Timeframe;
+  srLevels?: { supports: SRLevel[]; resistances: SRLevel[] };
+  liqZones?: LiqZone[];
+  smartMoneySignal?: string;
 }
 
-export default function TradingViewChart({ timeframe }: Props) {
+export default function TradingViewChart({ timeframe, srLevels, liqZones, smartMoneySignal }: Props) {
   const cfg = TIMEFRAME_CONFIG[timeframe];
   const height = 520;
   const chartContainerRef = useRef<HTMLDivElement>(null);
   const widgetRef = useRef<any>(null);
-  const [hypeData, setHypeData] = useState<HypeData | null>(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(false);
   const [hasChartError, setHasChartError] = useState(false);
 
-  // Fetch S/R levels, liquidation zones, and smart money ratio from API
-  useEffect(() => {
-    const fetchHypeData = async () => {
-      try {
-        const res = await fetch('/api/hype');
-        if (!res.ok) throw new Error('Failed to fetch hype data');
-        const data = await res.json();
-        // Transform API response to component format
-        const transformed: HypeData = {
-          smartMoneyRatio: data.smartMoney?.ratio,
-          srLevels: {
-            R1: data.srLevels?.resistances?.[0]?.price,
-            S1: data.srLevels?.supports?.[0]?.price,
-            S2: data.srLevels?.supports?.[1]?.price,
-            S3: data.srLevels?.supports?.[2]?.price,
-          },
-          liqZones: {
-            long: data.liqZones?.filter((z: any) => z.side === 'long').map((z: any) => ({ min: z.low, max: z.high }))[0],
-            short: data.liqZones?.filter((z: any) => z.side === 'short').map((z: any) => ({ min: z.low, max: z.high }))[0],
-          }
-        };
-        setHypeData(transformed);
-      } catch (err) {
-        console.error('Error fetching hype data:', err);
-        setError(true);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchHypeData();
-  }, []);
+  // Draw S/R horizontal lines and liquidation zone rectangles
+  const drawChartOverlays = (widget: any) => {
+    const chart = widget.chart();
+    if (!chart) return;
 
-  // Initialize TradingView widget and draw overlays when ready
+    try {
+      const visibleRange = chart.getVisibleRange();
+      if (!visibleRange || !visibleRange.from || !visibleRange.to) return;
+
+      // Draw S/R levels as horizontal lines with labels using overrides
+      if (srLevels) {
+        // Resistances (red)
+        srLevels.resistances?.forEach((r: SRLevel, i: number) => {
+          chart.createMultipointShape(
+            [
+              { price: r.price, time: visibleRange.from },
+              { price: r.price, time: visibleRange.to },
+            ],
+            {
+              shape: 'horizontal_line',
+              lock: true,
+              overrides: {
+                linecolor: '#FF6B6B',
+                linewidth: 2,
+                linestyle: 2, // Dashed
+                showLabel: true,
+                text: `R${i + 1} (${r.price.toFixed(2)})`,
+                textcolor: '#FF6B6B',
+                fontsize: 12,
+              },
+            }
+          );
+        });
+
+        // Supports (green)
+        srLevels.supports?.forEach((s: SRLevel, i: number) => {
+          chart.createMultipointShape(
+            [
+              { price: s.price, time: visibleRange.from },
+              { price: s.price, time: visibleRange.to },
+            ],
+            {
+              shape: 'horizontal_line',
+              lock: true,
+              overrides: {
+                linecolor: '#51CF66',
+                linewidth: 2,
+                linestyle: 2, // Dashed
+                showLabel: true,
+                text: `S${i + 1} (${s.price.toFixed(2)})`,
+                textcolor: '#51CF66',
+                fontsize: 12,
+              },
+            }
+          );
+        });
+      }
+
+      // Draw liquidation zones as rectangles
+      if (liqZones) {
+        liqZones.forEach((z: LiqZone) => {
+          const isLong = z.side === 'long';
+          const fillColor = isLong ? 'rgba(81, 207, 102, 0.15)' : 'rgba(255, 107, 107, 0.15)';
+          const borderColor = isLong ? '#51CF66' : '#FF6B6B';
+          const label = isLong ? 'Long Liq' : 'Short Liq';
+
+          chart.createMultipointShape(
+            [
+              { price: z.priceHigh, time: visibleRange.from },
+              { price: z.priceLow, time: visibleRange.to },
+            ],
+            {
+              shape: 'rectangle',
+              lock: true,
+              overrides: {
+                color: fillColor,
+                borderColor: borderColor,
+                borderWidth: 1,
+                showLabel: true,
+                text: `${label} (${z.priceLow.toFixed(2)}-${z.priceHigh.toFixed(2)})`,
+                textcolor: borderColor,
+                fontsize: 10,
+              },
+            }
+          );
+        });
+      }
+    } catch (e) {
+      console.warn('Failed to draw overlays, chart may not be ready:', e);
+    }
+  };
+
+  // Initialize TradingView widget
   useEffect(() => {
     if (!chartContainerRef.current) return;
 
@@ -90,14 +137,14 @@ export default function TradingViewChart({ timeframe }: Props) {
       });
     };
 
-const initWidget = async () => {
+    const initWidget = async () => {
       try {
         await loadTradingViewScript();
         if (!window.TradingView) throw new Error('TradingView not available');
-        
+
         const container = chartContainerRef.current;
         if (!container) return;
-        
+
         // Clean up previous widget instance
         if (widgetRef.current) {
           widgetRef.current.remove();
@@ -122,11 +169,13 @@ const initWidget = async () => {
           onChartReady: () => {
             widgetRef.current = widget;
             drawChartOverlays(widget);
+            setLoading(false);
           },
         });
       } catch (err) {
         console.error('Error initializing TradingView widget:', err);
         setHasChartError(true);
+        setLoading(false);
       }
     };
 
@@ -140,104 +189,24 @@ const initWidget = async () => {
     };
   }, [timeframe, cfg.tvRes]);
 
-  // Draw S/R horizontal lines and liquidation zone rectangles
-  const drawChartOverlays = (widget: any) => {
-    if (!hypeData) return;
-    const chart = widget.chart();
-    if (!chart) return;
-
-    const visibleRange = chart.getVisibleRange();
-
-    // Draw S/R levels as horizontal lines with labels
-    if (hypeData.srLevels) {
-      const srEntries = [
-        { key: 'R1', price: hypeData.srLevels.R1, color: '#FF6B6B', label: 'Resistance' },
-        { key: 'S1', price: hypeData.srLevels.S1, color: '#51CF66', label: 'Support' },
-        { key: 'S2', price: hypeData.srLevels.S2, color: '#51CF66', label: 'Support' },
-        { key: 'S3', price: hypeData.srLevels.S3, color: '#51CF66', label: 'Support' },
-      ];
-
-      srEntries.forEach(({ key, price, color, label }) => {
-        if (price === undefined) return;
-        chart.createMultipointShape(
-          [
-            { price, time: visibleRange.from },
-            { price, time: visibleRange.to },
-          ],
-          {
-            shape: 'horizontal_line',
-            lock: true,
-            color,
-            linewidth: 2,
-            linestyle: 2, // Dashed line
-            text: `${key} (${price.toFixed(2)}) - ${label}`,
-            textcolor: color,
-            fontsize: 12,
-            override: {
-              showLabel: true,
-            },
-          }
-        );
-      });
+  // Redraw overlays when overlay data props change (if widget already ready)
+  useEffect(() => {
+    if (widgetRef.current) {
+      drawChartOverlays(widgetRef.current);
     }
+  }, [srLevels, liqZones]);
 
-    // Draw liquidation zones as rectangles
-    if (hypeData.liqZones) {
-      // Long liquidation zone (green)
-      if (hypeData.liqZones.long) {
-        const { min, max } = hypeData.liqZones.long;
-        chart.createMultipointShape(
-          [
-            { price: max, time: visibleRange.from }, // Top-left corner
-            { price: min, time: visibleRange.to },   // Bottom-right corner
-          ],
-          {
-            shape: 'rectangle',
-            lock: true,
-            color: 'rgba(81, 207, 102, 0.15)', // Semi-transparent green fill
-            borderColor: '#51CF66',
-            borderWidth: 1,
-            text: `Long Liq Zone (${min.toFixed(2)}-${max.toFixed(2)})`,
-            textcolor: '#51CF66',
-            fontsize: 10,
-          }
-        );
-      }
-
-      // Short liquidation zone (red)
-      if (hypeData.liqZones.short) {
-        const { min, max } = hypeData.liqZones.short;
-        chart.createMultipointShape(
-          [
-            { price: max, time: visibleRange.from },
-            { price: min, time: visibleRange.to },
-          ],
-          {
-            shape: 'rectangle',
-            lock: true,
-            color: 'rgba(255, 107, 107, 0.15)', // Semi-transparent red fill
-            borderColor: '#FF6B6B',
-            borderWidth: 1,
-            text: `Short Liq Zone (${min.toFixed(2)}-${max.toFixed(2)})`,
-            textcolor: '#FF6B6B',
-            fontsize: 10,
-          }
-        );
-      }
-    }
-  };
-
-  // Render Crowded Longs/Squeeze badges based on smart money ratio
+  // Render signal badges based on smart money signal
   const renderSmartMoneyBadges = () => {
-    if (!hypeData?.smartMoneyRatio) return null;
-    const ratio = hypeData.smartMoneyRatio;
+    if (!smartMoneySignal) return null;
+
     let badgeText = '';
     let badgeClass = '';
 
-    if (ratio > 1.5) {
+    if (smartMoneySignal === 'LONGS_DOMINANT') {
       badgeText = 'Crowded Longs';
       badgeClass = 'bg-red-500/20 text-red-400 border-red-500/30';
-    } else if (ratio < 0.7) {
+    } else if (smartMoneySignal === 'SHORTS_DOMINANT') {
       badgeText = 'Squeeze Warning';
       badgeClass = 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30';
     }
@@ -253,19 +222,16 @@ const initWidget = async () => {
   };
 
   // Error state
-  if (hasChartError || error) {
+  if (hasChartError) {
     return (
       <div style={{ width: '100%', height }} className="bg-[var(--bg-primary)] flex flex-col items-center justify-center gap-3 relative">
         {renderSmartMoneyBadges()}
         <div className="text-4xl">📊</div>
         <p className="text-[var(--text-secondary)] text-sm font-medium">Chart unavailable</p>
-        <p className="text-[var(--text-muted)] text-xs">
-          {error ? 'Failed to load market data' : 'TradingView widget could not load'}
-        </p>
+        <p className="text-[var(--text-muted)] text-xs">TradingView widget could not load</p>
         <button
           onClick={() => {
             setHasChartError(false);
-            setError(false);
             setLoading(true);
           }}
           className="mt-2 px-4 py-2 bg-[var(--bg-tertiary)] border border-[var(--border-primary)] rounded-lg text-[var(--text-secondary)] text-xs font-medium hover:bg-[var(--bg-surface)] transition"

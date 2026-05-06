@@ -116,7 +116,7 @@ async function fetchSmartMoney(markPrice: number) {
     allSettledResults.push(...batchResults);
   }
 
-  let totalLong = 0, totalShort = 0;
+  let totalLong = 0, totalShort = 0, longCount = 0, shortCount = 0;
   const walletsData: any[] = [];
 
   allSettledResults.forEach((result, idx) => {
@@ -130,8 +130,8 @@ async function fetchSmartMoney(markPrice: number) {
     const leverage = parseFloat(hypePos.position.leverage?.value || 1);
     const sizeUsd = Math.abs(szi) * markPrice;
 
-    if (szi > 0) totalLong += sizeUsd;
-    else totalShort += sizeUsd;
+    if (szi > 0) { totalLong += sizeUsd; longCount++; }
+    else { totalShort += sizeUsd; shortCount++; }
 
     walletsData.push({
       wallet: wallets[idx],
@@ -144,10 +144,14 @@ async function fetchSmartMoney(markPrice: number) {
   if (total === 0) return { longPct: 50, shortPct: 50, ratio: 1, sentiment: 'NEUTRAL', netUsd: 0, wallets: [] };
   
   return {
-    longPct: (totalShort / total) * 100,   // SWAP: expert says labels are reversed
-    shortPct: (totalLong / total) * 100,   // SWAP: longPct should be ~63.7%, shortPct ~36.3%
-    ratio: totalLong > 0 ? totalShort / totalLong : totalShort,
-    sentiment: totalShort > totalLong ? 'BULLISH' : 'BEARISH',  // SWAP: if more short USD, sentiment is bullish (shorts will buy)
+    longPct: (totalLong / total) * 100,
+    shortPct: (totalShort / total) * 100,
+    ratio: totalShort > 0 ? totalLong / totalShort : totalLong,
+    signal: totalLong > totalShort * 1.5 ? 'LONGS_DOMINANT' :
+            totalShort > totalLong * 1.5 ? 'SHORTS_DOMINANT' : 'BALANCED',
+    sentiment: totalLong > totalShort ? 'BULLISH' : 'BEARISH', // keep for backward compat
+    longCount,
+    shortCount,
     netUsd: totalLong - totalShort,
     wallets: walletsData,
   };

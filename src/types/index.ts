@@ -85,6 +85,7 @@ export interface SmartMoneyData {
   longPct: number;
   shortPct: number;
   ratio: number;  // long/short ratio
+  signal?: 'LONGS_DOMINANT' | 'SHORTS_DOMINANT' | 'BALANCED';
   sentiment: 'BULLISH' | 'BEARISH' | 'NEUTRAL';
   netUsd: number;  // positive = net long, negative = net short
   wallets: SmartMoneyWallet[];

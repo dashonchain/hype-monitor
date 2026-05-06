@@ -142,7 +142,7 @@ const KeyMetrics = memo(function KeyMetrics({ data, ind }: { data: any; ind: any
     { l: 'Funding 8h', v: `${data.funding8h >= 0 ? '+' : ''}${data.funding8h.toFixed(4)}%`, s: `Ann. ${data.fundingAnn.toFixed(1)}%`, c: data.funding8h > 0.001 ? '#F87171' : data.funding8h < -0.001 ? '#34D399' : '#9CA3AF', a: Math.abs(data.funding8h) > 0.005 },
     { l: 'ATR (14)', v: `$${ind.atr.toFixed(2)}`, s: `Stop: $${ind.atrStop.toFixed(2)}`, c: '#FBBF24', a: false },
     { l: 'MFI', v: ind.mfi.toFixed(1), s: ind.mfi > 80 ? 'Overbought' : ind.mfi < 20 ? 'Oversold' : 'Neutral', c: ind.mfi > 80 ? '#F87171' : ind.mfi < 20 ? '#34D399' : '#9CA3AF', a: ind.mfi > 80 || ind.mfi < 20 },
-    { l: 'L/S Ratio', v: (data.derivatives?.longShortRatio?.ratio || 0).toFixed(2), s: lsL(data), c: lsC(data), a: false },
+    { l: 'L/S Ratio', v: data.smartMoney?.ratio ? (data.smartMoney?.longPct?.toFixed(1) + '% L / ' + data.smartMoney?.shortPct?.toFixed(1) + '% S') : '—', s: data.smartMoney ? (data.smartMoney.longPct > data.smartMoney.shortPct ? (data.smartMoney.longPct > 65 ? 'Crowded Longs ⚠️' : 'Longs dominant') : data.smartMoney.shortPct > 65 ? 'Squeeze setup 🔥' : 'Shorts dominant') : '—', c: data.smartMoney ? (data.smartMoney.longPct > data.smartMoney.shortPct ? '#34D399' : '#F87171') : '#9CA3AF', a: false },
   ];
   return (
     <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
@@ -165,7 +165,12 @@ const ChartSection = memo(function ChartSection({ data, tf, show, onToggle }: { 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
       <div style={{ borderRadius: 12, overflow: 'hidden', border: '1px solid rgba(255,255,255,0.06)' }}>
-        <TradingViewChart timeframe={tf as Timeframe} />
+        <TradingViewChart
+          timeframe={tf as Timeframe}
+          srLevels={data.srLevels}
+          liqZones={data.liqZones}
+          smartMoneySignal={data.smartMoney?.signal}
+        />
       </div>
       {data.liqZones.length > 0 && (
         <>
@@ -218,10 +223,11 @@ const Panels = memo(function Panels({ data, derivatives }: { data: any; derivati
           const ratio = sm.ratio || 1;
           const longPct = sm.longPct || 50;
           const shortPct = sm.shortPct || 50;
-          const sentiment = sm.sentiment || 'NEUTRAL';
+          const signal = sm.signal || 'BALANCED';
           const netUsd = sm.netUsd || 0;
           const wallets = sm.wallets || [];
-          const accent = sentiment === 'BULLISH' ? '#34D399' : sentiment === 'BEARISH' ? '#F87171' : '#FBBF24';
+          const accent = signal === 'LONGS_DOMINANT' ? '#34D399' : signal === 'SHORTS_DOMINANT' ? '#F87171' : '#9CA3AF';
+          const signalLabel = signal === 'LONGS_DOMINANT' ? 'Longs dominant ▲' : signal === 'SHORTS_DOMINANT' ? 'Shorts dominant ▼' : 'Balanced ◆';
           return (
             <>
               <div style={{ fontSize: 32, fontWeight: 700, fontFamily: MF, color: accent, letterSpacing: '-.02em', marginBottom: 6 }}>{ratio.toFixed(2)}</div>
@@ -233,7 +239,7 @@ const Panels = memo(function Panels({ data, derivatives }: { data: any; derivati
                 <span style={{ fontSize: 12, fontWeight: 600, color: '#F87171', fontFamily: SF }}>S {shortPct.toFixed(1)}%</span>
               </div>
               <div style={{ fontSize: 11, color: accent, fontFamily: SF, marginBottom: 10 }}>
-                {sentiment} — Net: {netUsd >= 0 ? '+' : ''}${(Math.abs(netUsd) / 1e6).toFixed(1)}M
+                {signalLabel} — Net: {netUsd >= 0 ? '+' : ''}${(Math.abs(netUsd) / 1e6).toFixed(1)}M
               </div>
               <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)', fontFamily: SF, marginBottom: 6 }}>Top Whales:</div>
               {wallets.slice(0, 5).map((w: any, i: number) => (
