@@ -208,12 +208,6 @@ async function fetchMetaAndCtxs() {
   const idx = meta.universe.findIndex((a: any) => a.name === 'HYPE');
   if (idx === -1) throw new Error('HYPE not found in universe');
   
-  // === EXPERT REQUEST: FULL CTX DEBUG ===
-  console.log("=== HYPE FULL CTX ===")
-  console.log(JSON.stringify(ctxs[idx], null, 2))
-  console.log("=== HYPE META ===")
-  console.log(JSON.stringify(meta.universe[idx], null, 2))
-  
   return { meta: meta.universe[idx], ctx: ctxs[idx] };
 }
 
@@ -452,28 +446,18 @@ export async function GET(request: Request) {
     if (metaCtxs?.ctx) {
       const ctx = metaCtxs.ctx;
       
-      // DEBUG: Log raw values
-      console.log('[DEBUG] Raw ctx:', JSON.stringify({
-        openInterest: ctx.openInterest,
-        funding: ctx.funding,
-        markPx: ctx.markPx,
-      }));
-      
-      // OI: Hyperliquid returns TWO-SIDED gross OI (longs + shorts)
+      // OI: Hyperliquid returns two-sided gross OI (longs + shorts)
       // Conventional display = one side only → divide by 2
-      // Expert: "/4 hack wrong. /2 is correct divisor for one-sided OI"
       const oi_tokens = parseFloat(ctx.openInterest) || 0;
       markPrice = parseFloat(ctx.markPx) || closes[closes.length - 1] || 0;
-      oi = oi_tokens; // Raw tokens (two-sided)
-      oiUsd = (oi_tokens / 2) * markPrice; // One-sided conventional ~$452M
-      console.log('[DEBUG] OI tokens:', oi_tokens, '× $', markPrice, '= gross $', (oi_tokens * markPrice / 1e6).toFixed(1), 'M | one-sided: $', (oiUsd/1e6).toFixed(1), 'M');
+      oi = oi_tokens;
+      oiUsd = (oi_tokens / 2) * markPrice;
       
-      // Funding: take funding, multiply by 8 for 8h display
+      // Funding: raw rate is per hour, convert to 8h percentage
       const rawFunding = parseFloat(ctx.funding) || 0;
-      fundingRate = rawFunding; // Keep raw funding rate
-      funding8h = fundingRate * 8 * 100; // 8h rate in percentage (0.00005 * 8 * 100 = 0.004%)
-      fundingAnnual = fundingRate * 3 * 365 * 100; // 3 funding periods per day * 365
-      console.log('[DEBUG] fundingRate:', fundingRate, 'funding8h%:', funding8h);
+      fundingRate = rawFunding;
+      funding8h = fundingRate * 8 * 100;
+      fundingAnnual = funding8h * 3 * 365;
       
       prevDayPx = parseFloat(ctx.prevDayPx) || 0;
       vol24h = parseFloat(ctx.dayNtlVlm) || 0;

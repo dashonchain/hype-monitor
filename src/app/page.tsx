@@ -157,8 +157,7 @@ const KeyMetrics = memo(function KeyMetrics({ data, ind }: { data: any; ind: any
     </div>
   );
 });
-function lsL(d: any) { const r = d.derivatives?.longShortRatio?.ratio || 1; return r > 1.05 ? 'Longs dominant' : r < 0.95 ? 'Shorts dominant' : 'Balanced'; }
-function lsC(d: any) { const r = d.derivatives?.longShortRatio?.ratio || 1; return r > 1.05 ? '#34D399' : r < 0.95 ? '#F87171' : '#9CA3AF'; }
+
 
 /* ─── CHART + LIQUIDATION ─── */
 const ChartSection = memo(function ChartSection({ data, tf, show, onToggle }: { data: any; tf: string; show: boolean; onToggle: () => void }) {
