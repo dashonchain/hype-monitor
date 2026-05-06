@@ -1,5 +1,6 @@
 // @ts-nocheck
 import { NextResponse } from 'next/server';
+import { computeSignal } from '../../../lib/signal';
 
 const CACHE_TTL = 30_000;
 let cache: { data: any; timestamp: number; timeframe: string } | null = null;
@@ -546,6 +547,11 @@ export async function GET(request: Request) {
       cached: false,
       errors,
     };
+
+    // Compute composite signal
+    const signal = computeSignal(response as any);
+
+    response.signal = signal;
 
     cache = { data: response, timestamp: Date.now(), timeframe };
     return NextResponse.json(response);
