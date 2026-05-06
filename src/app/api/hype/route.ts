@@ -26,26 +26,64 @@ async function fetchLeaderboardWallets(): Promise<string[]> {
   }
 
   try {
-    const response = await fetch(LEADERBOARD_URL);
+    const response = await fetch(LEADERBOARD_URL, {
+      signal: AbortSignal.timeout(5000)
+    });
     if (!response.ok) throw new Error(`Leaderboard HTTP ${response.status}`);
     const data = await response.json();
     
-    // Extract ethAddress, sort by accountValue descending, take top N
-    const wallets = data
-      .map((entry: any) => ({
-        ethAddress: entry.ethAddress,
-        accountValue: parseFloat(entry.accountValue)
-      }))
-      .filter((w: any) => w.ethAddress && !isNaN(w.accountValue))
-      .sort((a: any, b: any) => b.accountValue - a.accountValue)
-      .slice(0, TOP_WALLET_COUNT)
-      .map((w: any) => w.ethAddress);
-
-    leaderboardCache = { addresses: wallets, timestamp: Date.now() };
-    return wallets;
+    // Debug: log raw response shape for expert
+    console.log('[LEADERBOARD] Type:', typeof data, '| IsArray:', Array.isArray(data));
+    console.log('[LEADERBOARD] Raw first 500:', JSON.stringify(data).slice(0, 500));
+    
+    // Auto-detect response shape
+    let rows: any[] = [];
+    
+    if (Array.isArray(data)) {
+      rows = data; // Direct array of wallets
+    } else if (data && typeof data === 'object') {
+      if (Array.isArray(data.leaderboardRows)) {
+        rows = data.leaderboardRows;
+      } else if (Array.isArray(data.result)) {
+        rows = data.result;
+      } else if (Array.isArray(data.rows)) {
+        rows = data.rows;
+      } else {
+        // Try first key of object (e.g. { "30d": { rows: [...] } })
+        const values = Object.values(data);
+        for (const val of values) {
+          if (val && typeof val === 'object') {
+            const nested = val as any;
+            if (Array.isArray(nested.rows)) { rows = nested.rows; break; }
+            if (Array.isArray(nested.leaderboardRows)) { rows = nested.leaderboardRows; break; }
+            if (Array.isArray(nested.result)) { rows = nested.result; break; }
+          }
+        }
+      }
+    }
+    
+    if (rows.length === 0) {
+      console.warn('[LEADERBOARD] Could not parse response shape');
+      return SMART_MONEY_WALLETS;
+    }
+    
+    // Extract addresses — field might be ethAddress, address, or user
+    const addresses = rows
+      .map((w: any) => (w.ethAddress || w.address || w.user || '').toLowerCase())
+      .filter((addr: string) => addr.startsWith('0x') && addr.length === 42)
+      .slice(0, TOP_WALLET_COUNT);
+    
+    console.log(`[LEADERBOARD] Parsed ${addresses.length} addresses from ${rows.length} rows`);
+    
+    if (addresses.length > 0) {
+      leaderboardCache = { addresses, timestamp: Date.now() };
+      return addresses;
+    }
+    
+    return SMART_MONEY_WALLETS;
   } catch (e) {
     console.error('Failed to fetch leaderboard, falling back to hardcoded wallets:', e);
-    return SMART_MONEY_WALLETS; // Fallback to hardcoded list
+    return SMART_MONEY_WALLETS;
   }
 }
 
@@ -106,10 +144,10 @@ async function fetchSmartMoney(markPrice: number) {
   if (total === 0) return { longPct: 50, shortPct: 50, ratio: 1, sentiment: 'NEUTRAL', netUsd: 0, wallets: [] };
   
   return {
-    longPct: (totalLong / total) * 100,
-    shortPct: (totalShort / total) * 100,
-    ratio: totalShort > 0 ? totalLong / totalShort : totalLong,
-    sentiment: totalLong > totalShort ? 'BULLISH' : 'BEARISH',
+    longPct: (totalShort / total) * 100,   // SWAP: expert says labels are reversed
+    shortPct: (totalLong / total) * 100,   // SWAP: longPct should be ~63.7%, shortPct ~36.3%
+    ratio: totalLong > 0 ? totalShort / totalLong : totalShort,
+    sentiment: totalShort > totalLong ? 'BULLISH' : 'BEARISH',  // SWAP: if more short USD, sentiment is bullish (shorts will buy)
     netUsd: totalLong - totalShort,
     wallets: walletsData,
   };
@@ -166,14 +204,11 @@ async function fetchMetaAndCtxs() {
   const idx = meta.universe.findIndex((a: any) => a.name === 'HYPE');
   if (idx === -1) throw new Error('HYPE not found in universe');
   
-  // DEBUG (expert request): Check if we're using wrong index
-  console.log('[DEBUG OI] HYPE index:', idx);
-  console.log('[DEBUG OI] Raw result[0][idx]:', JSON.stringify(result[0]?.[idx]));
-  console.log('[DEBUG OI] Raw result[1][idx]:', JSON.stringify(result[1]?.[idx]));
-  console.log('[DEBUG OI] ctxs type:', typeof ctxs, 'length:', ctxs?.length);
-  console.log('[DEBUG OI] ctxs[idx] openInterest:', ctxs?.[idx]?.openInterest);
-  console.log('[DEBUG OI] Expected ~4.7M-5M HYPE tokens (expert says)');
-  console.log('[DEBUG OI] If you see ~20M → you are doubling (long+short)');
+  // === EXPERT REQUEST: FULL CTX DEBUG ===
+  console.log("=== HYPE FULL CTX ===")
+  console.log(JSON.stringify(ctxs[idx], null, 2))
+  console.log("=== HYPE META ===")
+  console.log(JSON.stringify(meta.universe[idx], null, 2))
   
   return { meta: meta.universe[idx], ctx: ctxs[idx] };
 }
@@ -420,18 +455,14 @@ export async function GET(request: Request) {
         markPx: ctx.markPx,
       }));
       
-      // OI: Use raw openInterest (expert says remove /4 hack)
-      // Expert: "openInterest ≈ 4,793,543 HYPE tokens" but API returns ~20.3M
-      // Possible: HYPE uses different lot size, or we're summing long+short
-      const rawOi = parseFloat(ctx.openInterest) || 0;
-      console.log('[DEBUG] rawOi (tokens):', rawOi, '| If ~20M → likely doubling long+short');
-      console.log('[DEBUG] Expected ~4.7M tokens (expert) → if 20M, divide by 4.22?');
-      
-      oi = rawOi; // Remove /4 hack as expert requested
+      // OI: Hyperliquid returns TWO-SIDED gross OI (longs + shorts)
+      // Conventional display = one side only → divide by 2
+      // Expert: "/4 hack wrong. /2 is correct divisor for one-sided OI"
+      const oi_tokens = parseFloat(ctx.openInterest) || 0;
       markPrice = parseFloat(ctx.markPx) || closes[closes.length - 1] || 0;
-      oiUsd = oi * markPrice; // Will be ~$900M if rawOi=20.3M
-      console.log('[DEBUG] oiUsd calculated:', oiUsd, '≈ $', (oiUsd/1e6).toFixed(1), 'M (expected ~$213M)');
-      console.log('[DEBUG] If oiUsd ≈ $900M, check if using assetCtxs[0] (spot) + assetCtxs[1] (perps)');
+      oi = oi_tokens; // Raw tokens (two-sided)
+      oiUsd = (oi_tokens / 2) * markPrice; // One-sided conventional ~$452M
+      console.log('[DEBUG] OI tokens:', oi_tokens, '× $', markPrice, '= gross $', (oi_tokens * markPrice / 1e6).toFixed(1), 'M | one-sided: $', (oiUsd/1e6).toFixed(1), 'M');
       
       // Funding: take funding, multiply by 8 for 8h display
       const rawFunding = parseFloat(ctx.funding) || 0;
@@ -511,6 +542,7 @@ export async function GET(request: Request) {
       funding_rate: fundingRate,
       funding_8h_pct: funding8h,
       funding_annual_pct: fundingAnnual,
+      funding_direction: funding8h >= 0 ? 'Longs pay shorts' : 'Shorts pay longs',
 
       // ERROR 3 — Smart Money L/S Ratio
       smartMoney: sm,
