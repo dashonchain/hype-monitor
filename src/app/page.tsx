@@ -165,7 +165,7 @@ const ChartSection = memo(function ChartSection({ data, tf, show, onToggle }: { 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
       <div style={{ borderRadius: 12, overflow: 'hidden', border: '1px solid rgba(255,255,255,0.06)' }}>
-        <TradingViewChart timeframe={tf as Timeframe} srLevels={data?.srLevels} liqZones={data?.liqZones || []} />
+        <TradingViewChart timeframe={tf as Timeframe} />
       </div>
       {data.liqZones.length > 0 && (
         <>
@@ -325,91 +325,7 @@ const Panels = memo(function Panels({ data, derivatives }: { data: any; derivati
   );
 });
 
-/* ─── TRADE DROPDOWN ─── */
-const TRADE_PLATFORMS = [
-  {
-    id: 'variational',
-    name: 'Variational Omni',
-    desc: 'Zero-fee perps DEX. Deep liquidity, self-custody.',
-    url: 'https://omni.variational.io/?ref=OMNIDASH',
-    logo: '/variational-logo.svg',
-    color: '#4ADE80',
-    stats: [
-      { l: 'Fees', v: '0%' },
-      { l: 'Leverage', v: '50x' },
-      { l: 'Markets', v: '450+' },
-      { l: 'Volume', v: '$42B+' },
-    ],
-    perks: ['Zero fees', 'No KYC', 'Self-custody', 'Deep liquidity'],
-  },
-];
-
-const TradeDropdown = memo(function TradeDropdown({ signal }: { signal: string }) {
-  const [open, setOpen] = useState(false);
-  const ref = useRef<HTMLDivElement>(null);
-  const bull = signal === 'strong_buy' || signal === 'buy';
-  const bear = signal === 'strong_sell' || signal === 'sell';
-  const sc = bull ? '#34D399' : bear ? '#F87171' : '#9CA3AF';
-  const cta = bull ? 'Go Long →' : bear ? 'Go Short →' : 'Trade →';
-
-  useEffect(() => {
-    const handler = (e: MouseEvent) => { if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false); };
-    document.addEventListener('mousedown', handler);
-    return () => document.removeEventListener('mousedown', handler);
-  }, []);
-
-  return (
-    <div ref={ref} style={{ position: 'relative' }}>
-      <button onClick={() => setOpen(o => !o)}
-        style={{ padding: '5px 12px', borderRadius: 6, border: `1px solid ${open ? sc + '40' : 'rgba(255,255,255,0.1)'}`, background: open ? sc + '10' : 'rgba(255,255,255,0.04)', fontSize: 11, fontWeight: 600, color: open ? sc : 'rgba(255,255,255,0.6)', cursor: 'pointer', fontFamily: SF, display: 'flex', alignItems: 'center', gap: 6, transition: 'all .15s' }}>
-        Trade
-        <svg width="10" height="10" viewBox="0 0 10 10" style={{ transform: open ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform .15s' }}>
-          <path d="M2 3.5L5 6.5L8 3.5" stroke="currentColor" strokeWidth="1.5" fill="none" strokeLinecap="round" />
-        </svg>
-      </button>
-
-      {open && (
-        <div style={{ position: 'absolute', top: 'calc(100% + 6px)', left: 0, width: 520, borderRadius: 12, background: 'rgba(12,16,14,0.98)', border: '1px solid rgba(255,255,255,0.08)', boxShadow: '0 8px 32px rgba(0,0,0,0.5)', zIndex: 100, padding: '16px' }}>
-          <div style={{ fontSize: 12, fontWeight: 600, fontFamily: SF, color: '#fff', marginBottom: 4 }}>Trade HYPE</div>
-          <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.35)', fontFamily: SF, marginBottom: 12 }}>
-            Signal: <span style={{ color: sc, fontWeight: 600 }}>{signal.replace('_', ' ')}</span>
-          </div>
-
-          {TRADE_PLATFORMS.map(p => (
-            <a key={p.id} href={p.url} target="_blank" rel="noopener noreferrer"
-              style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px', borderRadius: 8, background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)', textDecoration: 'none', color: 'inherit' }}
-              onMouseEnter={e => { e.currentTarget.style.borderColor = p.color + '30'; e.currentTarget.style.background = 'rgba(255,255,255,0.04)'; }}
-              onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.06)'; e.currentTarget.style.background = 'rgba(255,255,255,0.02)'; }}>
-              <div style={{ width: 40, height: 40, borderRadius: 8, background: 'rgba(255,255,255,0.04)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                <img src={p.logo} alt={p.name} style={{ width: 24, height: 'auto' }} />
-              </div>
-              <div style={{ flex: 1 }}>
-                <div style={{ fontSize: 12, fontWeight: 600, fontFamily: SF, color: '#fff', marginBottom: 1 }}>{p.name}</div>
-                <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)', fontFamily: SF, marginBottom: 4 }}>{p.desc}</div>
-                <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap' }}>
-                  {p.perks.map(k => (
-                    <span key={k} style={{ fontSize: 8, fontWeight: 500, padding: '1px 6px', borderRadius: 3, background: p.color + '12', color: p.color, fontFamily: SF }}>{k}</span>
-                  ))}
-                </div>
-              </div>
-              <div style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
-                {p.stats.map(s => (
-                  <div key={s.l} style={{ textAlign: 'center' }}>
-                    <div style={{ fontSize: 12, fontWeight: 700, fontFamily: MF, color: '#fff' }}>{s.v}</div>
-                    <div style={{ fontSize: 8, color: 'rgba(255,255,255,0.25)', fontFamily: SF }}>{s.l}</div>
-                  </div>
-                ))}
-              </div>
-              <div style={{ padding: '6px 12px', borderRadius: 6, background: sc + '15', color: sc, fontSize: 10, fontWeight: 600, fontFamily: SF, flexShrink: 0 }}>
-                {cta}
-              </div>
-            </a>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-});
+/* ─── SIGNAL GAUGE ─── */
 
 /* ─── ALL INDICATORS ─── */
 const AllIndicators = memo(function AllIndicators({ ind, price, tf }: { ind: any; price: number; tf: string }) {
@@ -491,7 +407,6 @@ export default function Home() {
             <TokenHYPE style={{ width: 22, height: 22, borderRadius: 5 }} />
             <span style={{ fontSize: 13, fontWeight: 600, fontFamily: SF }}>HYPE</span>
             <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.3)', fontFamily: SF }}>Monitor</span>
-            <TradeDropdown signal={data.signal.display} />
             <span style={{ fontSize: 9, fontWeight: 500, padding: '2px 8px', borderRadius: 999, color: stale ? '#F87171' : '#4ADE80', border: `1px solid ${stale ? 'rgba(248,113,113,0.2)' : 'rgba(74,222,128,0.2)'}`, fontFamily: SF }}>
               {stale ? `Stale ${tsu}s` : '● Live'}
             </span>
