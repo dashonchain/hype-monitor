@@ -165,6 +165,16 @@ async function fetchMetaAndCtxs() {
   }
   const idx = meta.universe.findIndex((a: any) => a.name === 'HYPE');
   if (idx === -1) throw new Error('HYPE not found in universe');
+  
+  // DEBUG (expert request): Check if we're using wrong index
+  console.log('[DEBUG OI] HYPE index:', idx);
+  console.log('[DEBUG OI] Raw result[0][idx]:', JSON.stringify(result[0]?.[idx]));
+  console.log('[DEBUG OI] Raw result[1][idx]:', JSON.stringify(result[1]?.[idx]));
+  console.log('[DEBUG OI] ctxs type:', typeof ctxs, 'length:', ctxs?.length);
+  console.log('[DEBUG OI] ctxs[idx] openInterest:', ctxs?.[idx]?.openInterest);
+  console.log('[DEBUG OI] Expected ~4.7M-5M HYPE tokens (expert says)');
+  console.log('[DEBUG OI] If you see ~20M → you are doubling (long+short)');
+  
   return { meta: meta.universe[idx], ctx: ctxs[idx] };
 }
 
