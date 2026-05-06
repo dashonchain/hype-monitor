@@ -471,6 +471,9 @@ export async function GET(request: Request) {
     const response: any = {
       // Price
       price: markPrice,
+      change24h,
+      change7d: 0,
+      change30d: 0,
       price_change: {
         '24h': change24h.toFixed(2),
         '7d': '0',
