@@ -349,6 +349,140 @@ function calcRSI(closes: number[], period = 14): number[] {
   return rsi;
 }
 
+// ─── Calculate VWAP ───
+function calcVWAP(highs: number[], lows: number[], closes: number[], volumes: number[]): number {
+  if (closes.length === 0) return 0;
+  let cumTPV = 0, cumVol = 0;
+  for (let i = 0; i < closes.length; i++) {
+    const tp = (highs[i] + lows[i] + closes[i]) / 3;
+    cumTPV += tp * volumes[i];
+    cumVol += volumes[i];
+  }
+  return cumVol > 0 ? cumTPV / cumVol : closes[closes.length - 1];
+}
+
+// ─── Calculate ATR ───
+function calcATR(highs: number[], lows: number[], closes: number[], period = 14): { atr: number; atrStop: number } {
+  if (closes.length < period + 1) return { atr: 0, atrStop: 0 };
+  const trs: number[] = [];
+  for (let i = 1; i < closes.length; i++) {
+    const tr = Math.max(highs[i] - lows[i], Math.abs(highs[i] - closes[i - 1]), Math.abs(lows[i] - closes[i - 1]));
+    trs.push(tr);
+  }
+  if (trs.length < period) return { atr: 0, atrStop: 0 };
+  let atr = trs.slice(0, period).reduce((a, b) => a + b, 0) / period;
+  for (let i = period; i < trs.length; i++) {
+    atr = (atr * (period - 1) + trs[i]) / period;
+  }
+  const lastClose = closes[closes.length - 1];
+  return { atr, atrStop: lastClose - atr * 2 };
+}
+
+// ─── Calculate MFI ───
+function calcMFI(highs: number[], lows: number[], closes: number[], volumes: number[], period = 14): number {
+  if (closes.length < period + 1) return 50;
+  const mfs: number[] = [];
+  for (let i = 1; i < closes.length; i++) {
+    const tp = (highs[i] + lows[i] + closes[i]) / 3;
+    const mf = tp * volumes[i];
+    mfs.push({ mf, positive: closes[i] > closes[i - 1] });
+  }
+  if (mfs.length < period) return 50;
+  const slice = mfs.slice(mfs.length - period);
+  const posMF = slice.filter(m => m.positive).reduce((a, m) => a + m.mf, 0);
+  const negMF = slice.filter(m => !m.positive).reduce((a, m) => a + m.mf, 0);
+  if (negMF === 0) return 100;
+  const mfr = posMF / negMF;
+  return 100 - 100 / (1 + mfr);
+}
+
+// ─── Calculate Stochastic ───
+function calcStochastic(highs: number[], lows: number[], closes: number[], kPeriod = 14, dPeriod = 3): { k: number; d: number } {
+  if (closes.length < kPeriod) return { k: 50, d: 50 };
+  const slice = closes.slice(-kPeriod);
+  const highSlice = highs.slice(-kPeriod);
+  const lowSlice = lows.slice(-kPeriod);
+  const highest = Math.max(...highSlice);
+  const lowest = Math.min(...lowSlice);
+  const lastClose = closes[closes.length - 1];
+  const k = highest === lowest ? 50 : ((lastClose - lowest) / (highest - lowest)) * 100;
+  // Simple D = average of last 3 K values
+  const ks: number[] = [];
+  for (let i = Math.max(0, closes.length - dPeriod); i < closes.length; i++) {
+    const h = Math.max(...highs.slice(Math.max(0, i - kPeriod + 1), i + 1));
+    const l = Math.min(...lows.slice(Math.max(0, i - kPeriod + 1), i + 1));
+    ks.push(h === l ? 50 : ((closes[i] - l) / (h - l)) * 100);
+  }
+  const d = ks.length > 0 ? ks.reduce((a, b) => a + b, 0) / ks.length : k;
+  return { k, d };
+}
+
+// ─── Calculate KDJ ───
+function calcKDJ(highs: number[], lows: number[], closes: number[], period = 9): { k: number; d: number; j: number } {
+  if (closes.length < period) return { k: 50, d: 50, j: 50 };
+  const stoch = calcStochastic(highs, lows, closes, period, 3);
+  const k = stoch.k;
+  const d = stoch.d;
+  const j = 3 * k - 2 * d;
+  return { k, d, j };
+}
+
+// ─── Calculate CCI ───
+function calcCCI(highs: number[], lows: number[], closes: number[], period = 20): number {
+  if (closes.length < period) return 0;
+  const slice = closes.slice(-period);
+  const tp = slice.map((c, i) => (highs[closes.length - period + i] + lows[closes.length - period + i] + c) / 3);
+  const mean = tp.reduce((a, b) => a + b, 0) / tp.length;
+  const meanDev = tp.reduce((a, v) => a + Math.abs(v - mean), 0) / tp.length;
+  if (meanDev === 0) return 0;
+  return (tp[tp.length - 1] - mean) / (0.015 * meanDev);
+}
+
+// ─── Calculate Bollinger Bands %B ───
+function calcBBPercentB(closes: number[], period = 20, numStd = 2): number {
+  if (closes.length < period) return 0.5;
+  const slice = closes.slice(-period);
+  const mean = slice.reduce((a, b) => a + b, 0) / slice.length;
+  const std = Math.sqrt(slice.reduce((a, v) => a + (v - mean) ** 2, 0) / slice.length);
+  const upper = mean + numStd * std;
+  const lower = mean - numStd * std;
+  if (upper === lower) return 0.5;
+  return (closes[closes.length - 1] - lower) / (upper - lower);
+}
+
+// ─── Calculate Williams %R ───
+function calcWilliamsR(highs: number[], lows: number[], closes: number[], period = 14): number {
+  if (closes.length < period) return -50;
+  const highest = Math.max(...highs.slice(-period));
+  const lowest = Math.min(...lows.slice(-period));
+  if (highest === lowest) return -50;
+  return ((highest - closes[closes.length - 1]) / (highest - lowest)) * -100;
+}
+
+// ─── Calculate StochRSI ───
+function calcStochRSI(closes: number[], rsiPeriod = 14, stochPeriod = 14): number {
+  const rsiArr = calcRSI(closes, rsiPeriod);
+  if (rsiArr.length < stochPeriod) return 0.5;
+  const slice = rsiArr.slice(-stochPeriod);
+  const highest = Math.max(...slice);
+  const lowest = Math.min(...slice);
+  if (highest === lowest) return 0.5;
+  return (rsiArr[rsiArr.length - 1] - lowest) / (highest - lowest);
+}
+
+// ─── Calculate OBV Trend ───
+function calcOBVTrend(closes: number[], volumes: number[]): string {
+  if (closes.length < 2) return 'flat';
+  let obv = 0;
+  for (let i = 1; i < closes.length; i++) {
+    if (closes[i] > closes[i - 1]) obv += volumes[i];
+    else if (closes[i] < closes[i - 1]) obv -= volumes[i];
+  }
+  if (obv > 0) return 'rising';
+  if (obv < 0) return 'falling';
+  return 'flat';
+}
+
 // ─── Build OHLCV arrays from HL candles ───
 function parseCandles(candles: any[]) {
   const ts: number[] = [];
@@ -414,6 +548,18 @@ export async function GET(request: Request) {
     const rsiArr = calcRSI(closes, 14);
     const macd = calcMACD(closes, 12, 26, 9);
     const srLevels = calculateSR(candlesRaw || []);
+
+    // Advanced indicators
+    const vwap = calcVWAP(highs, lows, closes, volumes);
+    const atrResult = calcATR(highs, lows, closes, 14);
+    const mfi = calcMFI(highs, lows, closes, volumes, 14);
+    const stoch = calcStochastic(highs, lows, closes, 14, 3);
+    const kdj = calcKDJ(highs, lows, closes, 9);
+    const cci = calcCCI(highs, lows, closes, 20);
+    const bbPercentB = calcBBPercentB(closes, 20, 2);
+    const williamsR = calcWilliamsR(highs, lows, closes, 14);
+    const stochRsi = calcStochRSI(closes, 14, 14);
+    const obvTrend = calcOBVTrend(closes, volumes);
     
     // Liquidation zones (audit PART 2)
     const liqZones = [
@@ -493,15 +639,26 @@ export async function GET(request: Request) {
       max_supply: null,
       ath: 293.31,
 
-      // Indicators (SMA, RSI, MACD)
+      // Indicators (SMA, RSI, MACD + advanced)
       indicators: {
         sma10: sma10Val, sma20: sma20Val, sma50: sma50Val,
         rsi14: rsiVal, macd: macdLineVal, macdSignal: macdSignalVal, macdHist: macdHistVal,
+        vwap, atr: atrResult.atr, atrStop: atrResult.atrStop,
+        mfi, stochK: stoch.k, stochD: stoch.d,
+        kdjK: kdj.k, kdjD: kdj.d, kdjJ: kdj.j,
+        cci, bbPercentB, williamsR, stochRsi, obvTrend,
       },
       sma10: sma10Val,
       sma20: sma20Val,
       sma50: sma50Val,
       rsi: rsiVal,
+      macd_histogram: macdHistVal,
+      macd_line: macdLineVal,
+      macd_signal: macdSignalVal,
+      vwap, atr: atrResult.atr, atrStop: atrResult.atrStop,
+      mfi, stochK: stoch.k, stochD: stoch.d,
+      kdjK: kdj.k, kdjD: kdj.d, kdjJ: kdj.j,
+      cci, bbPercentB, williamsR, stochRsi, obvTrend,
       macd_histogram: macdHistVal,
       macd_line: macdLineVal,
       macd_signal: macdSignalVal,
@@ -539,8 +696,10 @@ export async function GET(request: Request) {
       open_interest: oi > 0 ? { usd: oiUsd, tokens: oi } : null,
       funding_rate: fundingRate,
       funding_8h_pct: funding8h,
+      funding8h,
       funding_annual_pct: fundingAnnual,
       funding_direction: funding8h >= 0 ? 'Longs pay shorts' : 'Shorts pay longs',
+      fundingDirection: funding8h >= 0 ? 'Longs pay shorts' : 'Shorts pay longs',
 
       // ERROR 3 — Smart Money L/S Ratio
       smartMoney: sm,
