@@ -6,7 +6,9 @@ const SF = "-apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', Rob
 
 async function fetchSolData() {
   try {
-    const res = await fetch(`${process.env.NEXT_PUBLIC_VERCEL_URL || 'https://hype-monitor-two.vercel.app'}/api/sol?timeframe=4h`, {
+    // Use absolute URL with fallback for server-side fetch
+    const baseUrl = process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : (process.env.NEXT_PUBLIC_VERCEL_URL || 'http://localhost:3000');
+    const res = await fetch(`${baseUrl}/api/sol?timeframe=4h`, {
       cache: 'no-store',
     });
     if (!res.ok) throw new Error(`API ${res.status}`);
