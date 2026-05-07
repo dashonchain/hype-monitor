@@ -16,9 +16,10 @@ interface Props {
   srLevels?: { supports: SRLevel[]; resistances: SRLevel[] };
   liqZones?: LiqZone[];
   smartMoneySignal?: string;
+  symbol?: string;
 }
 
-export default function TradingViewChart({ timeframe, srLevels, liqZones, smartMoneySignal }: Props) {
+export default function TradingViewChart({ timeframe, srLevels, liqZones, smartMoneySignal, symbol = 'KUCOIN:HYPEUSDT' }: Props) {
   const cfg = TIMEFRAME_CONFIG[timeframe];
   const height = 520;
   const chartContainerRef = useRef<HTMLDivElement>(null);
@@ -165,7 +166,7 @@ export default function TradingViewChart({ timeframe, srLevels, liqZones, smartM
 
         const widget = new window.TradingView.widget({
           container_id: container.id,
-          symbol: 'KUCOIN:HYPEUSDT',
+          symbol,
           interval: cfg.tvRes,
           timezone: 'Etc/UTC',
           theme: 'dark',
