@@ -713,14 +713,64 @@ export async function GET(request: Request) {
       errors,
     };
 
-    // Compute composite signal (simplified — full indicators not available in this route)
-    const signal = {
-      action: 'neutral' as const,
-      display: 'NEUTRAL',
-      score: 50,
-      summary: 'Loading indicators...',
-      buy: 0, sell: 0, neutral: 1,
+    // Compute composite signal (null-safe)
+    const sn = (v: any) => (v != null && !isNaN(Number(v))) ? Number(v) : 0;
+    const sp = markPrice;
+    const si = {
+      sma10: sn(sma10Val), sma20: sn(sma20Val), sma50: sn(sma50Val),
+      rsi14: sn(rsiVal), macdHist: sn(macdHistVal),
+      stochK: sn(stoch.k), kdjJ: sn(kdj.j), cci: sn(cci),
+      bbPercentB: sn(bbPercentB), williamsR: sn(williamsR),
+      mfi: sn(mfi), stochRsi: sn(stochRsi), obvTrend,
+      vwap: sn(vwap), atr: sn(atrResult.atr),
     };
+    const smSignal = sm ? (sm.signal || 'BALANCED') : 'BALANCED';
+    let buy = 0, sell = 0, neutral = 0;
+    // SMA
+    if (sp > si.sma10) buy++; else sell++;
+    if (sp > si.sma20) buy++; else sell++;
+    if (sp > si.sma50) buy++; else sell++;
+    if (si.sma10 > si.sma20) buy++; else sell++;
+    if (si.sma20 > si.sma50) buy++; else sell++;
+    // RSI
+    if (si.rsi14 < 30) buy += 2; else if (si.rsi14 > 70) sell += 2; else if (si.rsi14 > 50) buy++; else sell++;
+    neutral++;
+    // MACD
+    if (si.macdHist > 0) buy++; else sell++;
+    // Stoch
+    if (si.stochK < 20) buy++; else if (si.stochK > 80) sell++; else neutral++;
+    // KDJ
+    if (si.kdjJ < 20) buy++; else if (si.kdjJ > 80) sell++; else neutral++;
+    // CCI
+    if (si.cci < -100) buy++; else if (si.cci > 100) sell++; else neutral++;
+    // BB
+    if (si.bbPercentB < 0) buy++; else if (si.bbPercentB > 1) sell++; else neutral++;
+    // Funding
+    if (funding8h < 0) buy++; else if (funding8h > 0.01) neutral++; else buy++;
+    // VWAP
+    if (sp > si.vwap) buy++; else sell++;
+    // Williams
+    if (si.williamsR < -80) buy++; else if (si.williamsR > -20) sell++; else neutral++;
+    // MFI
+    if (si.mfi < 20) buy += 2; else if (si.mfi > 80) sell += 2; else if (si.mfi > 50) buy++; else sell++;
+    // StochRSI
+    if (si.stochRsi < 0.2) buy++; else if (si.stochRsi > 0.8) sell++; else neutral++;
+    // OBV
+    if (si.obvTrend === 'rising') buy++; else if (si.obvTrend === 'falling') sell++; else neutral++;
+    // Smart Money
+    if (smSignal === 'LONGS_DOMINANT') buy++; else if (smSignal === 'SHORTS_DOMINANT') sell++; else neutral++;
+
+    const total = buy + sell + neutral;
+    const score = total > 0 ? Math.round((buy + neutral * 0.5) / total * 100) : 50;
+    let action: 'strong_buy' | 'buy' | 'neutral' | 'sell' | 'strong_sell' = 'neutral';
+    let display = 'NEUTRAL';
+    let summary = 'Mixed signals';
+    if (score >= 75) { action = 'strong_buy'; display = 'STRONG BUY'; summary = 'Strong bullish momentum'; }
+    else if (score >= 58) { action = 'buy'; display = 'BUY'; summary = 'Bullish bias'; }
+    else if (score <= 25) { action = 'strong_sell'; display = 'STRONG SELL'; summary = 'Strong bearish momentum'; }
+    else if (score <= 42) { action = 'sell'; display = 'SELL'; summary = 'Bearish bias'; }
+
+    const signal = { action, display, score, summary, buy, sell, neutral };
 
     response.signal = signal;
 
